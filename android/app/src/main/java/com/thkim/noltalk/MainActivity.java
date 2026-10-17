@@ -139,7 +139,7 @@ public class MainActivity extends Activity {
                     }
                     @Override
                     public void onError(GetCredentialException e) {
-                        if (e instanceof GetCredentialCancellationException) sendGoogleResult(null, "취소했어요");
+                        if (e instanceof GetCredentialCancellationException) sendGoogleResult(null, e.getMessage() == null ? "취소했어요" : "취소됨: " + e.getMessage());
                         else sendGoogleResult(null, "구글 로그인 실패: " + e.getClass().getSimpleName() + " " + e.getMessage());
                     }
                 });

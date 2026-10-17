@@ -346,8 +346,10 @@ const gErr = e => ({ 'auth/operation-not-allowed':'구글 로그인이 아직 �
 // 실패 원인을 캡처할 수 있게 팝업으로 보여줌
 function showGErr(e){
   const msg = gErr(e);
-  if (/취소/.test(msg) || e.code === 'auth/popup-closed-by-user') return toast(msg);
-  alert(msg + '\n\n[자세한 내용]\n' + (e.code || '') + ' ' + (e.message || ''));
+  if (e.message === '취소했어요' || e.code === 'auth/popup-closed-by-user') return toast(msg);
+  const hint = /reauth|16\]|10\]|DEVELOPER_ERROR|configur/i.test(e.message || '')
+    ? '\n\n💡 SHA-1 등록이 아직 구글 서버에 반영되지 않았을 가능성이 커요. 10분쯤 뒤 다시 시도해 보세요.' : '';
+  alert(msg + hint + '\n\n[자세한 내용]\n' + (e.code || '') + ' ' + (e.message || ''));
 }
 function updateAccountUI(){ $('#acctBanner').style.display = auth.currentUser?.isAnonymous ? 'flex' : 'none'; }
 
