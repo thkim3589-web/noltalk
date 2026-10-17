@@ -343,6 +343,12 @@ function nativeGoogleCred(){
 }
 const gErr = e => ({ 'auth/operation-not-allowed':'구글 로그인이 아직 꺼져 있어요 (Firebase 설정 필요)', 'auth/popup-closed-by-user':'로그인 창을 닫았어요',
   'auth/popup-blocked':'팝업이 차단됐어요. 팝업을 허용해 주세요', 'auth/unauthorized-domain':'승인되지 않은 도메인이에요' }[e.code] || ('구글 로그인 실패: ' + (e.code || e.message)));
+// 실패 원인을 캡처할 수 있게 팝업으로 보여줌
+function showGErr(e){
+  const msg = gErr(e);
+  if (/취소/.test(msg) || e.code === 'auth/popup-closed-by-user') return toast(msg);
+  alert(msg + '\n\n[자세한 내용]\n' + (e.code || '') + ' ' + (e.message || ''));
+}
 function updateAccountUI(){ $('#acctBanner').style.display = auth.currentUser?.isAnonymous ? 'flex' : 'none'; }
 
 // 새 기기·앱 재설치 후: 구글로 로그인하면 예전 계정 그대로 복구
@@ -354,7 +360,7 @@ $('#googleBtn').onclick = async () => {
     const s = await getDoc(doc(db,'users',user.uid));
     if (s.exists() && s.data().name) { me = { uid:user.uid, name:s.data().name }; toast(`다시 오신 걸 환영해요, ${me.name}님! 🎉`); openHome(); }
     else toast('구글 계정 확인 완료! 닉네임을 정하고 시작하기를 눌러주세요');
-  } catch(e) { toast(gErr(e)); }
+  } catch(e) { showGErr(e); }
   signingIn = false; $('#googleBtn').disabled = false;
 };
 
@@ -376,7 +382,7 @@ $('#linkBtn').onclick = async () => {
       catch(e) { if (e.code === 'auth/credential-already-in-use') return switchTo(GoogleAuthProvider.credentialFromError(e)); throw e; }
     }
     updateAccountUI(); toast('구글 계정 연결 완료! 이제 앱을 지워도 계정이 유지돼요 🔐');
-  } catch(e) { toast(gErr(e)); }
+  } catch(e) { showGErr(e); }
 };
 $('#renameBtn').onclick = async () => {
   const n = (prompt('새 닉네임 (한글·영문·숫자 2~12자)', me.name) || '').trim();
