@@ -181,6 +181,7 @@ input{font:inherit}
 <div class="overlay" id="newRoomDlg"><div class="sheet"><h2>새 채팅방 <button class="x" data-close>✕</button></h2>
   <input id="roomNameInput" class="field" maxlength="20" placeholder="방 이름">
   <label class="chk"><input type="checkbox" id="publicChk" checked> 공개방 (누구나 목록에서 보고 입장)</label>
+  <input id="roomPwInput" class="field" style="margin-bottom:12px" maxlength="20" placeholder="🔒 비밀번호 (선택 · 비워두면 없음)" autocomplete="off">
   <button class="btn" id="createRoomBtn">만들기</button></div></div>
 
 <div class="overlay" id="joinDlg"><div class="sheet"><h2>코드로 입장 <button class="x" data-close>✕</button></h2>
@@ -200,7 +201,7 @@ input{font:inherit}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, linkWithPopup, linkWithCredential, signInWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, arrayUnion, arrayRemove, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, deleteField, onSnapshot, query, where, orderBy, limit, serverTimestamp, arrayUnion, arrayRemove, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* ▼▼▼ Firebase 콘솔에서 복사한 설정값을 여기에 붙여넣으세요 ▼▼▼ */
 const firebaseConfig = {
@@ -454,7 +455,7 @@ function renderRooms(sel, snap, empty){
   $(sel).innerHTML = (rooms.length ? rooms.map(r => `
     <div class="room-item" data-id="${r.id}">
       <div class="avatar">${esc((r.name||'?')[0])}</div>
-      <div class="ri-body"><div class="ri-top"><b>${esc(r.name)}</b><span>${ago(r.lastAt)}</span></div>
+      <div class="ri-body"><div class="ri-top"><b>${r.pwHash ? '🔒 ' : ''}${esc(r.name)}</b><span>${ago(r.lastAt)}</span></div>
       <div class="ri-last">${esc(r.lastMessage || '')}</div></div>
       <span class="cnt">👥${r.pubMembers ?? (r.members||[]).length}</span>
     </div>`).join('') : `<p class="empty">${empty}</p>`)
@@ -489,10 +490,12 @@ $('#roomSearch').addEventListener('keydown', e => {
 ['#myRooms','#publicRooms'].forEach(s => $(s).addEventListener('click', e => {
   const it = e.target.closest('.room-item'); if (it) enterRoom(it.dataset.id);
 }));
-$('#newRoomBtn').onclick = () => { $('#roomNameInput').value = ''; openDlg('newRoomDlg'); setTimeout(() => $('#roomNameInput').focus(), 100); };
+$('#newRoomBtn').onclick = () => { $('#roomNameInput').value = ''; $('#roomPwInput').value = ''; openDlg('newRoomDlg'); setTimeout(() => $('#roomNameInput').focus(), 100); };
 $('#createRoomBtn').onclick = async () => {
   const name = clean($('#roomNameInput').value.trim()).slice(0,20);
   if (!name) return toast('방 이름을 입력해 주세요');
+  const pwIn = $('#roomPwInput').value.trim();
+  if (pwIn && pwIn.length < 4) return toast('비밀번호는 4자 이상으로 정해주세요');
   $('#createRoomBtn').disabled = true;
   try {
     const isPublic = $('#publicChk').checked;
@@ -501,6 +504,8 @@ $('#createRoomBtn').onclick = async () => {
       members: [me.uid], createdAt: serverTimestamp(), lastAt: serverTimestamp(), lastMessage: '방이 만들어졌어요 🎉',
       ...(isPublic ? { pubAt: serverTimestamp(), pubMembers: 1 } : {})
     });
+    const pw = $('#roomPwInput').value.trim();
+    if (pw) await updateDoc(ref, { pwHash: await hashPw(ref.id, pw) });
     closeDlg('newRoomDlg'); enterRoom(ref.id);
   } catch(e) { toast('방 만들기 실패: ' + (e.code || e.message)); }
   $('#createRoomBtn').disabled = false;
@@ -520,6 +525,11 @@ async function joinByCode(code){
 
 /* ---------- 채팅방 ---------- */
 let roomDocUnsub = null, lastMsgs = [];
+// 비밀번호는 원문 대신 방 ID와 섞은 해시로만 저장
+async function hashPw(roomId, pw){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(roomId + ':' + pw));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+}
 const msgCol = () => collection(db,'rooms',room.id,'messages');
 async function post(data, preview){
   await addDoc(msgCol(), { ...data, uid:me.uid, name:me.name, createdAt: serverTimestamp() });
@@ -551,6 +561,11 @@ async function enterRoom(id){
     room = { id, ...s.data() };
     if ((room.banned || []).includes(me.uid)) { room = null; return toast('방장이 내보낸 방이라 다시 들어갈 수 없어요'); }
     if (!(room.members || []).includes(me.uid)) {
+      if (room.pwHash && room.createdBy !== me.uid) {
+        const pw = prompt(`🔒 '${room.name}' 방의 비밀번호를 입력하세요`);
+        if (!pw) { room = null; return; }
+        if (await hashPw(id, pw.trim()) !== room.pwHash) { room = null; return toast('비밀번호가 틀렸어요 🙅'); }
+      }
       room = { id, ...(await setMembership(id, me.uid, true)) };
       await sys(`${me.name}님이 들어왔어요 👋`);
     }
@@ -631,7 +646,11 @@ $('#menuBtn').onclick = () => {
     <button data-rm="members">👥 멤버 보기 (${(room.members || []).length}명)</button>
     <button data-rm="code">🔑 초대코드 복사: <b>${esc(room.code)}</b></button>
     <button data-rm="leave">🚪 방 나가기</button>
-    ${isOwner() ? `<button data-rm="delete" class="danger">🗑️ 방 삭제 (방장)</button>` : ''}`;
+    ${isOwner() ? `
+    <button data-rm="toggle">${room.isPublic ? '🙈 비공개방으로 바꾸기 (목록에서 숨김)' : '🌐 공개방으로 바꾸기 (목록에 표시)'}</button>
+    <button data-rm="pw">${room.pwHash ? '🔑 비밀번호 바꾸기' : '🔒 비밀번호 걸기'}</button>
+    ${room.pwHash ? `<button data-rm="nopw">🔓 비밀번호 풀기</button>` : ''}
+    <button data-rm="delete" class="danger">🗑️ 방 삭제 (방장)</button>` : ''}`;
   openDlg('roomMenu');
 };
 $('#rmBody').addEventListener('click', async e => {
@@ -647,6 +666,27 @@ $('#rmBody').addEventListener('click', async e => {
     roomUnsub?.(); roomDocUnsub?.(); roomUnsub = roomDocUnsub = null;
     try { await setMembership(id, me.uid, false); } catch {}
     backHome();
+  }
+  if (act === 'toggle' && isOwner()) {
+    const toPublic = !room.isPublic;
+    try {
+      await updateDoc(doc(db,'rooms',room.id), toPublic
+        ? { isPublic: true, pubAt: serverTimestamp(), pubMembers: (room.members || []).length }
+        : { isPublic: false, pubAt: deleteField(), pubMembers: deleteField() });
+      room.isPublic = toPublic; closeDlg('roomMenu');
+      await sys(toPublic ? '🌐 방장이 공개방으로 바꿨어요. 이제 공개방 목록에 보여요' : '🙈 방장이 비공개방으로 바꿨어요. 초대코드로만 들어올 수 있어요');
+    } catch(e) { toast('변경 실패: ' + (e.code || e.message)); }
+  }
+  if (act === 'pw' && isOwner()) {
+    const pw = (prompt('새 비밀번호 (4~20자)\n이미 들어와 있는 멤버는 그대로 있고, 새로 들어오는 사람만 입력해요') || '').trim();
+    if (!pw) return;
+    if (pw.length < 4 || pw.length > 20) return toast('비밀번호는 4~20자로 정해주세요');
+    try { await updateDoc(doc(db,'rooms',room.id), { pwHash: await hashPw(room.id, pw) }); closeDlg('roomMenu'); await sys('🔒 방장이 비밀번호를 걸었어요'); toast('비밀번호를 설정했어요. 친구에게 따로 알려주세요'); }
+    catch(e) { toast('설정 실패: ' + (e.code || e.message)); }
+  }
+  if (act === 'nopw' && isOwner()) {
+    try { await updateDoc(doc(db,'rooms',room.id), { pwHash: deleteField() }); closeDlg('roomMenu'); await sys('🔓 방장이 비밀번호를 풀었어요'); }
+    catch(e) { toast('해제 실패: ' + (e.code || e.message)); }
   }
   if (act === 'delete' && isOwner()) {
     if (!confirm(`'${room.name}' 방을 삭제할까요?\n모든 멤버가 방에서 나가게 되고 되돌릴 수 없어요.`)) return;
