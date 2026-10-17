@@ -136,7 +136,7 @@ input{font:inherit}
   <div class="brand">놀톡</div>
   <div class="tag">수다 떨다가, 바로 한판!</div>
   <div class="login-box">
-    <input id="nick" class="field" maxlength="12" placeholder="닉네임 (최대 12자)">
+    <input id="nick" class="field" maxlength="12" placeholder="닉네임 (한글·영문·숫자 2~12자)">
     <button id="startBtn" class="btn" style="margin-top:10px">시작하기</button>
   </div>
 </div>
@@ -241,7 +241,34 @@ const BAD = ['씨발','시발','ㅅㅂ','병신','ㅂㅅ','개새끼','좆','지
 const clean = t => BAD.reduce((s,w) => s.split(w).join('♡'.repeat(w.length)), t);
 const isEnter = e => e.key === 'Enter' && !e.isComposing && e.keyCode !== 229; // 한글 조합 중 Enter 무시
 
-/* ---------- 로그인 ---------- */
+/* ---------- 로그인 · 닉네임 (중복 금지) ---------- */
+// names/{소문자 닉네임} = { uid } 문서로 닉네임을 '예약'해서 한 사람만 쓰게 함
+const NAME_RE = /^[가-힣A-Za-z0-9_]{2,12}$/;
+const nameKey = n => n.toLowerCase();
+function checkName(n){
+  if (!n) return '닉네임을 입력해 주세요';
+  if (!NAME_RE.test(n)) return '닉네임은 한글·영문·숫자·_ 2~12자로 정해주세요 (띄어쓰기 불가)';
+  if (n !== clean(n)) return '사용할 수 없는 단어가 들어 있어요';
+  return null;
+}
+// 새 닉네임 예약 + 예전 닉네임 반납을 한 번에 처리
+async function claimName(uid, name){
+  const newRef = doc(db,'names',nameKey(name)), userRef = doc(db,'users',uid);
+  await runTransaction(db, async t => {
+    const ns = await t.get(newRef), us = await t.get(userRef);
+    if (ns.exists() && ns.data().uid !== uid) throw new Error('TAKEN');
+    const old = us.exists() ? us.data().name : null;
+    let oldRef = null;
+    if (old && nameKey(old) !== nameKey(name)) {
+      try { oldRef = doc(db,'names',nameKey(old)); const os = await t.get(oldRef); if (!os.exists() || os.data().uid !== uid) oldRef = null; } catch { oldRef = null; }
+    }
+    if (oldRef) t.delete(oldRef);
+    if (!ns.exists()) t.set(newRef, { uid, name, at: serverTimestamp() });
+    t.set(userRef, { name, updatedAt: serverTimestamp() });
+  });
+}
+const nameErr = e => e.message === 'TAKEN' ? '이미 사용 중인 닉네임이에요 😢 다른 이름을 골라주세요' : '닉네임 저장 실패: ' + (e.code || e.message);
+
 $('#nick').value = localStorage.getItem('nick') || '';
 onAuthStateChanged(auth, async user => {
   if (signingIn || me) return;
@@ -249,28 +276,40 @@ onAuthStateChanged(auth, async user => {
   try {
     const s = await getDoc(doc(db,'users',user.uid));
     if (me || signingIn) return;
-    if (s.exists() && s.data().name) { me = { uid:user.uid, name:s.data().name }; openHome(); }
-    else show('login');
+    const name = s.exists() ? s.data().name : null;
+    if (!name) { show('login'); return; }
+    // 예전 버전에서 만든 닉네임이면 지금 예약 (다른 사람이 먼저 쓰고 있으면 새로 정하게 함)
+    let ok = !checkName(name);
+    if (ok) {
+      const ref = doc(db,'names',nameKey(name)), ns = await getDoc(ref);
+      if (!ns.exists()) { try { await claimName(user.uid, name); } catch { ok = false; } }
+      else if (ns.data().uid !== user.uid) ok = false;
+    }
+    if (!ok) { show('login'); $('#nick').value = ''; toast('닉네임이 다른 사람과 겹쳐요. 새 닉네임을 정해주세요'); return; }
+    me = { uid:user.uid, name }; openHome();
   } catch { show('login'); }
 });
 $('#startBtn').onclick = async () => {
-  const name = clean($('#nick').value.trim()).slice(0,12);
-  if (!name) return toast('닉네임을 입력해 주세요');
+  const name = $('#nick').value.trim(), err = checkName(name);
+  if (err) return toast(err);
   $('#startBtn').disabled = true; signingIn = true;
   try {
     const user = auth.currentUser || (await signInAnonymously(auth)).user;
-    await setDoc(doc(db,'users',user.uid), { name, updatedAt: serverTimestamp() });
+    await claimName(user.uid, name);
     localStorage.setItem('nick', name);
     me = { uid:user.uid, name }; openHome();
-  } catch(e) { toast('로그인 실패: ' + (e.code || e.message)); }
+  } catch(e) { toast(nameErr(e)); }
   signingIn = false; $('#startBtn').disabled = false;
 };
 $('#nick').addEventListener('keydown', e => { if (isEnter(e)) $('#startBtn').click(); });
 $('#renameBtn').onclick = async () => {
-  const n = clean((prompt('새 닉네임', me.name) || '').trim()).slice(0,12);
-  if (!n) return;
-  await setDoc(doc(db,'users',me.uid), { name:n, updatedAt: serverTimestamp() });
-  me.name = n; localStorage.setItem('nick', n); $('#meName').textContent = n;
+  const n = (prompt('새 닉네임 (한글·영문·숫자 2~12자)', me.name) || '').trim();
+  if (!n || n === me.name) return;
+  const err = checkName(n); if (err) return toast(err);
+  try {
+    await claimName(me.uid, n);
+    me.name = n; localStorage.setItem('nick', n); $('#meName').textContent = n; toast('닉네임을 바꿨어요 ✨');
+  } catch(e) { toast(nameErr(e)); }
 };
 
 /* ---------- 홈 ---------- */
