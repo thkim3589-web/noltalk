@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#7c4dff">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>놀톡</title>
+<style>
+:root{--p:#7c4dff;--acc:#ffcc00;--bg:#f4f1ff;--txt:#222;--sub:#888;--line:#e6e0ff}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:var(--bg);color:var(--txt);overflow:hidden}
+button{font:inherit;border:0;cursor:pointer;color:inherit}
+input{font:inherit}
+.screen{display:none;height:100%;flex-direction:column}
+.screen.active{display:flex}
+/* 로그인 */
+#login{align-items:center;justify-content:center;padding:24px;background:linear-gradient(160deg,#7c4dff,#ff6fb5)}
+.logo{font-size:56px}
+.brand{color:#fff;font-size:36px;font-weight:800;margin:8px 0 4px}
+.tag{color:#fff;opacity:.9;margin-bottom:28px}
+.login-box{background:#fff;border-radius:20px;padding:20px;width:100%;max-width:340px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.field{width:100%;padding:14px;border:2px solid var(--line);border-radius:12px;font-size:16px;outline:none;background:#fff}
+.field:focus{border-color:var(--p)}
+.btn{background:var(--p);color:#fff;padding:14px;border-radius:12px;font-weight:700;font-size:16px;width:100%}
+.btn.ghost{background:#efe9ff;color:var(--p)}
+.btn:disabled{opacity:.45}
+/* 헤더 */
+.hdr{display:flex;align-items:center;gap:8px;padding:12px 14px;padding-top:calc(12px + env(safe-area-inset-top));background:var(--p);color:#fff}
+.hdr h1{font-size:19px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{background:rgba(255,255,255,.2);color:#fff;border-radius:10px;padding:8px 10px;font-size:14px;flex-shrink:0}
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;padding:12px;background:none;color:var(--sub);font-weight:700;border-bottom:3px solid transparent}
+.tabs button.on{color:var(--p);border-color:var(--p)}
+.list{flex:1;overflow-y:auto;padding:10px 12px 110px}
+.room-item{display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:12px;margin-bottom:8px;cursor:pointer}
+.avatar{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--p),#ff6fb5);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex-shrink:0}
+.ri-body{flex:1;min-width:0}
+.ri-top{display:flex;justify-content:space-between;gap:8px}
+.ri-top b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ri-top span{color:var(--sub);font-size:12px;flex-shrink:0}
+.ri-last{color:var(--sub);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.cnt{font-size:12px;color:var(--sub);flex-shrink:0}
+.empty{text-align:center;color:var(--sub);padding:40px 0}
+.fab-row{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(rgba(244,241,255,0),var(--bg) 35%)}
+/* 채팅방 */
+#msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px}
+.sys{align-self:center;background:rgba(124,77,255,.12);color:var(--p);font-size:12px;padding:5px 12px;border-radius:20px;margin:4px 0;text-align:center;max-width:90%}
+.msg{max-width:78%;align-self:flex-start;display:flex;flex-direction:column}
+.msg.mine{align-self:flex-end;align-items:flex-end}
+.who{font-size:12px;color:var(--sub);margin:0 0 2px 4px}
+.bubble{background:#fff;padding:9px 13px;border-radius:16px 16px 16px 4px;font-size:15px;line-height:1.4;word-break:break-word;white-space:pre-wrap}
+.mine .bubble{background:var(--p);color:#fff;border-radius:16px 16px 4px 16px}
+.time{font-size:10px;color:var(--sub);margin:2px 4px 0}
+.game-card{background:#fff;border:2px solid var(--acc);border-radius:16px;padding:12px;min-width:210px}
+.gc-title{font-weight:800;font-size:16px}
+.gc-sub{color:var(--sub);font-size:13px;margin:4px 0 10px}
+.game-card button{background:var(--acc);color:#222;font-weight:800;padding:9px;border-radius:10px;width:100%}
+.inputbar{display:flex;gap:8px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);align-items:center}
+.inputbar input{flex:1;min-width:0;padding:11px 14px;border-radius:22px;border:1px solid var(--line);background:var(--bg);outline:none;font-size:16px}
+.round{width:42px;height:42px;border-radius:50%;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.round.game{background:var(--acc)}
+.round.send{background:var(--p);color:#fff}
+/* 시트 */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.sheet{background:#fff;width:100%;max-width:520px;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:94vh;overflow-y:auto;animation:up .2s ease}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+.sheet h2{font-size:18px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.x{background:#f0f0f0;border-radius:50%;width:32px;height:32px;font-size:15px;flex-shrink:0}
+.game-pick{display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;background:var(--bg);margin-bottom:8px;width:100%;text-align:left}
+.game-pick .gi{font-size:30px}
+.game-pick small{display:block;color:var(--sub)}
+.row{display:flex;gap:8px;margin-top:10px}
+.chk{display:flex;align-items:center;gap:8px;margin:12px 0;color:#444}
+/* 게임 화면 */
+.players{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{background:var(--bg);padding:6px 10px;border-radius:20px;font-size:13px}
+.chip.turn{background:var(--acc);font-weight:800}
+.status{text-align:center;font-weight:700;margin:10px 0;font-size:16px}
+.rps-btns{display:flex;gap:10px;justify-content:center;margin:16px 0}
+.rps-btns button{font-size:44px;background:var(--bg);border-radius:18px;width:84px;height:84px}
+.rps-btns button:active{transform:scale(.92)}
+.big{font-size:56px;text-align:center;letter-spacing:12px;margin:10px 0}
+.chain{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0;max-height:160px;overflow-y:auto}
+.chain span{background:var(--bg);padding:6px 10px;border-radius:10px;font-weight:700}
+.chain span:last-child{background:var(--p);color:#fff}
+.next{text-align:center;font-size:15px;margin:6px 0}
+.next b{font-size:24px;color:var(--p)}
+.timer{height:8px;background:#eee;border-radius:4px;overflow:hidden;margin:8px 0}
+.timer i{display:block;height:100%;width:100%;background:var(--p);transition:width .25s linear}
+.board{display:grid;grid-template-columns:repeat(15,1fr);background:#e8c37a;border-radius:8px;padding:4px;width:100%;max-width:440px;margin:8px auto;touch-action:manipulation}
+.cell{position:relative;background:none;aspect-ratio:1;padding:0}
+.cell::before{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:1px solid #8a6a2f}
+.cell::after{content:"";position:absolute;top:50%;left:0;right:0;border-top:1px solid #8a6a2f}
+.stone{position:absolute;inset:7%;border-radius:50%;z-index:1}
+.stone.B{background:radial-gradient(circle at 35% 30%,#666,#000)}
+.stone.W{background:radial-gradient(circle at 35% 30%,#fff,#ccc);box-shadow:0 0 0 1px #aaa}
+.stone.last{box-shadow:0 0 0 2px #ff3d71}
+.bingo{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;max-width:340px;margin:10px auto}
+.bc{aspect-ratio:1;border-radius:12px;background:var(--bg);font-size:20px;font-weight:800;color:var(--txt)}
+.bc.hit{background:var(--p);color:#fff}
+.bc.can:active{transform:scale(.92)}
+.bc.lastcall{box-shadow:0 0 0 3px var(--acc)}
+.lines{display:flex;justify-content:center;gap:6px;margin:4px 0}
+.lines span{width:28px;height:8px;border-radius:4px;background:#e6e0ff}
+.lines span.on{background:var(--acc)}
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:rgba(30,30,30,.92);color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:99;display:none;max-width:90%;text-align:center}
+</style>
+</head>
+<body>
+
+<div id="login" class="screen">
+  <div class="logo">💬🎮</div>
+  <div class="brand">놀톡</div>
+  <div class="tag">수다 떨다가, 바로 한판!</div>
+  <div class="login-box">
+    <input id="nick" class="field" maxlength="12" placeholder="닉네임 (최대 12자)">
+    <button id="startBtn" class="btn" style="margin-top:10px">시작하기</button>
+  </div>
+</div>
+
+<div id="home" class="screen">
+  <div class="hdr"><h1>놀톡</h1><span id="meName" style="font-size:14px;opacity:.9"></span><button class="ib" id="renameBtn">✏️</button></div>
+  <div class="tabs"><button class="on" data-tab="myRooms">내 채팅방</button><button data-tab="publicRooms">🔥 공개방</button></div>
+  <div id="myRooms" class="list"></div>
+  <div id="publicRooms" class="list" style="display:none"></div>
+  <div class="fab-row"><button class="btn ghost" id="joinCodeBtn">🔑 코드로 입장</button><button class="btn" id="newRoomBtn">＋ 방 만들기</button></div>
+</div>
+
+<div id="room" class="screen">
+  <div class="hdr"><button class="ib" id="backBtn">←</button><h1 id="roomName"></h1><button class="ib" id="shareBtn">초대</button><button class="ib" id="leaveBtn">나가기</button></div>
+  <div id="msgs"></div>
+  <div class="inputbar"><button class="round game" id="gameBtn">🎮</button><input id="msgInput" maxlength="500" placeholder="메시지 입력" enterkeyhint="send" autocomplete="off"><button class="round send" id="sendBtn">➤</button></div>
+</div>
+
+<div class="overlay" id="newRoomDlg"><div class="sheet"><h2>새 채팅방 <button class="x" data-close>✕</button></h2>
+  <input id="roomNameInput" class="field" maxlength="20" placeholder="방 이름">
+  <label class="chk"><input type="checkbox" id="publicChk" checked> 공개방 (누구나 목록에서 보고 입장)</label>
+  <button class="btn" id="createRoomBtn">만들기</button></div></div>
+
+<div class="overlay" id="joinDlg"><div class="sheet"><h2>코드로 입장 <button class="x" data-close>✕</button></h2>
+  <input id="codeInput" class="field" maxlength="6" placeholder="초대 코드 6자리" style="text-transform:uppercase;letter-spacing:4px;text-align:center" autocomplete="off">
+  <button class="btn" id="joinBtn" style="margin-top:10px">입장</button></div></div>
+
+<div class="overlay" id="gameMenu"><div class="sheet"><h2>🎮 게임 시작 <button class="x" data-close>✕</button></h2><div id="gameList"></div></div></div>
+
+<div class="overlay" id="gameView"><div class="sheet"><h2><span id="gvTitle"></span><button class="x" id="gvClose">✕</button></h2><div id="gvBody"></div></div></div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, arrayUnion, arrayRemove, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ▼▼▼ Firebase 콘솔에서 복사한 설정값을 여기에 붙여넣으세요 ▼▼▼ */
+const firebaseConfig = {
+  apiKey: "AIzaSyBxOIcOdwAuEUs_LCEzdfdvEA0lm0d45cI",
+  authDomain: "noltalk-64273.firebaseapp.com",
+  projectId: "noltalk-64273",
+  storageBucket: "noltalk-64273.firebasestorage.app",
+  messagingSenderId: "1035663588813",
+  appId: "1:1035663588813:web:c5735c38cc43048a5a9884",
+  measurementId: "G-GRZ0RYR0HC"
+};
+/* ▲▲▲ */
+
+const $ = s => document.querySelector(s);
+let toastT;
+function toast(m){ const t=$('#toast'); t.textContent=m; t.style.display='block'; clearTimeout(toastT); toastT=setTimeout(()=>t.style.display='none',2300); }
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+if (firebaseConfig.apiKey.startsWith('여기')) {
+  document.body.innerHTML = '<div style="padding:30px;font-size:16px;line-height:1.7">⚠️ index.html 안의 <b>firebaseConfig</b>에 Firebase 설정값을 붙여넣어 주세요.<br>자세한 방법은 <b>설치가이드.md</b>를 참고하세요.</div>';
+  throw new Error('firebaseConfig 미설정');
+}
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let me = null, room = null, roomUnsub = null, homeUnsubs = [], gameUnsub = null, curGame = null;
+let firstRender = true, signingIn = false, lastTurnStart = null, timeoutSent = false;
+const TURN_MS = 20000;
+
+const GAMES = {
+  rps:       { icon:'✊', name:'가위바위보', desc:'1:1 한판 승부', max:2 },
+  wordchain: { icon:'🔤', name:'끝말잇기',   desc:'2~6명 · 턴당 20초', max:6 },
+  omok:      { icon:'⚫', name:'오목',       desc:'1:1 두뇌 대결', max:2 },
+  bingo:     { icon:'🎱', name:'빙고',       desc:'2~4명 · 3줄 먼저 완성!', max:4 },
+};
+const TURN_GAMES = ['wordchain','bingo']; // 방장이 시작 버튼을 누르는 게임
+
+/* ---------- 공통 ---------- */
+function show(id){ document.querySelectorAll('.screen').forEach(e => e.classList.toggle('active', e.id === id)); }
+const openDlg = id => $('#'+id).classList.add('show');
+const closeDlg = id => $('#'+id).classList.remove('show');
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => b.closest('.overlay').classList.remove('show'));
+document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e => {
+  if (e.target !== o) return;
+  if (o.id === 'gameView') closeGame(); else o.classList.remove('show');
+}));
+const msOf = v => v?.toMillis ? v.toMillis() : Date.now();
+const hhmm = v => new Date(msOf(v)).toLocaleTimeString('ko-KR', { hour:'numeric', minute:'2-digit' });
+function ago(v){
+  const s = (Date.now() - msOf(v)) / 1000;
+  if (s < 60) return '방금';
+  if (s < 3600) return Math.floor(s/60) + '분 전';
+  if (s < 86400) return Math.floor(s/3600) + '시간 전';
+  return new Date(msOf(v)).toLocaleDateString('ko-KR', { month:'numeric', day:'numeric' });
+}
+function genCode(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let r=''; for(let i=0;i<6;i++) r+=c[Math.floor(Math.random()*c.length)]; return r; }
+const BAD = ['씨발','시발','ㅅㅂ','병신','ㅂㅅ','개새끼','좆','지랄'];
+const clean = t => BAD.reduce((s,w) => s.split(w).join('♡'.repeat(w.length)), t);
+const isEnter = e => e.key === 'Enter' && !e.isComposing && e.keyCode !== 229; // 한글 조합 중 Enter 무시
+
+/* ---------- 로그인 ---------- */
+$('#nick').value = localStorage.getItem('nick') || '';
+onAuthStateChanged(auth, async user => {
+  if (signingIn || me) return;
+  if (!user) { show('login'); return; }
+  try {
+    const s = await getDoc(doc(db,'users',user.uid));
+    if (me || signingIn) return;
+    if (s.exists() && s.data().name) { me = { uid:user.uid, name:s.data().name }; openHome(); }
+    else show('login');
+  } catch { show('login'); }
+});
+$('#startBtn').onclick = async () => {
+  const name = clean($('#nick').value.trim()).slice(0,12);
+  if (!name) return toast('닉네임을 입력해 주세요');
+  $('#startBtn').disabled = true; signingIn = true;
+  try {
+    const user = auth.currentUser || (await signInAnonymously(auth)).user;
+    await setDoc(doc(db,'users',user.uid), { name, updatedAt: serverTimestamp() });
+    localStorage.setItem('nick', name);
+    me = { uid:user.uid, name }; openHome();
+  } catch(e) { toast('로그인 실패: ' + (e.code || e.message)); }
+  signingIn = false; $('#startBtn').disabled = false;
+};
+$('#nick').addEventListener('keydown', e => { if (isEnter(e)) $('#startBtn').click(); });
+$('#renameBtn').onclick = async () => {
+  const n = clean((prompt('새 닉네임', me.name) || '').trim()).slice(0,12);
+  if (!n) return;
+  await setDoc(doc(db,'users',me.uid), { name:n, updatedAt: serverTimestamp() });
+  me.name = n; localStorage.setItem('nick', n); $('#meName').textContent = n;
+};
+
+/* ---------- 홈 ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  $('#myRooms').style.display = b.dataset.tab === 'myRooms' ? '' : 'none';
+  $('#publicRooms').style.display = b.dataset.tab === 'publicRooms' ? '' : 'none';
+});
+function openHome(){
+  show('home');
+  $('#meName').textContent = me.name;
+  homeUnsubs.forEach(u => u()); homeUnsubs = [];
+  homeUnsubs.push(onSnapshot(query(collection(db,'rooms'), where('members','array-contains',me.uid), limit(50)),
+    s => renderRooms('#myRooms', s, '아직 들어간 방이 없어요.<br>공개방을 둘러보거나 새 방을 만들어 보세요!')));
+  homeUnsubs.push(onSnapshot(query(collection(db,'rooms'), where('isPublic','==',true), limit(50)),
+    s => renderRooms('#publicRooms', s, '공개방이 없어요. 첫 방을 만들어 보세요!')));
+  const code = new URLSearchParams(location.search).get('join');
+  if (code) { history.replaceState(null, '', location.pathname); joinByCode(code); }
+}
+function renderRooms(sel, snap, empty){
+  const rooms = snap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a,b) => msOf(b.lastAt) - msOf(a.lastAt));
+  $(sel).innerHTML = rooms.length ? rooms.map(r => `
+    <div class="room-item" data-id="${r.id}">
+      <div class="avatar">${esc((r.name||'?')[0])}</div>
+      <div class="ri-body"><div class="ri-top"><b>${esc(r.name)}</b><span>${ago(r.lastAt)}</span></div>
+      <div class="ri-last">${esc(r.lastMessage || '')}</div></div>
+      <span class="cnt">👥${(r.members||[]).length}</span>
+    </div>`).join('') : `<p class="empty">${empty}</p>`;
+}
+['#myRooms','#publicRooms'].forEach(s => $(s).addEventListener('click', e => {
+  const it = e.target.closest('.room-item'); if (it) enterRoom(it.dataset.id);
+}));
+$('#newRoomBtn').onclick = () => { $('#roomNameInput').value = ''; openDlg('newRoomDlg'); setTimeout(() => $('#roomNameInput').focus(), 100); };
+$('#createRoomBtn').onclick = async () => {
+  const name = clean($('#roomNameInput').value.trim()).slice(0,20);
+  if (!name) return toast('방 이름을 입력해 주세요');
+  $('#createRoomBtn').disabled = true;
+  try {
+    const ref = await addDoc(collection(db,'rooms'), {
+      name, isPublic: $('#publicChk').checked, code: genCode(), createdBy: me.uid,
+      members: [me.uid], createdAt: serverTimestamp(), lastAt: serverTimestamp(), lastMessage: '방이 만들어졌어요 🎉'
+    });
+    closeDlg('newRoomDlg'); enterRoom(ref.id);
+  } catch(e) { toast('방 만들기 실패: ' + (e.code || e.message)); }
+  $('#createRoomBtn').disabled = false;
+};
+$('#joinCodeBtn').onclick = () => { $('#codeInput').value = ''; openDlg('joinDlg'); setTimeout(() => $('#codeInput').focus(), 100); };
+$('#joinBtn').onclick = () => joinByCode($('#codeInput').value);
+$('#codeInput').addEventListener('keydown', e => { if (isEnter(e)) joinByCode($('#codeInput').value); });
+async function joinByCode(code){
+  code = String(code).trim().toUpperCase();
+  if (code.length !== 6) return toast('초대 코드 6자리를 입력하세요');
+  try {
+    const s = await getDocs(query(collection(db,'rooms'), where('code','==',code), limit(1)));
+    if (s.empty) return toast('그 코드의 방이 없어요');
+    closeDlg('joinDlg'); enterRoom(s.docs[0].id);
+  } catch(e) { toast('입장 실패: ' + (e.code || e.message)); }
+}
+
+/* ---------- 채팅방 ---------- */
+const msgCol = () => collection(db,'rooms',room.id,'messages');
+async function post(data, preview){
+  await addDoc(msgCol(), { ...data, uid:me.uid, name:me.name, createdAt: serverTimestamp() });
+  updateDoc(doc(db,'rooms',room.id), { lastMessage: preview.slice(0,60), lastAt: serverTimestamp() }).catch(() => {});
+}
+const sys = t => post({ type:'system', text:t }, t);
+
+async function enterRoom(id){
+  try {
+    const ref = doc(db,'rooms',id);
+    const s = await getDoc(ref);
+    if (!s.exists()) return toast('방을 찾을 수 없어요');
+    room = { id, ...s.data() };
+    if (!(room.members || []).includes(me.uid)) {
+      await updateDoc(ref, { members: arrayUnion(me.uid) });
+      await sys(`${me.name}님이 들어왔어요 👋`);
+    }
+    homeUnsubs.forEach(u => u()); homeUnsubs = [];
+    $('#roomName').textContent = room.name;
+    $('#msgs').innerHTML = ''; firstRender = true;
+    show('room');
+    roomUnsub = onSnapshot(query(msgCol(), orderBy('createdAt','desc'), limit(150)),
+      snap => renderMsgs(snap.docs.map(d => ({ id:d.id, ...d.data() })).reverse()),
+      () => toast('메시지를 불러오지 못했어요'));
+  } catch(e) { toast('입장 실패: ' + (e.code || e.message)); }
+}
+function renderMsgs(msgs){
+  const box = $('#msgs');
+  const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
+  box.innerHTML = msgs.map(m => {
+    if (m.type === 'system') return `<div class="sys">${esc(m.text)}</div>`;
+    const mine = m.uid === me.uid;
+    const who = mine ? '' : `<div class="who">${esc(m.name)}</div>`;
+    if (m.type === 'game') {
+      const g = GAMES[m.game] || {};
+      return `<div class="msg ${mine?'mine':''}">${who}<div class="game-card"><div class="gc-title">${g.icon} ${g.name}</div>
+        <div class="gc-sub">${esc(m.name)}님이 게임을 열었어요! (${g.desc})</div>
+        <button data-game="${m.gameId}">입장하기</button></div><div class="time">${hhmm(m.createdAt)}</div></div>`;
+    }
+    return `<div class="msg ${mine?'mine':''}">${who}<div class="bubble">${esc(m.text)}</div><div class="time">${hhmm(m.createdAt)}</div></div>`;
+  }).join('');
+  if (firstRender || nearBottom) box.scrollTop = box.scrollHeight;
+  firstRender = false;
+}
+$('#msgs').addEventListener('click', e => { const b = e.target.closest('[data-game]'); if (b) openGame(b.dataset.game); });
+async function sendMsg(){
+  const inp = $('#msgInput');
+  const t = clean(inp.value.trim());
+  if (!t || !room) return;
+  inp.value = '';
+  try { await post({ type:'text', text:t.slice(0,500) }, `${me.name}: ${t}`); }
+  catch(e) { toast('전송 실패'); inp.value = t; }
+}
+$('#sendBtn').onclick = () => { sendMsg(); $('#msgInput').focus(); };
+$('#msgInput').addEventListener('keydown', e => { if (isEnter(e)) { e.preventDefault(); sendMsg(); } });
+function backHome(){ roomUnsub?.(); roomUnsub = null; closeGame(); room = null; openHome(); }
+$('#backBtn').onclick = backHome;
+$('#leaveBtn').onclick = async () => {
+  if (!confirm('이 방에서 나갈까요?')) return;
+  try {
+    await sys(`${me.name}님이 나갔어요`);
+    await updateDoc(doc(db,'rooms',room.id), { members: arrayRemove(me.uid) });
+  } catch {}
+  backHome();
+};
+$('#shareBtn').onclick = async () => {
+  const link = `${location.origin}${location.pathname}?join=${room.code}`;
+  const text = `놀톡 "${room.name}" 방에 놀러와! 🎮\n초대코드: ${room.code}\n${link}`;
+  if (window.NoltalkApp?.share) NoltalkApp.share(text);
+  else if (navigator.share) { try { await navigator.share({ text }); } catch {} }
+  else { try { await navigator.clipboard.writeText(text); toast(`초대코드 ${room.code} 복사됨`); } catch { toast(`초대코드: ${room.code}`); } }
+};
+
+/* ---------- 게임 메뉴 ---------- */
+$('#gameList').innerHTML = Object.entries(GAMES).map(([k,g]) =>
+  `<button class="game-pick" data-type="${k}"><span class="gi">${g.icon}</span><span><b>${g.name}</b><small>${g.desc}</small></span></button>`).join('');
+$('#gameBtn').onclick = () => openDlg('gameMenu');
+$('#gameList').addEventListener('click', e => { const b = e.target.closest('[data-type]'); if (b) startGame(b.dataset.type); });
+
+async function startGame(type){
+  closeDlg('gameMenu');
+  const base = { type, status:'waiting', players:[{ uid:me.uid, name:me.name }], maxPlayers: GAMES[type].max, createdBy: me.uid, createdAt: serverTimestamp() };
+  const init = {
+    rps:       { picks:{}, result:null },
+    wordchain: { words:[], turn:0, turnStartedAt:null, loser:null, reason:null },
+    omok:      { board:'.'.repeat(225), turn:0, last:-1, winner:null },
+    bingo:     { boards:{ [me.uid]: newBingoBoard() }, called:[], turn:0, turnStartedAt:null, winners:null },
+  }[type];
+  try {
+    const g = await addDoc(collection(db,'rooms',room.id,'games'), { ...base, ...init });
+    await post({ type:'game', game:type, gameId:g.id }, `🎮 ${me.name}님이 ${GAMES[type].name} 시작!`);
+    openGame(g.id);
+  } catch(e) { toast('게임 생성 실패: ' + (e.code || e.message)); }
+}
+
+/* ---------- 게임 화면 ---------- */
+function openGame(id){
+  closeGame();
+  const cg = curGame = { id, data:null };
+  $('#gvTitle').textContent = '';
+  $('#gvBody').innerHTML = '<p class="empty">불러오는 중...</p>';
+  openDlg('gameView');
+  gameUnsub = onSnapshot(doc(db,'rooms',room.id,'games',id), s => {
+    if (curGame !== cg || !s.exists()) return;
+    cg.data = s.data(); renderGame();
+  });
+}
+function closeGame(){ gameUnsub?.(); gameUnsub = null; curGame = null; closeDlg('gameView'); }
+$('#gvClose').onclick = closeGame;
+
+async function tx(fn, after){
+  if (!curGame || !room) return;
+  const ref = doc(db,'rooms',room.id,'games',curGame.id);
+  try {
+    await runTransaction(db, async t => {
+      const s = await t.get(ref);
+      const r = fn(s.data());
+      if (typeof r === 'string') throw new Error(r);
+      if (r) t.update(ref, r);
+    });
+    after && after();
+  } catch(e) { toast(e.message); }
+}
+
+const RPS = { r:'✊', p:'✋', s:'✌️' }, BEATS = { r:'s', s:'p', p:'r' };
+
+function playersHTML(g, turnIdx = -1, labels){
+  return `<div class="players">${g.players.map((p,i) =>
+    `<span class="chip ${i===turnIdx?'turn':''}">${labels?labels[i]+' ':''}${esc(p.name)}${p.uid===me.uid?' (나)':''}</span>`).join('')}</div>`;
+}
+function waitingHTML(g, meIn){
+  const full = g.players.length >= g.maxPlayers;
+  let h = `<div class="status">참가자 모집 중 (${g.players.length}/${g.maxPlayers})</div>${playersHTML(g)}`;
+  if (!meIn && !full) h += `<button class="btn" data-act="join">참가하기</button>`;
+  else if (meIn && TURN_GAMES.includes(g.type) && g.createdBy === me.uid)
+    h += `<button class="btn" data-act="start" ${g.players.length < 2 ? 'disabled' : ''}>게임 시작 (2명 이상)</button>`;
+  else if (meIn) h += `<p class="empty" style="padding:16px">다른 참가자를 기다리는 중... ⏳</p>`;
+  else h += `<p class="empty" style="padding:16px">자리가 꽉 찼어요</p>`;
+  return h;
+}
+
+// 두음법칙: 녀→여, 리→이, 라→나 등
+function dueum(ch){
+  const c = ch.charCodeAt(0) - 0xAC00;
+  if (c < 0 || c > 11171) return null;
+  const cho = Math.floor(c / 588), jung = Math.floor((c % 588) / 28), jong = c % 28;
+  const yv = [2,6,7,12,17,20]; // ㅑㅕㅖㅛㅠㅣ
+  let nc = null;
+  if (cho === 5) nc = yv.includes(jung) ? 11 : 2;           // ㄹ → ㅇ / ㄴ
+  else if (cho === 2 && [6,7,12,17,20].includes(jung)) nc = 11; // ㄴ → ㅇ
+  return nc === null ? null : String.fromCharCode(0xAC00 + (nc * 21 + jung) * 28 + jong);
+}
+function newBingoBoard(){
+  const a = Array.from({ length:25 }, (_, i) => i + 1);
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+const BINGO_GOAL = 3;
+function bingoLines(board, called){
+  const hit = new Set(called), L = [];
+  for (let i = 0; i < 5; i++) { L.push([0,1,2,3,4].map(k => i*5 + k)); L.push([0,1,2,3,4].map(k => k*5 + i)); }
+  L.push([0,6,12,18,24], [4,8,12,16,20]);
+  return L.filter(l => l.every(i => hit.has(board[i]))).length;
+}
+function fiveInRow(b, i, s){
+  const x = i % 15, y = Math.floor(i / 15);
+  for (const [dx,dy] of [[1,0],[0,1],[1,1],[1,-1]]) {
+    let n = 1;
+    for (const k of [1,-1]) {
+      let cx = x + dx*k, cy = y + dy*k;
+      while (cx>=0 && cx<15 && cy>=0 && cy<15 && b[cy*15+cx] === s) { n++; cx += dx*k; cy += dy*k; }
+    }
+    if (n >= 5) return true;
+  }
+  return false;
+}
+
+const R = {
+  rps(g, meIn){
+    if (g.status === 'waiting') return waitingHTML(g, meIn);
+    const picks = g.picks || {};
+    if (g.status === 'playing') {
+      let h = `<div class="players">${g.players.map(p => `<span class="chip">${picks[p.uid]?'✅':'🤔'} ${esc(p.name)}</span>`).join('')}</div>`;
+      if (meIn && !picks[me.uid])
+        h += `<div class="status">무엇을 낼까요?</div><div class="rps-btns">${Object.entries(RPS).map(([k,v]) => `<button data-act="pick" data-v="${k}">${v}</button>`).join('')}</div>`;
+      else h += `<div class="status">${meIn ? '선택 완료! 상대를 기다리는 중...' : '두 사람이 고르는 중...'}</div>`;
+      return h;
+    }
+    const [a,b] = g.players;
+    let h = `<div class="big">${RPS[picks[a.uid]]} ${RPS[picks[b.uid]]}</div>
+      <div class="players" style="justify-content:center"><span class="chip">${esc(a.name)}</span><span class="chip">vs</span><span class="chip">${esc(b.name)}</span></div>
+      <div class="status" style="font-size:22px">${esc(g.result)}</div>`;
+    if (meIn) h += `<button class="btn" data-act="rematch">한판 더!</button>`;
+    return h;
+  },
+  wordchain(g, meIn){
+    if (g.status === 'waiting') return waitingHTML(g, meIn);
+    const words = g.words || [];
+    const chain = words.length ? `<div class="chain">${words.slice(-12).map(w => `<span>${esc(w.word)}</span>`).join('')}</div>` : '';
+    if (g.status === 'playing') {
+      const cur = g.players[g.turn], myTurn = cur.uid === me.uid, last = words.at(-1);
+      let next = `<div class="next">첫 단어는 아무거나! 🎲</div>`;
+      if (last) { const lc = last.word.at(-1), d = dueum(lc); next = `<div class="next">다음 글자 <b>${lc}</b>${d ? ` 또는 <b>${d}</b>` : ''}</div>`; }
+      let h = playersHTML(g, g.turn) + chain + next + `<div class="timer"><i id="wcTimer"></i></div>
+        <div class="status">${myTurn ? '🔥 내 차례!' : `${esc(cur.name)}님 차례`}</div>`;
+      if (myTurn) h += `<div class="row"><input id="wcInput" class="field" maxlength="10" placeholder="단어 입력" autocomplete="off" enterkeyhint="done">
+        <button class="btn" style="width:auto;padding:0 18px" data-act="submit">제출</button></div>
+        <button class="btn ghost" style="margin-top:8px" data-act="giveup">포기</button>`;
+      return h;
+    }
+    let h = chain + `<div class="status" style="font-size:20px">💥 ${esc(g.loser)}님 탈락!</div>
+      <p class="empty" style="padding:6px">${words.length}개 단어를 이어갔어요${g.reason ? ` (${esc(g.reason)})` : ''}</p>`;
+    if (meIn) h += `<button class="btn" data-act="rematch">한판 더!</button>`;
+    return h;
+  },
+  omok(g, meIn){
+    if (g.status === 'waiting') return waitingHTML(g, meIn);
+    const myIdx = g.players.findIndex(p => p.uid === me.uid);
+    const st = g.status === 'playing'
+      ? (g.turn === myIdx ? '🔥 내 차례!' : `${esc(g.players[g.turn].name)}님 차례`)
+      : (g.winner === -1 ? '무승부!' : `🎉 ${esc(g.players[g.winner].name)} 승리!`);
+    let cells = '';
+    for (let i = 0; i < 225; i++) {
+      const c = g.board[i];
+      cells += `<button class="cell" data-act="cell" data-v="${i}">${c !== '.' ? `<span class="stone ${c}${i === g.last ? ' last' : ''}"></span>` : ''}</button>`;
+    }
+    let h = playersHTML(g, g.status === 'playing' ? g.turn : -1, ['⚫','⚪']) + `<div class="status">${st}</div><div class="board">${cells}</div>`;
+    if (g.status === 'done' && meIn) h += `<button class="btn" data-act="rematch">한판 더! (선공 교체)</button>`;
+    return h;
+  },
+  bingo(g, meIn){
+    if (g.status === 'waiting') return waitingHTML(g, meIn) + (meIn ? `<p class="empty" style="padding:4px">숫자 1~25가 섞인 내 빙고판이 자동으로 만들어져요</p>` : '');
+    const called = g.called || [], last = called.at(-1);
+    const myBoard = g.boards?.[me.uid];
+    const linesOf = p => bingoLines(g.boards[p.uid], called);
+    let h = `<div class="players">${g.players.map((p,i) =>
+      `<span class="chip ${g.status==='playing' && i===g.turn ? 'turn' : ''}">${esc(p.name)}${p.uid===me.uid?' (나)':''} · ${linesOf(p)}줄</span>`).join('')}</div>`;
+    if (g.status === 'playing') {
+      const cur = g.players[g.turn], myTurn = cur.uid === me.uid;
+      h += `<div class="timer"><i id="wcTimer"></i></div><div class="status">${myTurn ? '🔥 내 차례! 숫자를 골라요' : `${esc(cur.name)}님이 고르는 중...`}</div>`;
+      if (last) h += `<div class="next">방금 부른 숫자 <b>${last}</b></div>`;
+    } else {
+      h += `<div class="status" style="font-size:20px">🎉 ${esc((g.winners || []).join(', '))} 빙고!</div>`;
+    }
+    if (myBoard) {
+      const hit = new Set(called), n = bingoLines(myBoard, called), myTurn = g.status === 'playing' && g.players[g.turn].uid === me.uid;
+      h += `<div class="lines">${Array.from({ length:BINGO_GOAL }, (_, i) => `<span class="${i < n ? 'on' : ''}"></span>`).join('')}</div>
+        <div class="bingo">${myBoard.map(v => `<button class="bc ${hit.has(v)?'hit':''} ${myTurn && !hit.has(v)?'can':''} ${v===last?'lastcall':''}" data-act="call" data-v="${v}">${v}</button>`).join('')}</div>`;
+    } else h += `<p class="empty" style="padding:16px">관전 중 · 부른 숫자: ${called.join(', ') || '-'}</p>`;
+    if (g.status === 'done' && meIn) h += `<button class="btn" data-act="rematch">한판 더! (판 새로 섞기)</button>`;
+    return h;
+  },
+};
+
+function renderGame(){
+  const g = curGame?.data; if (!g) return;
+  const info = GAMES[g.type];
+  $('#gvTitle').textContent = `${info.icon} ${info.name}`;
+  const old = document.getElementById('wcInput');
+  const keep = old ? { v: old.value, f: document.activeElement === old } : null;
+  $('#gvBody').innerHTML = R[g.type](g, g.players.some(p => p.uid === me.uid));
+  const ni = document.getElementById('wcInput');
+  if (ni) { if (keep) ni.value = keep.v; if (!keep || keep.f) ni.focus(); }
+  if (g.turnStartedAt !== lastTurnStart) { lastTurnStart = g.turnStartedAt; timeoutSent = false; }
+}
+
+const ACT = {
+  join(){
+    tx(g => {
+      if (g.status !== 'waiting') return '이미 시작된 게임이에요';
+      if (g.players.some(p => p.uid === me.uid)) return null;
+      if (g.players.length >= g.maxPlayers) return '자리가 꽉 찼어요';
+      const players = [...g.players, { uid:me.uid, name:me.name }];
+      const u = { players };
+      if (g.type === 'bingo') u.boards = { ...g.boards, [me.uid]: newBingoBoard() };
+      if (!TURN_GAMES.includes(g.type) && players.length === g.maxPlayers) u.status = 'playing';
+      return u;
+    });
+  },
+  start(){
+    tx(g => {
+      if (g.status !== 'waiting' || g.createdBy !== me.uid) return null;
+      if (g.players.length < 2) return '2명 이상 필요해요';
+      return { status:'playing', turn:0, turnStartedAt: Date.now() };
+    });
+  },
+  pick(v){
+    let msg = null;
+    tx(g => {
+      if (g.status !== 'playing') return '게임이 진행 중이 아니에요';
+      if (!g.players.some(p => p.uid === me.uid)) return '참가자가 아니에요';
+      if (g.picks?.[me.uid]) return null;
+      const picks = { ...g.picks, [me.uid]: v };
+      if (Object.keys(picks).length < 2) return { picks };
+      const [a,b] = g.players, pa = picks[a.uid], pb = picks[b.uid];
+      const result = pa === pb ? '무승부! 🤝' : (BEATS[pa] === pb ? `${a.name} 승리! 🎉` : `${b.name} 승리! 🎉`);
+      msg = `✊ 가위바위보: ${a.name} ${RPS[pa]} vs ${RPS[pb]} ${b.name} → ${result}`;
+      return { picks, status:'done', result };
+    }, () => msg && sys(msg));
+  },
+  submit(){
+    const inp = document.getElementById('wcInput'); if (!inp) return;
+    const w = inp.value.trim();
+    if (!/^[가-힣]{2,10}$/.test(w)) return toast('한글 2~10자 단어를 입력하세요');
+    tx(g => {
+      if (g.status !== 'playing') return '게임이 끝났어요';
+      if (g.players[g.turn].uid !== me.uid) return '내 차례가 아니에요';
+      const words = g.words || [], last = words.at(-1);
+      if (last) { const lc = last.word.at(-1); if (w[0] !== lc && w[0] !== dueum(lc)) return `'${lc}'(으)로 시작해야 해요`; }
+      if (words.some(x => x.word === w)) return '이미 나온 단어예요';
+      return { words:[...words, { word:w, uid:me.uid }], turn:(g.turn + 1) % g.players.length, turnStartedAt: Date.now() };
+    });
+  },
+  giveup(){ endWordchain('포기', false); },
+  call(v){ bingoCall(+v, false); },
+  cell(v){
+    const i = +v; let msg = null;
+    tx(g => {
+      if (g.status !== 'playing') return null;
+      const idx = g.players.findIndex(p => p.uid === me.uid);
+      if (idx < 0) return '관전 중이에요';
+      if (g.turn !== idx) return '상대 차례예요';
+      if (g.board[i] !== '.') return null;
+      const s = idx === 0 ? 'B' : 'W';
+      const board = g.board.slice(0,i) + s + g.board.slice(i+1);
+      const u = { board, last:i, turn:1 - idx };
+      if (fiveInRow(board, i, s)) { u.status = 'done'; u.winner = idx; msg = `⚫ 오목: ${g.players[idx].name} 승리! 🎉`; }
+      else if (!board.includes('.')) { u.status = 'done'; u.winner = -1; msg = '⚫ 오목: 무승부!'; }
+      return u;
+    }, () => msg && sys(msg));
+  },
+  rematch(){
+    tx(g => {
+      if (g.status !== 'done') return null;
+      if (g.type === 'rps') return { picks:{}, status:'playing', result:null };
+      if (g.type === 'omok') return { players:[g.players[1], g.players[0]], board:'.'.repeat(225), turn:0, last:-1, winner:null, status:'playing' };
+      if (g.type === 'bingo') {
+        const boards = {}; g.players.forEach(p => boards[p.uid] = newBingoBoard());
+        return { boards, called:[], turn:0, turnStartedAt: Date.now(), winners:null, status:'playing' };
+      }
+      return { words:[], turn:0, turnStartedAt: Date.now(), loser:null, reason:null, status:'playing' };
+    });
+  },
+};
+function endWordchain(reason, isTimeout){
+  let msg = null;
+  tx(g => {
+    if (g.status !== 'playing') return null;
+    if (isTimeout && Date.now() - g.turnStartedAt < TURN_MS) return null;
+    if (!isTimeout && g.players[g.turn].uid !== me.uid) return '내 차례에만 포기할 수 있어요';
+    const loser = g.players[g.turn].name;
+    msg = `🔤 끝말잇기: ${loser}님 탈락! (${reason}, ${(g.words||[]).length}개 이어감)`;
+    return { status:'done', loser, reason };
+  }, () => msg && sys(msg));
+}
+function bingoCall(num, isTimeout){
+  let msg = null;
+  tx(g => {
+    if (g.status !== 'playing') return null;
+    const called = g.called || [];
+    if (isTimeout) {
+      if (Date.now() - g.turnStartedAt < TURN_MS) return null;
+      const left = g.boards[g.players[g.turn].uid].filter(n => !called.includes(n));
+      num = left[Math.floor(Math.random() * left.length)];
+    } else {
+      if (g.players[g.turn].uid !== me.uid) return '내 차례가 아니에요';
+      if (called.includes(num)) return null;
+    }
+    const nc = [...called, num];
+    const winners = g.players.filter(p => bingoLines(g.boards[p.uid], nc) >= BINGO_GOAL).map(p => p.name);
+    const u = { called: nc, turn: (g.turn + 1) % g.players.length, turnStartedAt: Date.now() };
+    if (winners.length) { u.status = 'done'; u.winners = winners; msg = `🎱 빙고: ${winners.join(', ')} 승리! 🎉 (${nc.length}번 만에)`; }
+    return u;
+  }, () => msg && sys(msg));
+}
+$('#gvBody').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b || b.disabled) return;
+  ACT[b.dataset.act]?.(b.dataset.v);
+});
+$('#gvBody').addEventListener('keydown', e => {
+  if (e.target.id === 'wcInput' && isEnter(e)) { e.preventDefault(); ACT.submit(); }
+});
+// 턴 타이머 (끝말잇기·빙고)
+setInterval(() => {
+  const g = curGame?.data, bar = document.getElementById('wcTimer');
+  if (!g || !TURN_GAMES.includes(g.type) || g.status !== 'playing' || !bar) return;
+  const left = TURN_MS - (Date.now() - g.turnStartedAt);
+  bar.style.width = Math.max(0, left / TURN_MS * 100) + '%';
+  bar.style.background = left < 5000 ? '#ff3d71' : '';
+  if (left < -1500 && !timeoutSent && g.players.some(p => p.uid === me.uid)) { timeoutSent = true; if (g.type === 'bingo') bingoCall(0, true); else endWordchain('시간 초과', true); }
+}, 250);
+
+// 안드로이드 앱 뒤로가기: 열린 창 닫기 → 채팅방에서 홈으로 → (없으면 앱 종료)
+window.noltalkBack = () => {
+  const open = document.querySelector('.overlay.show');
+  if (open) { if (open.id === 'gameView') closeGame(); else open.classList.remove('show'); return true; }
+  if ($('#room').classList.contains('active')) { backHome(); return true; }
+  return false;
+};
+if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

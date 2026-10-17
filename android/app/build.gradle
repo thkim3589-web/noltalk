@@ -1,0 +1,38 @@
+plugins { id 'com.android.application' }
+
+def runNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
+
+android {
+    namespace 'com.thkim.noltalk'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.thkim.noltalk'
+        minSdk 24
+        targetSdk 34
+        versionCode runNumber
+        versionName "1.0.${runNumber}"
+    }
+    signingConfigs {
+        fixed {
+            // 항상 같은 키로 서명해야 새 버전을 덮어서 설치할 수 있음
+            storeFile file('../noltalk.keystore')
+            storePassword 'noltalk123'
+            keyAlias 'noltalk'
+            keyPassword 'noltalk123'
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.fixed
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+}
