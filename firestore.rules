@@ -4,6 +4,7 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function roomData(roomId) { return get(/databases/$(database)/documents/rooms/$(roomId)).data; }
     function isMember(roomId) { return signedIn() && request.auth.uid in roomData(roomId).members; }
+    function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
 
     // 닉네임 예약: 문서 ID = 소문자 닉네임, 먼저 만든 사람만 소유 (덮어쓰기 불가)
     match /names/{key} {
@@ -17,12 +18,18 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow read: if signedIn();
-      // 내가 예약한 닉네임으로만 바꿀 수 있음
+      // 내가 예약한 닉네임으로만 바꿀 수 있음 (아바타·전적·읽음 표시 등은 자유)
       allow write: if signedIn() && request.auth.uid == uid
         && request.resource.data.name is string
         && request.resource.data.name.size() >= 2
         && request.resource.data.name.size() <= 12
         && getAfter(/databases/$(database)/documents/names/$(request.resource.data.name.lower())).data.uid == request.auth.uid;
+    }
+
+    // 접속 상태: 본인 것만 기록
+    match /presence/{uid} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == uid;
     }
 
     // 신고: 작성만 가능 (내용은 Firebase 콘솔에서 확인)
@@ -35,19 +42,27 @@ service cloud.firestore {
         return !('pubMembers' in request.resource.data)
           || request.resource.data.pubMembers == request.resource.data.members.size();
       }
+      // 메시지 수는 한 번에 1씩만 증가
+      function msgCountOk() {
+        return !changed().hasAny(['msgCount'])
+          || request.resource.data.msgCount == resource.data.get('msgCount', 0) + 1;
+      }
       allow read: if signedIn();
       allow create: if signedIn()
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.members == [request.auth.uid]
         && request.resource.data.name is string
         && request.resource.data.name.size() <= 20;
-      allow update: if signedIn() && pubCountOk() && (
-        // 방장: 강퇴(멤버 제거 + 재입장 금지), 공개/비공개 전환, 비밀번호
+      allow update: if signedIn() && pubCountOk() && msgCountOk() && (
+        // 방장: 강퇴, 공개/비공개 전환, 비밀번호, 공지, 방장 넘기기(멤버에게만)
         (request.auth.uid == resource.data.createdBy
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'banned', 'lastMessage', 'lastAt', 'pubAt', 'pubMembers', 'isPublic', 'pwHash']))
+          && changed().hasOnly(['members', 'banned', 'lastMessage', 'lastAt', 'lastUid', 'msgCount', 'pubAt', 'pubMembers',
+                                'isPublic', 'pwHash', 'notice', 'noticeAt', 'createdBy'])
+          && (request.resource.data.createdBy == resource.data.createdBy
+              || request.resource.data.createdBy in request.resource.data.members))
         ||
         // 누구나: 본인 입장/퇴장 + 마지막 메시지 갱신 (강퇴된 사람은 입장 불가)
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'lastMessage', 'lastAt', 'pubAt', 'pubMembers'])
+        (changed().hasOnly(['members', 'lastMessage', 'lastAt', 'lastUid', 'msgCount', 'pubAt', 'pubMembers'])
           && request.resource.data.members.toSet().difference(resource.data.members.toSet()).hasOnly([request.auth.uid])
           && resource.data.members.toSet().difference(request.resource.data.members.toSet()).hasOnly([request.auth.uid])
           && (request.auth.uid in resource.data.members || request.auth.uid in request.resource.data.members)
@@ -60,16 +75,34 @@ service cloud.firestore {
         allow create: if isMember(roomId)
           && request.resource.data.uid == request.auth.uid
           && (!('text' in request.resource.data) || request.resource.data.text.size() <= 500);
-        // 신고: reportedBy 목록에 나만 추가 가능
-        allow update: if isMember(roomId)
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportedBy'])
-          && request.resource.data.reportedBy.toSet().difference(resource.data.get('reportedBy', []).toSet()).hasOnly([request.auth.uid]);
+        allow update: if isMember(roomId) && (
+          // 신고: reportedBy 목록에 나만 추가
+          (changed().hasOnly(['reportedBy'])
+            && request.resource.data.reportedBy.toSet().difference(resource.data.get('reportedBy', []).toSet()).hasOnly([request.auth.uid]))
+          ||
+          // 이모지 반응: 내 반응만 바꾸기
+          (changed().hasOnly(['reactions'])
+            && request.resource.data.reactions.diff(resource.data.get('reactions', {})).affectedKeys().hasOnly([request.auth.uid]))
+          ||
+          // 삭제: 내 메시지, 또는 방장
+          (changed().hasOnly(['deleted', 'text', 'reply'])
+            && request.resource.data.deleted == true && request.resource.data.text == ''
+            && (resource.data.uid == request.auth.uid || roomData(roomId).createdBy == request.auth.uid))
+        );
+      }
+
+      // 입력 중 표시
+      match /typing/{uid} {
+        allow read: if isMember(roomId);
+        allow write: if isMember(roomId) && request.auth.uid == uid;
       }
 
       match /games/{gameId} {
         allow read: if isMember(roomId);
         allow create: if isMember(roomId) && request.resource.data.createdBy == request.auth.uid;
         allow update: if isMember(roomId);
+        // 12시간 지난 게임은 정리 가능
+        allow delete: if isMember(roomId) && resource.data.createdAt < request.time - duration.value(12, 'h');
       }
     }
   }

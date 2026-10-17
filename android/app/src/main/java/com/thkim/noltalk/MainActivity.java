@@ -2,6 +2,13 @@ package com.thkim.noltalk;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -66,7 +73,14 @@ public class MainActivity extends Activity {
         else web.loadUrl(urlFrom(getIntent()));
     }
 
+    private static String roomExtra(Intent i) {
+        String r = i != null ? i.getStringExtra("room") : null;
+        return (r != null && r.matches("[A-Za-z0-9]+")) ? r : null;
+    }
+
     private String urlFrom(Intent i) {
+        String rid = roomExtra(i);
+        if (rid != null) return HOME + "?room=" + rid;
         Uri d = i != null ? i.getData() : null;
         return (d != null && d.toString().startsWith(HOME)) ? d.toString() : HOME;
     }
@@ -74,7 +88,46 @@ public class MainActivity extends Activity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        if (intent.getData() != null) web.loadUrl(urlFrom(intent));
+        setIntent(intent);
+        String rid = roomExtra(intent);
+        if (rid != null) web.evaluateJavascript("window.openRoomFromNotif && openRoomFromNotif('" + rid + "')", null);
+        else if (intent.getData() != null) web.loadUrl(urlFrom(intent));
+    }
+
+    // 앱이 화면에 보이는지 웹에 알려줌 (안 보일 때만 알림 표시)
+    private void tellVisibility(boolean v) {
+        if (web != null) web.evaluateJavascript("window.__appVisible=" + v + ";window.dispatchEvent(new Event('appvis'))", null);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        tellVisibility(true);
+        try { ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancelAll(); } catch (Exception ignored) {}
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        tellVisibility(false);
+    }
+
+    private void showNotification(String roomId, String title, String body) {
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) return;
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel("chat") == null)
+            nm.createNotificationChannel(new NotificationChannel("chat", "채팅 메시지", NotificationManager.IMPORTANCE_HIGH));
+        Intent i = new Intent(this, MainActivity.class).putExtra("room", roomId).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent pi = PendingIntent.getActivity(this, roomId.hashCode(), i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, "chat") : new Notification.Builder(this);
+        b.setSmallIcon(android.R.drawable.stat_notify_chat)
+         .setContentTitle(title)
+         .setContentText(body)
+         .setStyle(new Notification.BigTextStyle().bigText(body))
+         .setAutoCancel(true)
+         .setContentIntent(pi);
+        if (Build.VERSION.SDK_INT < 26) b.setPriority(Notification.PRIORITY_HIGH).setDefaults(Notification.DEFAULT_ALL);
+        nm.notify(roomId.hashCode(), b.build());
     }
 
     @Override
@@ -106,6 +159,28 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface
         public void reload() { runOnUiThread(() -> web.loadUrl(HOME)); }
+
+        @JavascriptInterface
+        public int versionCode() {
+            try {
+                PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
+                return Build.VERSION.SDK_INT >= 28 ? (int) pi.getLongVersionCode() : pi.versionCode;
+            } catch (Exception e) { return 0; }
+        }
+
+        @JavascriptInterface
+        public void requestNotify() {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED)
+                    requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 7);
+            });
+        }
+
+        @JavascriptInterface
+        public void notifyMsg(String roomId, String title, String body) {
+            if (roomId == null || !roomId.matches("[A-Za-z0-9]+")) return;
+            runOnUiThread(() -> showNotification(roomId, title == null ? "놀톡" : title, body == null ? "" : body));
+        }
 
         // 웹에서 NoltalkApp.googleSignIn(웹클라이언트ID) 호출 → 구글 계정 선택 → ID 토큰을 웹으로 돌려줌
         @JavascriptInterface
