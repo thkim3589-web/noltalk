@@ -126,6 +126,22 @@ input{font:inherit}
 .ladder-res{display:flex;flex-direction:column;gap:4px;margin:8px 0}
 .ladder-res div{background:var(--bg);border-radius:10px;padding:8px 12px;font-size:14px;display:flex;justify-content:space-between}
 .ladder-res div.me{background:var(--acc);font-weight:800}
+.or{text-align:center;color:var(--sub);font-size:13px;margin:12px 0 8px}
+.gbtn{background:#fff;color:#333;border:2px solid var(--line)}
+.banner{display:flex;align-items:center;gap:8px;background:#fff6d6;color:#7a5b00;font-size:13px;padding:9px 12px}
+.banner span{flex:1}
+.banner button{background:#ffcc00;color:#222;font-weight:800;border-radius:10px;padding:7px 10px;font-size:13px;flex-shrink:0}
+.sort-chips{display:flex;gap:6px;margin-bottom:8px}
+.sort-chips button{background:#fff;border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--sub)}
+.sort-chips button.on{background:var(--p);border-color:var(--p);color:#fff}
+.more{display:block;margin:8px auto 0;background:#fff;border:1px solid var(--line);border-radius:20px;padding:9px 18px;font-weight:700;color:var(--p)}
+.who{cursor:pointer}
+.bubble.muted{background:#eee!important;color:#999!important;font-size:13px;font-style:italic}
+.menu-list button{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px;border-radius:12px;background:var(--bg);margin-bottom:8px;font-size:15px;font-weight:600}
+.menu-list button.danger{color:#e53950;background:#fff0f2}
+.member{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.member .avatar{width:36px;height:36px;font-size:15px;border-radius:12px}
+.member b{flex:1}
 #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:rgba(30,30,30,.92);color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:99;display:none;max-width:90%;text-align:center}
 </style>
 </head>
@@ -138,20 +154,26 @@ input{font:inherit}
   <div class="login-box">
     <input id="nick" class="field" maxlength="12" placeholder="닉네임 (한글·영문·숫자 2~12자)">
     <button id="startBtn" class="btn" style="margin-top:10px">시작하기</button>
+    <div class="or">또는</div>
+    <button id="googleBtn" class="btn gbtn">🔐 구글 계정으로 시작 · 계정 복구</button>
   </div>
 </div>
 
 <div id="home" class="screen">
   <div class="hdr"><h1>놀톡</h1><span id="meName" style="font-size:14px;opacity:.9"></span><button class="ib" id="renameBtn">✏️</button></div>
+  <div id="acctBanner" class="banner" style="display:none"><span>⚠️ 지금은 앱을 지우면 계정이 사라져요</span><button id="linkBtn">구글 계정 연결</button></div>
   <div class="tabs"><button class="on" data-tab="myRooms">내 채팅방</button><button data-tab="publicRooms">🔥 공개방</button></div>
   <div class="searchbar"><input id="roomSearch" placeholder="🔍 방 이름 또는 초대코드로 찾기" autocomplete="off" enterkeyhint="search"></div>
   <div id="myRooms" class="list"></div>
-  <div id="publicRooms" class="list" style="display:none"></div>
+  <div id="publicWrap" class="list" style="display:none">
+    <div class="sort-chips"><button class="on" data-sort="recent">🕐 최근 대화순</button><button data-sort="popular">👥 인원 많은순</button></div>
+    <div id="publicRooms"></div>
+  </div>
   <div class="fab-row"><button class="btn ghost" id="joinCodeBtn">🔑 코드로 입장</button><button class="btn" id="newRoomBtn">＋ 방 만들기</button></div>
 </div>
 
 <div id="room" class="screen">
-  <div class="hdr"><button class="ib" id="backBtn">←</button><h1 id="roomName"></h1><button class="ib" id="shareBtn">초대</button><button class="ib" id="leaveBtn">나가기</button></div>
+  <div class="hdr"><button class="ib" id="backBtn">←</button><h1 id="roomName"></h1><button class="ib" id="shareBtn">초대</button><button class="ib" id="menuBtn">☰</button></div>
   <div id="msgs"></div>
   <div class="inputbar"><button class="round game" id="gameBtn">🎮</button><input id="msgInput" maxlength="500" placeholder="메시지 입력" enterkeyhint="send" autocomplete="off"><button class="round send" id="sendBtn">➤</button></div>
 </div>
@@ -169,12 +191,16 @@ input{font:inherit}
 
 <div class="overlay" id="gameView"><div class="sheet"><h2><span id="gvTitle"></span><button class="x" id="gvClose">✕</button></h2><div id="gvBody"></div></div></div>
 
+<div class="overlay" id="roomMenu"><div class="sheet"><h2>채팅방 메뉴 <button class="x" data-close>✕</button></h2><div id="rmBody" class="menu-list"></div></div></div>
+<div class="overlay" id="memberSheet"><div class="sheet"><h2><span id="msTitle">멤버</span><button class="x" data-close>✕</button></h2><div id="msBody"></div></div></div>
+<div class="overlay" id="userSheet"><div class="sheet"><h2><span id="usTitle"></span><button class="x" data-close>✕</button></h2><div id="usBody" class="menu-list"></div></div></div>
+
 <div id="toast"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, arrayUnion, arrayRemove, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, linkWithPopup, linkWithCredential, signInWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, arrayUnion, arrayRemove, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* ▼▼▼ Firebase 콘솔에서 복사한 설정값을 여기에 붙여넣으세요 ▼▼▼ */
 const firebaseConfig = {
@@ -187,6 +213,9 @@ const firebaseConfig = {
   measurementId: "G-GRZ0RYR0HC"
 };
 /* ▲▲▲ */
+// 안드로이드 앱 구글 로그인용: Firebase → Authentication → 로그인 방법 → Google → '웹 SDK 구성'의 웹 클라이언트 ID
+const GOOGLE_WEB_CLIENT_ID = "";
+const IN_APP = navigator.userAgent.includes('NoltalkApp');
 
 const $ = s => document.querySelector(s);
 let toastT;
@@ -302,6 +331,53 @@ $('#startBtn').onclick = async () => {
   signingIn = false; $('#startBtn').disabled = false;
 };
 $('#nick').addEventListener('keydown', e => { if (isEnter(e)) $('#startBtn').click(); });
+
+/* ---------- 구글 계정 (계정 유지·복구) ---------- */
+function nativeGoogleCred(){
+  return new Promise((resolve, reject) => {
+    if (typeof window.NoltalkApp?.googleSignIn !== 'function') return reject(new Error('앱을 최신 버전으로 다시 설치해 주세요'));
+    if (!GOOGLE_WEB_CLIENT_ID) return reject(new Error('앱 구글 로그인은 준비 중이에요 (웹에서는 사용 가능)'));
+    window.onNativeGoogle = (token, err) => token ? resolve(GoogleAuthProvider.credential(token)) : reject(new Error(err || '취소했어요'));
+    NoltalkApp.googleSignIn(GOOGLE_WEB_CLIENT_ID);
+  });
+}
+const gErr = e => ({ 'auth/operation-not-allowed':'구글 로그인이 아직 꺼져 있어요 (Firebase 설정 필요)', 'auth/popup-closed-by-user':'로그인 창을 닫았어요',
+  'auth/popup-blocked':'팝업이 차단됐어요. 팝업을 허용해 주세요', 'auth/unauthorized-domain':'승인되지 않은 도메인이에요' }[e.code] || ('구글 로그인 실패: ' + (e.code || e.message)));
+function updateAccountUI(){ $('#acctBanner').style.display = auth.currentUser?.isAnonymous ? 'flex' : 'none'; }
+
+// 새 기기·앱 재설치 후: 구글로 로그인하면 예전 계정 그대로 복구
+$('#googleBtn').onclick = async () => {
+  $('#googleBtn').disabled = true; signingIn = true;
+  try {
+    const user = IN_APP ? (await signInWithCredential(auth, await nativeGoogleCred())).user
+                        : (await signInWithPopup(auth, new GoogleAuthProvider())).user;
+    const s = await getDoc(doc(db,'users',user.uid));
+    if (s.exists() && s.data().name) { me = { uid:user.uid, name:s.data().name }; toast(`다시 오신 걸 환영해요, ${me.name}님! 🎉`); openHome(); }
+    else toast('구글 계정 확인 완료! 닉네임을 정하고 시작하기를 눌러주세요');
+  } catch(e) { toast(gErr(e)); }
+  signingIn = false; $('#googleBtn').disabled = false;
+};
+
+// 지금 쓰는 익명 계정을 구글에 연결 (닉네임·채팅방 그대로 유지)
+$('#linkBtn').onclick = async () => {
+  const user = auth.currentUser; if (!user) return;
+  const switchTo = async cred => {
+    if (!cred) return toast('이미 다른 놀톡 계정에 연결된 구글 계정이에요');
+    if (!confirm('이 구글 계정에는 이미 다른 놀톡 계정이 있어요.\n그 계정으로 전환할까요? (지금 계정의 방 목록은 사라져요)')) return;
+    await signInWithCredential(auth, cred); location.reload();
+  };
+  try {
+    if (IN_APP) {
+      const cred = await nativeGoogleCred();
+      try { await linkWithCredential(user, cred); }
+      catch(e) { if (e.code === 'auth/credential-already-in-use') return switchTo(GoogleAuthProvider.credentialFromError(e) || cred); throw e; }
+    } else {
+      try { await linkWithPopup(user, new GoogleAuthProvider()); }
+      catch(e) { if (e.code === 'auth/credential-already-in-use') return switchTo(GoogleAuthProvider.credentialFromError(e)); throw e; }
+    }
+    updateAccountUI(); toast('구글 계정 연결 완료! 이제 앱을 지워도 계정이 유지돼요 🔐');
+  } catch(e) { toast(gErr(e)); }
+};
 $('#renameBtn').onclick = async () => {
   const n = (prompt('새 닉네임 (한글·영문·숫자 2~12자)', me.name) || '').trim();
   if (!n || n === me.name) return;
@@ -313,44 +389,94 @@ $('#renameBtn').onclick = async () => {
 };
 
 /* ---------- 홈 ---------- */
+/* ---------- 홈 ---------- */
+let pubSort = 'recent', pubLimit = 30, pubUnsub = null, searchResults = null, searchTimer = null;
+let blocked = new Set(), userUnsub = null;
+const nameCache = {};
 document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
   $('#myRooms').style.display = b.dataset.tab === 'myRooms' ? '' : 'none';
-  $('#publicRooms').style.display = b.dataset.tab === 'publicRooms' ? '' : 'none';
+  $('#publicWrap').style.display = b.dataset.tab === 'publicRooms' ? '' : 'none';
 });
+document.querySelectorAll('.sort-chips button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.sort-chips button').forEach(x => x.classList.toggle('on', x === b));
+  pubSort = b.dataset.sort; pubLimit = 30; subscribePublic();
+});
+// 공개방만 pubAt/pubMembers 필드가 있어서, 이 필드로 정렬하면 공개방만 나옴
+function subscribePublic(){
+  pubUnsub?.();
+  const q = pubSort === 'popular'
+    ? query(collection(db,'rooms'), orderBy('pubMembers','desc'), limit(pubLimit))
+    : query(collection(db,'rooms'), orderBy('pubAt','desc'), limit(pubLimit));
+  pubUnsub = onSnapshot(q, s => renderRooms('#publicRooms', s, '공개방이 없어요. 첫 방을 만들어 보세요!'), () => toast('공개방 목록을 불러오지 못했어요'));
+}
+function watchMe(){
+  if (userUnsub) return;
+  userUnsub = onSnapshot(doc(db,'users',me.uid), s => { blocked = new Set(s.data()?.blocked || []); if (room) renderMsgs(); });
+}
 function openHome(){
   show('home');
   $('#meName').textContent = me.name;
+  updateAccountUI(); watchMe();
   homeUnsubs.forEach(u => u()); homeUnsubs = [];
-  homeUnsubs.push(onSnapshot(query(collection(db,'rooms'), where('members','array-contains',me.uid), limit(50)),
-    s => renderRooms('#myRooms', s, '아직 들어간 방이 없어요.<br>공개방을 둘러보거나 새 방을 만들어 보세요!')));
-  homeUnsubs.push(onSnapshot(query(collection(db,'rooms'), where('isPublic','==',true), limit(50)),
-    s => renderRooms('#publicRooms', s, '공개방이 없어요. 첫 방을 만들어 보세요!')));
+  homeUnsubs.push(onSnapshot(query(collection(db,'rooms'), where('members','array-contains',me.uid), limit(100)), s => {
+    renderRooms('#myRooms', s, '아직 들어간 방이 없어요.<br>공개방을 둘러보거나 새 방을 만들어 보세요!');
+    s.docs.forEach(d => { // 예전에 만든 공개방도 새 목록에 보이도록 보정
+      const r = d.data();
+      if (r.isPublic && (r.pubAt == null || r.pubMembers !== (r.members || []).length))
+        updateDoc(d.ref, { pubAt: r.lastAt || serverTimestamp(), pubMembers: (r.members || []).length }).catch(() => {});
+    });
+  }));
+  subscribePublic(); homeUnsubs.push(() => { pubUnsub?.(); pubUnsub = null; });
   const code = new URLSearchParams(location.search).get('join');
   if (code) { history.replaceState(null, '', location.pathname); joinByCode(code); }
 }
 const roomCache = {};
 function renderRooms(sel, snap, empty){
-  if (snap) roomCache[sel] = { rooms: snap.docs.map(d => ({ id:d.id, ...d.data() })), empty };
+  if (snap) roomCache[sel] = { rooms: snap.docs.map(d => ({ id:d.id, ...d.data() })), empty, full: snap.size >= (sel === '#publicRooms' ? pubLimit : 100) };
   const c = roomCache[sel]; if (!c) return;
   const q = ($('#roomSearch').value || '').trim().toLowerCase();
-  const rooms = c.rooms
-    .filter(r => !q || (r.name || '').toLowerCase().includes(q) || (r.code || '').toLowerCase() === q)
-    .sort((a,b) => msOf(b.lastAt) - msOf(a.lastAt));
+  let rooms = c.rooms.filter(r => !q || (r.name || '').toLowerCase().includes(q) || (r.code || '').toLowerCase() === q);
+  if (sel === '#publicRooms') {
+    rooms = rooms.filter(r => r.isPublic);
+    if (q && searchResults) searchResults.forEach(r => { if (!rooms.some(x => x.id === r.id)) rooms.push(r); });
+    if (!q) rooms.sort(pubSort === 'popular' ? (a,b) => (b.pubMembers || 0) - (a.pubMembers || 0) : (a,b) => msOf(b.pubAt) - msOf(a.pubAt));
+  } else rooms.sort((a,b) => msOf(b.lastAt) - msOf(a.lastAt));
   empty = q ? `'${esc(q)}'에 맞는 방이 없어요.${sel === '#myRooms' ? '<br>🔥 공개방 탭에서도 찾아보세요!' : ''}` : c.empty;
-  $(sel).innerHTML = rooms.length ? rooms.map(r => `
+  $(sel).innerHTML = (rooms.length ? rooms.map(r => `
     <div class="room-item" data-id="${r.id}">
       <div class="avatar">${esc((r.name||'?')[0])}</div>
       <div class="ri-body"><div class="ri-top"><b>${esc(r.name)}</b><span>${ago(r.lastAt)}</span></div>
       <div class="ri-last">${esc(r.lastMessage || '')}</div></div>
-      <span class="cnt">👥${(r.members||[]).length}</span>
-    </div>`).join('') : `<p class="empty">${empty}</p>`;
+      <span class="cnt">👥${r.pubMembers ?? (r.members||[]).length}</span>
+    </div>`).join('') : `<p class="empty">${empty}</p>`)
+    + (sel === '#publicRooms' && !q && c.full ? `<button class="more" id="moreRooms">공개방 더 보기</button>` : '');
 }
-$('#roomSearch').addEventListener('input', () => { renderRooms('#myRooms'); renderRooms('#publicRooms'); });
+$('#publicRooms').addEventListener('click', e => { if (e.target.id === 'moreRooms') { pubLimit += 30; subscribePublic(); } });
+// 검색: 불러온 목록에서 바로 거르고, 서버에서도 이름 앞부분으로 한 번 더 찾기
+$('#roomSearch').addEventListener('input', () => {
+  renderRooms('#myRooms'); renderRooms('#publicRooms');
+  clearTimeout(searchTimer);
+  const q = $('#roomSearch').value.trim();
+  if (!q) { searchResults = null; return; }
+  searchTimer = setTimeout(async () => {
+    try {
+      const found = [];
+      const s1 = await getDocs(query(collection(db,'rooms'), where('name','>=',q), where('name','<=',q + ''), limit(30)));
+      s1.docs.forEach(d => found.push({ id:d.id, ...d.data() }));
+      if (/^[A-Za-z0-9]{6}$/.test(q)) {
+        const s2 = await getDocs(query(collection(db,'rooms'), where('code','==',q.toUpperCase()), limit(1)));
+        s2.docs.forEach(d => found.push({ id:d.id, ...d.data() }));
+      }
+      if ($('#roomSearch').value.trim() !== q) return;
+      searchResults = found.filter(r => r.isPublic); renderRooms('#publicRooms');
+    } catch {}
+  }, 350);
+});
 $('#roomSearch').addEventListener('keydown', e => {
   if (!isEnter(e)) return;
   const q = $('#roomSearch').value.trim();
-  if (/^[A-Za-z0-9]{6}$/.test(q) && !document.querySelector('.room-item')) joinByCode(q); // 목록에 없으면 코드로 입장 시도
+  if (/^[A-Za-z0-9]{6}$/.test(q) && !document.querySelector('.room-item')) joinByCode(q); // 비공개방도 코드로 입장
 });
 ['#myRooms','#publicRooms'].forEach(s => $(s).addEventListener('click', e => {
   const it = e.target.closest('.room-item'); if (it) enterRoom(it.dataset.id);
@@ -361,9 +487,11 @@ $('#createRoomBtn').onclick = async () => {
   if (!name) return toast('방 이름을 입력해 주세요');
   $('#createRoomBtn').disabled = true;
   try {
+    const isPublic = $('#publicChk').checked;
     const ref = await addDoc(collection(db,'rooms'), {
-      name, isPublic: $('#publicChk').checked, code: genCode(), createdBy: me.uid,
-      members: [me.uid], createdAt: serverTimestamp(), lastAt: serverTimestamp(), lastMessage: '방이 만들어졌어요 🎉'
+      name, isPublic, code: genCode(), createdBy: me.uid, banned: [],
+      members: [me.uid], createdAt: serverTimestamp(), lastAt: serverTimestamp(), lastMessage: '방이 만들어졌어요 🎉',
+      ...(isPublic ? { pubAt: serverTimestamp(), pubMembers: 1 } : {})
     });
     closeDlg('newRoomDlg'); enterRoom(ref.id);
   } catch(e) { toast('방 만들기 실패: ' + (e.code || e.message)); }
@@ -383,71 +511,206 @@ async function joinByCode(code){
 }
 
 /* ---------- 채팅방 ---------- */
+let roomDocUnsub = null, lastMsgs = [];
 const msgCol = () => collection(db,'rooms',room.id,'messages');
 async function post(data, preview){
   await addDoc(msgCol(), { ...data, uid:me.uid, name:me.name, createdAt: serverTimestamp() });
-  updateDoc(doc(db,'rooms',room.id), { lastMessage: preview.slice(0,60), lastAt: serverTimestamp() }).catch(() => {});
+  updateDoc(doc(db,'rooms',room.id), { lastMessage: preview.slice(0,60), lastAt: serverTimestamp(), ...(room.isPublic ? { pubAt: serverTimestamp() } : {}) }).catch(() => {});
 }
 const sys = t => post({ type:'system', text:t }, t);
 
+// 입장·퇴장·강퇴: 인원 수(pubMembers)를 정확히 맞추려고 트랜잭션으로 처리
+async function setMembership(roomId, uid, join, extra = {}){
+  const ref = doc(db,'rooms',roomId);
+  return runTransaction(db, async t => {
+    const s = await t.get(ref); if (!s.exists()) throw new Error('방을 찾을 수 없어요');
+    const r = s.data(); let members = r.members || [];
+    if (join) {
+      if ((r.banned || []).includes(uid)) throw new Error('방장이 내보낸 방이라 다시 들어갈 수 없어요');
+      if (!members.includes(uid)) members = [...members, uid];
+    } else members = members.filter(x => x !== uid);
+    const u = { members, ...extra };
+    if (r.isPublic) u.pubMembers = members.length;
+    t.update(ref, u);
+    return { ...r, members };
+  });
+}
 async function enterRoom(id){
   try {
     const ref = doc(db,'rooms',id);
     const s = await getDoc(ref);
     if (!s.exists()) return toast('방을 찾을 수 없어요');
     room = { id, ...s.data() };
+    if ((room.banned || []).includes(me.uid)) { room = null; return toast('방장이 내보낸 방이라 다시 들어갈 수 없어요'); }
     if (!(room.members || []).includes(me.uid)) {
-      await updateDoc(ref, { members: arrayUnion(me.uid) });
+      room = { id, ...(await setMembership(id, me.uid, true)) };
       await sys(`${me.name}님이 들어왔어요 👋`);
     }
     homeUnsubs.forEach(u => u()); homeUnsubs = [];
     $('#roomName').textContent = room.name;
-    $('#msgs').innerHTML = ''; firstRender = true;
+    $('#msgs').innerHTML = ''; firstRender = true; lastMsgs = [];
     show('room');
+    // 방이 삭제되거나 내가 강퇴되면 자동으로 홈으로
+    roomDocUnsub = onSnapshot(ref, d => {
+      if (!room || room.id !== id) return;
+      if (!d.exists()) { toast('방장이 방을 삭제했어요'); backHome(); return; }
+      room = { id, ...d.data() };
+      if (!(room.members || []).includes(me.uid)) { toast((room.banned || []).includes(me.uid) ? '방장이 나를 방에서 내보냈어요 👢' : '방에서 나왔어요'); backHome(); return; }
+      $('#roomName').textContent = room.name;
+    });
     roomUnsub = onSnapshot(query(msgCol(), orderBy('createdAt','desc'), limit(150)),
-      snap => renderMsgs(snap.docs.map(d => ({ id:d.id, ...d.data() })).reverse()),
-      () => toast('메시지를 불러오지 못했어요'));
-  } catch(e) { toast('입장 실패: ' + (e.code || e.message)); }
+      snap => renderMsgs(snap.docs.map(d => ({ id:d.id, ...d.data() })).reverse()), () => {});
+  } catch(e) { room = null; toast(e.message.includes('다시 들어갈') ? e.message : '입장 실패: ' + (e.code || e.message)); }
 }
 function renderMsgs(msgs){
+  if (msgs) lastMsgs = msgs;
   const box = $('#msgs');
   const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
-  box.innerHTML = msgs.map(m => {
+  box.innerHTML = lastMsgs.map(m => {
     if (m.type === 'system') return `<div class="sys">${esc(m.text)}</div>`;
     const mine = m.uid === me.uid;
-    const who = mine ? '' : `<div class="who">${esc(m.name)}</div>`;
+    const crown = m.uid === room?.createdBy ? ' 👑' : '';
+    const who = mine ? '' : `<div class="who" data-user="${m.uid}" data-name="${esc(m.name)}" data-msg="${m.id}">${esc(m.name)}${crown} ›</div>`;
+    const time = `<div class="time">${hhmm(m.createdAt)}</div>`;
+    if (!mine && blocked.has(m.uid)) return `<div class="msg"><div class="bubble muted">🚫 차단한 사용자의 메시지</div></div>`;
+    if ((m.reportedBy || []).length >= 3) return `<div class="msg ${mine?'mine':''}">${who}<div class="bubble muted">🚨 신고가 쌓여 가려진 메시지예요</div>${time}</div>`;
     if (m.type === 'game') {
       const g = GAMES[m.game] || {};
       return `<div class="msg ${mine?'mine':''}">${who}<div class="game-card"><div class="gc-title">${g.icon} ${g.name}</div>
         <div class="gc-sub">${esc(m.name)}님이 게임을 열었어요! (${g.desc})</div>
-        <button data-game="${m.gameId}">입장하기</button></div><div class="time">${hhmm(m.createdAt)}</div></div>`;
+        <button data-game="${m.gameId}">입장하기</button></div>${time}</div>`;
     }
-    return `<div class="msg ${mine?'mine':''}">${who}<div class="bubble">${esc(m.text)}</div><div class="time">${hhmm(m.createdAt)}</div></div>`;
+    const tap = mine ? '' : ` data-user="${m.uid}" data-name="${esc(m.name)}" data-msg="${m.id}"`;
+    return `<div class="msg ${mine?'mine':''}">${who}<div class="bubble"${tap}>${esc(m.text)}</div>${time}</div>`;
   }).join('');
   if (firstRender || nearBottom) box.scrollTop = box.scrollHeight;
   firstRender = false;
 }
-$('#msgs').addEventListener('click', e => { const b = e.target.closest('[data-game]'); if (b) openGame(b.dataset.game); });
+$('#msgs').addEventListener('click', e => {
+  const b = e.target.closest('[data-game]'); if (b) return openGame(b.dataset.game);
+  const u = e.target.closest('[data-user]'); if (u) openUserSheet(u.dataset.user, u.dataset.name, u.dataset.msg);
+});
+
+// 도배 방지: 5초에 5개까지, 같은 말 3번 연속 금지
+const sentTimes = []; let lastTexts = [];
+function spamCheck(t){
+  const now = Date.now();
+  while (sentTimes.length && now - sentTimes[0] > 5000) sentTimes.shift();
+  if (sentTimes.length >= 5) return '너무 빨라요! 잠깐 쉬었다 보내주세요 🐢';
+  if (lastTexts.length >= 2 && lastTexts.every(x => x === t)) return '같은 메시지를 계속 보낼 수 없어요';
+  sentTimes.push(now); lastTexts = [...lastTexts, t].slice(-2);
+  return null;
+}
 async function sendMsg(){
   const inp = $('#msgInput');
   const t = clean(inp.value.trim());
   if (!t || !room) return;
+  const err = spamCheck(t); if (err) return toast(err);
   inp.value = '';
   try { await post({ type:'text', text:t.slice(0,500) }, `${me.name}: ${t}`); }
   catch(e) { toast('전송 실패'); inp.value = t; }
 }
 $('#sendBtn').onclick = () => { sendMsg(); $('#msgInput').focus(); };
 $('#msgInput').addEventListener('keydown', e => { if (isEnter(e)) { e.preventDefault(); sendMsg(); } });
-function backHome(){ roomUnsub?.(); roomUnsub = null; closeGame(); room = null; openHome(); }
+function stopRoom(){ roomUnsub?.(); roomDocUnsub?.(); roomUnsub = roomDocUnsub = null; closeGame(); room = null; }
+function backHome(){ stopRoom(); document.querySelectorAll('#roomMenu,#memberSheet,#userSheet').forEach(o => o.classList.remove('show')); openHome(); }
 $('#backBtn').onclick = backHome;
-$('#leaveBtn').onclick = async () => {
-  if (!confirm('이 방에서 나갈까요?')) return;
-  try {
-    await sys(`${me.name}님이 나갔어요`);
-    await updateDoc(doc(db,'rooms',room.id), { members: arrayRemove(me.uid) });
-  } catch {}
-  backHome();
+
+/* ---------- 방 메뉴 · 멤버 · 방장 권한 ---------- */
+const isOwner = () => room && room.createdBy === me.uid;
+$('#menuBtn').onclick = () => {
+  $('#rmBody').innerHTML = `
+    <button data-rm="members">👥 멤버 보기 (${(room.members || []).length}명)</button>
+    <button data-rm="code">🔑 초대코드 복사: <b>${esc(room.code)}</b></button>
+    <button data-rm="leave">🚪 방 나가기</button>
+    ${isOwner() ? `<button data-rm="delete" class="danger">🗑️ 방 삭제 (방장)</button>` : ''}`;
+  openDlg('roomMenu');
 };
+$('#rmBody').addEventListener('click', async e => {
+  const b = e.target.closest('[data-rm]'); if (!b) return;
+  const act = b.dataset.rm;
+  if (act === 'members') { closeDlg('roomMenu'); openMembers(); }
+  if (act === 'code') { try { await navigator.clipboard.writeText(room.code); toast('초대코드를 복사했어요'); } catch { toast(`초대코드: ${room.code}`); } }
+  if (act === 'leave') {
+    if (!confirm(isOwner() ? '방장이 나가면 강퇴·삭제 권한이 사라져요.\n그래도 나갈까요?' : '이 방에서 나갈까요?')) return;
+    closeDlg('roomMenu');
+    const id = room.id;
+    try { await sys(`${me.name}님이 나갔어요`); } catch {}
+    roomUnsub?.(); roomDocUnsub?.(); roomUnsub = roomDocUnsub = null;
+    try { await setMembership(id, me.uid, false); } catch {}
+    backHome();
+  }
+  if (act === 'delete' && isOwner()) {
+    if (!confirm(`'${room.name}' 방을 삭제할까요?\n모든 멤버가 방에서 나가게 되고 되돌릴 수 없어요.`)) return;
+    closeDlg('roomMenu');
+    const ref = doc(db,'rooms',room.id);
+    stopRoom();
+    try { await deleteDoc(ref); toast('방을 삭제했어요'); } catch(e) { toast('삭제 실패: ' + (e.code || e.message)); }
+    backHome();
+  }
+});
+async function userName(uid){
+  if (nameCache[uid]) return nameCache[uid];
+  try { const s = await getDoc(doc(db,'users',uid)); nameCache[uid] = s.data()?.name || '알 수 없음'; } catch { nameCache[uid] = '알 수 없음'; }
+  return nameCache[uid];
+}
+async function openMembers(){
+  const ids = room.members || [];
+  $('#msTitle').textContent = `멤버 ${ids.length}명`;
+  $('#msBody').innerHTML = '<p class="empty" style="padding:16px">불러오는 중...</p>';
+  openDlg('memberSheet');
+  const names = await Promise.all(ids.map(userName));
+  const rows = ids.map((u,i) => ({ u, n: names[i] })).sort((a,b) => (b.u === room.createdBy) - (a.u === room.createdBy));
+  $('#msBody').innerHTML = rows.map(({u,n}) => `<div class="member" data-user="${u}" data-name="${esc(n)}">
+    <div class="avatar">${esc(n[0] || '?')}</div><b>${esc(n)}${u === me.uid ? ' (나)' : ''}</b>
+    <span>${u === room.createdBy ? '👑 방장' : ''}${blocked.has(u) ? ' 🚫' : ''}</span></div>`).join('');
+}
+$('#msBody').addEventListener('click', e => { const m = e.target.closest('[data-user]'); if (m) openUserSheet(m.dataset.user, m.dataset.name); });
+
+/* ---------- 차단 · 신고 · 강퇴 ---------- */
+let usCtx = null;
+const REASONS = ['욕설·비하', '도배·스팸', '음란·불쾌한 내용', '사기·광고', '괴롭힘', '기타'];
+function openUserSheet(uid, name, msgId){
+  usCtx = { uid, name, msgId };
+  $('#usTitle').textContent = `👤 ${name}`;
+  if (uid === me.uid) $('#usBody').innerHTML = `<p class="empty" style="padding:16px">나예요 🙂</p>`;
+  else $('#usBody').innerHTML = `
+    <button data-us="block">${blocked.has(uid) ? '✅ 차단 해제' : '🚫 차단하기 (이 사람 메시지 숨기기)'}</button>
+    <button data-us="report">🚨 ${msgId ? '이 메시지 신고' : '사용자 신고'}</button>
+    ${isOwner() && (room.members || []).includes(uid) ? `<button data-us="kick" class="danger">👢 방에서 내보내기 (다시 못 들어와요)</button>` : ''}`;
+  openDlg('userSheet');
+}
+$('#usBody').addEventListener('click', async e => {
+  const b = e.target.closest('[data-us],[data-reason]'); if (!b || !usCtx) return;
+  const { uid, name, msgId } = usCtx;
+  try {
+    if (b.dataset.us === 'block') {
+      const on = !blocked.has(uid);
+      await updateDoc(doc(db,'users',me.uid), { blocked: on ? arrayUnion(uid) : arrayRemove(uid) });
+      toast(on ? `${name}님을 차단했어요. 메시지가 보이지 않아요` : `${name}님 차단을 풀었어요`); closeDlg('userSheet');
+    }
+    if (b.dataset.us === 'report') {
+      $('#usBody').innerHTML = `<p class="hint">신고 이유를 골라주세요</p>` + REASONS.map(r => `<button data-reason="${r}">${r}</button>`).join('');
+    }
+    if (b.dataset.reason) {
+      const m = msgId ? lastMsgs.find(x => x.id === msgId) : null;
+      await addDoc(collection(db,'reports'), {
+        reporter: me.uid, reporterName: me.name, target: uid, targetName: name, reason: b.dataset.reason,
+        roomId: room?.id || null, roomName: room?.name || null, msgId: msgId || null, text: m?.text?.slice(0,500) || null, at: serverTimestamp()
+      });
+      if (msgId && room) await updateDoc(doc(db,'rooms',room.id,'messages',msgId), { reportedBy: arrayUnion(me.uid) }).catch(() => {});
+      closeDlg('userSheet');
+      if (!blocked.has(uid) && confirm('신고가 접수됐어요. 3명 이상 신고하면 메시지가 자동으로 가려져요.\n이 사람을 차단할까요?'))
+        await updateDoc(doc(db,'users',me.uid), { blocked: arrayUnion(uid) });
+    }
+    if (b.dataset.us === 'kick' && isOwner()) {
+      if (!confirm(`${name}님을 방에서 내보낼까요?\n내보낸 사람은 다시 들어올 수 없어요.`)) return;
+      await sys(`👢 방장이 ${name}님을 내보냈어요`);
+      await setMembership(room.id, uid, false, { banned: arrayUnion(uid) });
+      closeDlg('userSheet'); closeDlg('memberSheet'); toast(`${name}님을 내보냈어요`);
+    }
+  } catch(err) { toast('처리 실패: ' + (err.code || err.message)); }
+});
 $('#shareBtn').onclick = async () => {
   const link = `${location.origin}${location.pathname}?join=${room.code}`;
   const text = `놀톡 "${room.name}" 방에 놀러와! 🎮\n초대코드: ${room.code}\n${link}`;

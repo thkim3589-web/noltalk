@@ -13,6 +13,20 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import androidx.credentials.Credential;
+import androidx.credentials.CredentialManager;
+import androidx.credentials.CredentialManagerCallback;
+import androidx.credentials.CustomCredential;
+import androidx.credentials.GetCredentialRequest;
+import androidx.credentials.GetCredentialResponse;
+import androidx.credentials.exceptions.GetCredentialCancellationException;
+import androidx.credentials.exceptions.GetCredentialException;
+
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
+
+import org.json.JSONObject;
+
 public class MainActivity extends Activity {
     private static final String HOME = "https://thkim3589-web.github.io/noltalk/";
     private WebView web;
@@ -92,5 +106,46 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface
         public void reload() { runOnUiThread(() -> web.loadUrl(HOME)); }
+
+        // 웹에서 NoltalkApp.googleSignIn(웹클라이언트ID) 호출 → 구글 계정 선택 → ID 토큰을 웹으로 돌려줌
+        @JavascriptInterface
+        public void googleSignIn(String webClientId) {
+            runOnUiThread(() -> startGoogleSignIn(webClientId));
+        }
     }
+
+    private void sendGoogleResult(String token, String error) {
+        String js = "window.onNativeGoogle && window.onNativeGoogle(" +
+                (token == null ? "null" : JSONObject.quote(token)) + "," +
+                (error == null ? "null" : JSONObject.quote(error)) + ")";
+        runOnUiThread(() -> web.evaluateJavascript(js, null));
+    }
+
+    private void startGoogleSignIn(String webClientId) {
+        try {
+            GetSignInWithGoogleOption option = new GetSignInWithGoogleOption.Builder(webClientId).build();
+            GetCredentialRequest request = new GetCredentialRequest.Builder().addCredentialOption(option).build();
+            CredentialManager.create(this).getCredentialAsync(this, request, null, this::runOnUiThread,
+                new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+                    @Override
+                    public void onResult(GetCredentialResponse result) {
+                        Credential c = result.getCredential();
+                        if (c instanceof CustomCredential && GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(c.getType())) {
+                            try {
+                                GoogleIdTokenCredential g = GoogleIdTokenCredential.createFrom(c.getData());
+                                sendGoogleResult(g.getIdToken(), null);
+                            } catch (Exception e) { sendGoogleResult(null, "구글 정보를 읽지 못했어요"); }
+                        } else sendGoogleResult(null, "지원하지 않는 로그인 방식이에요");
+                    }
+                    @Override
+                    public void onError(GetCredentialException e) {
+                        if (e instanceof GetCredentialCancellationException) sendGoogleResult(null, "취소했어요");
+                        else sendGoogleResult(null, "구글 로그인 실패: " + e.getClass().getSimpleName() + " " + e.getMessage());
+                    }
+                });
+        } catch (Exception e) {
+            sendGoogleResult(null, "구글 로그인을 시작하지 못했어요: " + e.getMessage());
+        }
+    }
+
 }
