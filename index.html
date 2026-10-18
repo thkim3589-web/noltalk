@@ -1464,13 +1464,14 @@ function renderGameTab(){
   const party = Object.keys(GAMES).filter(t => GAME_META[t]?.cat !== 'arcade');
   $('#gameTabBody').innerHTML = `
     <div class="sec-title">🕹️ 혼자 연습하기</div><div class="sec-sub">바로 시작해요 · 기록은 내 최고 기록에만 남아요</div>
-    <div class="ggrid">${arcade.map(tile).join('')}</div>
+    <div class="ggrid">${arcade.map(tile).join('')}<button class="gtile" data-aichess="1"><span class="gi">♟️</span><b>체스</b><small>🤖 AI 대결</small></button></div>
     <div class="sec-title" style="margin-top:18px">👥 친구랑 대결하기</div><div class="sec-sub">채팅방에서 ${ic('game', 16)} 버튼을 눌러 시작해요</div>
     <div class="ggrid">${party.map(t => { const g = GAMES[t], m = GAME_META[t] || {}; return `<button class="gtile" data-party="${t}"><span class="gi">${g.icon}</span><b>${g.name}</b><small>${m.ppl || ''}</small></button>`; }).join('')}</div>
     <div class="howto"><b>방에서 대결하는 법</b><br>채팅방 입력창 왼쪽 게임 버튼 → 게임 고르기 → 채팅에 뜬 카드의 <b>참가</b>를 누르면 친구도 함께해요. 아케이드 게임은 방에서 열면 모두 같은 판으로 순위를 겨뤄요.</div>`;
 }
 $('#gameTabBody').addEventListener('click', e => {
-  const s1 = e.target.closest('[data-solo]'); if (s1) return openArcade(s1.dataset.solo, null, Math.floor(Math.random() * 2147483647), Math.floor(Math.random() * 1000));
+  if (e.target.closest('[data-aichess]')) return openAiChess();
+  const s1 = e.target.closest('[data-solo]'); if (s1) return openArcade(s1.dataset.solo, null, Math.floor(Math.random() * 2147483647), soloLevel(s1.dataset.solo));
   const p1 = e.target.closest('[data-party]'); if (p1) { showHomeTab('chat'); toast('채팅방에 들어가서 게임 버튼을 눌러주세요 🎮'); }
 });
 function openProfile(){
@@ -1622,6 +1623,12 @@ function closeGame(){ gameUnsub?.(); gameUnsub = null; curGame = null; closeDlg(
 $('#gvClose').onclick = closeGame;
 
 async function tx(fn, after){
+  if (curGame?.local) {   // 혼자 하는 AI 대결: 서버 없이 바로 적용
+    const r = fn(JSON.parse(JSON.stringify(curGame.data)));
+    if (typeof r === 'string') return toast(r);
+    if (r) { Object.assign(curGame.data, r); renderGame(); }
+    after && after(); curGame.data.type === 'chess' && chAiMaybe(); return;
+  }
   if (!curGame || !room) return;
   const ref = doc(db,'rooms',room.id,'games',curGame.id);
   try {
@@ -2082,7 +2089,7 @@ function renderGame(){
     if (k) { el.value = k.v; if (k.f) el.focus(); } else if (id !== 'ladderOut') el.focus();
   });
   if (g.turnStartedAt !== lastTurnStart) { lastTurnStart = g.turnStartedAt; timeoutSent = false; }
-  recordStats(g, curGame.id);
+  if (!curGame.local) recordStats(g, curGame.id);
 }
 
 const ACT = {
@@ -2301,7 +2308,7 @@ const ACT = {
         return { boards, called:[], turn:first, turnStartedAt: Date.now(), winners:null, status:'playing' };
       }
       return { words:[], turn:0, turnStartedAt: Date.now(), loser:null, reason:null, status:'playing' };
-    })(); if (u && typeof u === 'object') u.rc = (g.rc || 0) + 1; return u; }, () => msg && sys(msg));
+    })(); if (u && typeof u === 'object') u.rc = (g.rc || 0) + 1; return u; }, () => msg && chSay(msg));
   },
 };
 function endWordchain(reason, isTimeout){
@@ -2377,8 +2384,52 @@ const PIXEL_ART = [
   { name:'아이스크림', rows:['................','......pppp......','.....pppppp.....','....ppwpppppp...','....pppppppvp...','.....yyyyyy.....','....yyyoyyyyy...','....yyyyyyoyy...','.....oooooo.....','.....oboobo.....','......oooo......','......obbo......','.......oo.......','.......oo.......','................','................'] },
   { name:'로켓', rows:['nnnnnnnnnnnnnnnn','nnnnnnnwnnnnnynn','nnnnnnwwwnnnnnnn','nnnnnwwwwwnnnnnn','nnynnwwuwwnnnnnn','nnnnnwuuuwnnnnyn','nnnnnwwuwwnnnnnn','nnnnnwwwwwnnnnnn','nnnnrwwwwwrnnnnn','nnnrrwwwwwrrnnnn','nnnrrnwwwnrrnnnn','nnnnnnoyonnnnnnn','nnynnnoyonnnnnnn','nnnnnnnonnnnnnyn','nnnnnnnnnnnnnnnn','nnnnnnnnnnnnnnnn'] },
   { name:'꽃밭', rows:['................','......pp........','.....pppp.......','...pp.pp.pp.....','..pppp..pppp....','...pp.yy.pp.....','.....yyyy.......','...pp.yy.pp.....','..pppp..pppp....','...pp.pp.pp.....','.....pppp.......','......gg..g.....','......gg.gg.....','....gg.ggg......','gggggggggggggggg','GGGGGGGGGGGGGGGG'] },
+  { name:'별', rows:['nnnnnnnnnnnnnnnn','nwnnnnnyynnnnnnn','nnnnnnnyynnnnwnn','nnnnnnyyyynnnnnn','nnnnnnyyyynnnnnn','nyyyyyyyyyyyyyyn','nnyyyyyyyyyyyynn','nnnyyykyykyyynnn','nnnnyyyyyyyynnnn','nnnnyyyrryyynnnn','nnnyyyyyyyyyynnn','nnnyyyynnyyyynnn','nnyyyynnnnyyyynn','nnyyynnnnnnyyynn','nyynnnnwnnnnnyyn','nnnnnnnnnnnnnnnn'] },
+  { name:'수박', rows:['................','................','................','.....rrrrrr.....','...rrrrrrrrrr...','..rrrkrrrrkrrr..','.rrrrrrrkrrrrrr.','.rrkrrrrrrrrkrr.','rrrrrrkrrrkrrrrr','rrrrrrrrrrrrrrrr','wwwwwwwwwwwwwwww','gggggggggggggggg','.GGGGGGGGGGGGGG.','................','................','................'] },
+  { name:'개구리', rows:['................','................','...www....www...','..wwkww..wwkww..','..wwkwwggwwkww..','..gwwwggggwwwg..','.gggggggggggggg.','.gggggggggggggg.','.ggpggggggggpgg.','.gggkkkkkkkkggg.','..gggggggggggg..','..gGGggggggGGg..','.GGGGggggggGGGG.','.G.GG......GG.G.','................','................'] },
+  { name:'펭귄', rows:['................','.....kkkkkk.....','....kkkkkkkk....','...kkwwkkwwkk...','...kwkwwwwkwk...','...kwwwoowwwk...','..kkwwwwwwwwkk..','..kwwwwwwwwwwk..','.kkwwwwwwwwwwkk.','.kkwwwwwwwwwwkk.','.kkwwwwwwwwwwkk.','..kwwwwwwwwwwk..','..kkwwwwwwwwkk..','...kkkkkkkkkk...','...ooo....ooo...','................'] },
+  { name:'케이크', rows:['................','.......o........','.......y........','.......v........','.......v........','..pppppppppppp..','..pwpwpwpwpwpw..','..cccccccccccc..','..crccrccrccrc..','..cccccccccccc..','..pppppppppppp..','..bbbbbbbbbbbb..','..bbbbbbbbbbbb..','.wwwwwwwwwwwwww.','................','................'] },
 ];
 
+// 짝수 레벨 = 손그림, 홀수 레벨 = 무작위 몬스터(500가지 이상)
+function pixelArt(level){
+  level = Math.abs(level | 0);
+  return level % 2 === 0 ? PIXEL_ART[(level / 2) % PIXEL_ART.length] : genPixelArt(level);
+}
+function genPixelArt(level){
+  const rng = mulberry32(level * 7919 + 13), pick = a => a[Math.floor(rng() * a.length)];
+  const bg = pick(['.','n','c','.']), body = pick(['g','r','p','y','o','u','v','G','b'].filter(c => c !== bg));
+  const acc = pick(['y','w','p','o','r','u','g'].filter(c => c !== body && c !== bg));
+  let m = Array.from({ length:16 }, (_, y) => Array.from({ length:8 }, (_, x) => {
+    const dy = (y - 8) / 6.5, dx = (x - 8) / 6; return y > 1 && y < 14 && x > 1 && rng() < 1.15 - (dx * dx + dy * dy); }));
+  for (let it = 0; it < 2; it++) m = m.map((r,y) => r.map((v,x) => {   // 덩어리로 다듬기
+    let n = 0; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { if (!a && !b) continue; const yy = y + a, xx = x + b; if (yy < 0 || yy > 15) continue; n += xx > 7 ? (m[yy][15 - xx] ? 1 : 0) : xx >= 0 && m[yy][xx] ? 1 : 0; }
+    return n >= 5 || (v && n >= 3); }));
+  const full = m.map(r => [...r, ...[...r].reverse()]);
+  const rows = full.map((r,y) => r.map((v,x) => v ? body : bg));
+  const stripe = pick([0, 1, 2]);
+  rows.forEach((r,y) => r.forEach((c,x) => { if (c !== body) return;
+    if (stripe === 1 && y % 4 === 2) r[x] = acc;
+    if (stripe === 2 && (x + y) % 5 === 0) r[x] = acc; }));
+  let ey = -1; for (let y = 3; y < 10 && ey < 0; y++) if ([4,5,6,7].every(x => full[y][x] && full[y + 1][x])) ey = y;   // 눈 (2×2, 안쪽을 봐요)
+  if (ey >= 0) [[5,6],[10,9]].forEach(([o,i]) => { rows[ey][o] = rows[ey][i] = rows[ey + 1][o] = 'w'; rows[ey + 1][i] = 'k'; });
+  rows.forEach((r,y) => r.forEach((c,x) => {   // 외곽선
+    if (full[y][x]) return;
+    if ([[0,1],[1,0],[0,-1],[-1,0]].some(([a,b]) => full[y + a]?.[x + b])) rows[y][x] = bg === 'n' ? 'w' : 'k';
+  }));
+  return { name:`몬스터 #${(level - 1) / 2 + 1}`, rows: rows.map(r => r.join('')) };
+}
+// 혼자 할 때는 최근에 나온 그림은 피해서 골라요
+function soloLevel(type){
+  let lv = Math.floor(Math.random() * 1000);
+  if (type !== 'pixel') return lv;
+  try {
+    const recent = JSON.parse(localStorage.getItem('pxRecent') || '[]');
+    for (let k = 0; k < 30 && recent.includes(pixelArt(lv).name); k++) lv = Math.floor(Math.random() * 1000);
+    localStorage.setItem('pxRecent', JSON.stringify([pixelArt(lv).name, ...recent].slice(0, 10)));
+  } catch {}
+  return lv;
+}
 function arcadeView(g){
   const rows = arcadeSort(g.type, g.results), mine = rows.findIndex(([u]) => u === me.uid);
   const rule = { blocks:'블록을 돌리고 쌓아서 가로줄을 꽉 채우면 사라져요. 4줄을 한 번에 지우면 대박!',
@@ -2388,15 +2439,25 @@ function arcadeView(g){
     freecell:'카드를 눌러 고르고 옮길 곳을 누르세요. 8줄의 카드를 같은 무늬 A→K 순서로 오른쪽 위 4칸에 모두 올리면 완성! 빈 칸 4개를 잘 활용하세요.',
     blockpuz:'아래 블록 3개를 끌어서 판에 놓으세요. 가로나 세로 한 줄을 꽉 채우면 사라져요. 더 놓을 곳이 없으면 끝!',
     queens:'가로줄·세로줄·같은 색 구역마다 🐱 1마리씩! 고양이끼리는 대각선 포함 붙으면 안 돼요. 맞는 자리면 주변이 자동으로 ✕, 틀리면 🐟를 잃어요 (3번까지)' }[g.type];
-  const lv = g.type === 'pixel' ? `<p class="hint">🖼️ 오늘의 그림: <b>${esc(PIXEL_ART[(g.level || 0) % PIXEL_ART.length].name)}</b></p>`
+  const lv = g.type === 'pixel' ? `<p class="hint">🖼️ 오늘의 그림: <b>${esc(pixelArt(g.level || 0).name)}</b></p>`
     : g.type === 'queens' ? `<p class="hint">🐱 이번 판 크기: <b>${queensSize(g.seed)}×${queensSize(g.seed)}</b></p>` : '';
   return `<p class="hint">${rule}</p>${lv}
-    <button class="btn" data-act="arcadePlay">▶ ${mine >= 0 ? '다시 도전하기' : '도전하기'}</button>
+    <button class="btn" data-act="arcadePlay">▶ ${mine >= 0 ? '같은 판 다시 도전하기' : '도전하기'}</button>
+    <button class="btn ghost" data-act="arcadeNew" style="margin-top:8px">🎲 새 ${{ pixel:'그림', sudoku:'문제' }[g.type] || '판'}으로 바꾸기</button>
     <div class="pf-label">🏆 이 방 순위 · 모두 같은 ${{ pixel:'그림', sudoku:'문제', queens:'판' }[g.type] || '순서'}로 도전해요</div>
     ${rows.length ? rows.map(([u,r],i) => `<div class="rank-row ${u === me.uid ? 'me' : ''}"><span class="rk">${['🥇','🥈','🥉'][i] || i + 1}</span><b>${esc(r.name)}</b><span>${arcadeFmt(g.type, r)}</span></div>`).join('')
       : '<p class="empty" style="padding:16px">아직 기록이 없어요. 첫 기록의 주인공이 되어보세요!</p>'}`;
 }
 R.blocks = R.jewel = R.pixel = R.sudoku = R.queens = R.blockpuz = R.freecell = g => arcadeView(g);
+ACT.arcadeNew = async () => {
+  const g = curGame?.data; if (!g) return;
+  if (Object.keys(g.results || {}).length && !await uiConfirm('새 판으로 바꾸면 이 방 순위가 초기화돼요. 바꿀까요?', { ok:'바꾸기' })) return;
+  const info = GAMES[g.type];
+  let lv = Math.floor(Math.random() * 1000);
+  if (g.type === 'pixel') for (let k = 0; k < 20 && pixelArt(lv).name === pixelArt(g.level || 0).name; k++) lv = Math.floor(Math.random() * 1000);
+  tx(() => ({ seed: Math.floor(Math.random() * 2147483647), level: lv, results: {} }),
+    () => sys(`${info.icon} ${info.name} 새 판으로 바꿨어요!${g.type === 'pixel' ? ` 🖼️ ${pixelArt(lv).name}` : ''}`));
+};
 ACT.arcadePlay = () => { const g = curGame?.data; if (g) openArcade(g.type, curGame.id, g.seed, g.level || 0); };
 
 let arcadeGame = null;
@@ -2429,7 +2490,7 @@ function showArcadeOver(type, res, gid){
     <button class="btn" style="width:210px" id="arAgain">🔁 다시 하기</button><button class="btn ghost" style="width:210px" id="arExit">${gid ? '🏆 순위 보기' : '닫기'}</button>`;
   $('#arStage').appendChild(ov);
   ov.querySelector('#arExit').onclick = () => closeArcade(false);
-  ov.querySelector('#arAgain').onclick = async () => { await closeArcade(false); if (gid) ACT.arcadePlay(); else openArcade(type, null, Math.floor(Math.random() * 2147483647), Math.floor(Math.random() * 1000)); };
+  ov.querySelector('#arAgain').onclick = async () => { await closeArcade(false); if (gid) ACT.arcadePlay(); else openArcade(type, null, Math.floor(Math.random() * 2147483647), soloLevel(type)); };
 }
 async function submitArcade(gid, type, res){
   if (!room) return;
@@ -2633,7 +2694,7 @@ function JewelGame(stage, ctrl, seed, _lv, onEnd, setInfo){
 
 /* 🖼️ 픽셀 퍼즐: 블록을 올리면 개미들이 구멍에서 나와 테두리를 돌며 같은 색 픽셀을 먹어요 */
 function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
-  const art = PIXEL_ART[level % PIXEL_ART.length], rng = mulberry32(seed), S = 16, P = S * 4;
+  const art = pixelArt(level), rng = mulberry32(seed), S = 16, P = S * 4;
   const grid = art.rows.map(r => [...(r + '................').slice(0, S)].map(ch => PCOL[ch] ? ch : '.'));
   while (grid.length < S) grid.push([...'................']);
   const total = {}, avg = {};
@@ -3175,12 +3236,139 @@ function chInsufficient(b){
   const rest = b.replace(/[.kK]/g, '');
   return !rest || (rest.length === 1 && /[nNbB]/.test(rest));
 }
-let chSel = null, chPromo = null;
+let chSel = null, chPromo = null, chThinking = false, chHist = [];
+const chSay = t => curGame?.local ? toast(t) : sys(t);
+const AI_LV = { 1:{ name:'쉬움', depth:2, ms:300 }, 2:{ name:'보통', depth:3, ms:900 }, 3:{ name:'어려움', depth:6, ms:2200 } };
+let aiPick = { lv:2, col:'w' };
+try { aiPick = { ...aiPick, ...JSON.parse(localStorage.getItem('aiChess') || '{}') }; } catch {}
+function openAiChess(){
+  closeGame();
+  curGame = { id:'local', local:true, data:{ type:'chess', status:'setup', local:true, players:[] } };
+  openDlg('gameView'); renderGame();
+}
+/* ---- AI 엔진: 알파베타 + 정지탐색 + 위치 점수표 ---- */
+const PV = { p:100, n:320, b:330, r:500, q:900, k:0 };
+const PST = {
+  p:[0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10,5,5,10,25,25,10,5,5,0,0,0,20,20,0,0,0,5,-5,-10,0,0,-10,-5,5,5,10,10,-20,-20,10,10,5,0,0,0,0,0,0,0,0],
+  n:[-50,-40,-30,-30,-30,-30,-40,-50,-40,-20,0,0,0,0,-20,-40,-30,0,10,15,15,10,0,-30,-30,5,15,20,20,15,5,-30,-30,0,15,20,20,15,0,-30,-30,5,10,15,15,10,5,-30,-40,-20,0,5,5,0,-20,-40,-50,-40,-30,-30,-30,-30,-40,-50],
+  b:[-20,-10,-10,-10,-10,-10,-10,-20,-10,0,0,0,0,0,0,-10,-10,0,5,10,10,5,0,-10,-10,5,5,10,10,5,5,-10,-10,0,10,10,10,10,0,-10,-10,10,10,10,10,10,10,-10,-10,5,0,0,0,0,5,-10,-20,-10,-10,-10,-10,-10,-10,-20],
+  r:[0,0,0,0,0,0,0,0,5,10,10,10,10,10,10,5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,0,0,0,5,5,0,0,0],
+  q:[-20,-10,-10,-5,-5,-10,-10,-20,-10,0,0,0,0,0,0,-10,-10,0,5,5,5,5,0,-10,-5,0,5,5,5,5,0,-5,0,0,5,5,5,5,0,-5,-10,5,5,5,5,5,0,-10,-10,0,5,0,0,0,0,-10,-20,-10,-10,-5,-5,-10,-10,-20],
+  k:[-30,-40,-40,-50,-50,-40,-40,-30,-30,-40,-40,-50,-50,-40,-40,-30,-30,-40,-40,-50,-50,-40,-40,-30,-30,-40,-40,-50,-50,-40,-40,-30,-20,-30,-30,-40,-40,-30,-30,-20,-10,-20,-20,-20,-20,-20,-20,-10,20,20,0,0,0,0,20,20,20,30,10,0,0,10,30,20],
+  ke:[-50,-40,-30,-20,-20,-30,-40,-50,-30,-20,-10,0,0,-10,-20,-30,-30,-10,20,30,30,20,-10,-30,-30,-10,30,40,40,30,-10,-30,-30,-10,30,40,40,30,-10,-30,-30,-10,20,30,30,20,-10,-30,-30,-30,0,0,0,0,-30,-30,-50,-30,-30,-30,-30,-30,-30,-50],
+};
+function chEval(st){   // 둘 차례 기준 점수
+  const b = st.board; let v = 0, heavy = 0;
+  for (let i = 0; i < 64; i++) { const p = b[i]; if (p !== '.' && /[qrbn]/i.test(p)) heavy += PV[p.toLowerCase()]; }
+  const endgame = heavy <= 1600;
+  for (let i = 0; i < 64; i++) {
+    const p = b[i]; if (p === '.') continue;
+    const t = p.toLowerCase(), W = p !== t, tab = PST[t === 'k' && endgame ? 'ke' : t];
+    const sc = PV[t] + tab[W ? i : i ^ 56];
+    v += W ? sc : -sc;
+  }
+  if (endgame && Math.abs(v) > 200) {   // 이기는 쪽: 상대 킹을 구석으로 몰고 내 킹을 가까이
+    const wk = b.indexOf('K'), bk = b.indexOf('k'), lose = v > 0 ? bk : wk;
+    const lr = Math.floor(lose / 8), lc = lose % 8, edge = Math.max(3 - lr, lr - 4) + Math.max(3 - lc, lc - 4);
+    const dist = Math.abs(Math.floor(wk / 8) - Math.floor(bk / 8)) + Math.abs(wk % 8 - bk % 8);
+    const mop = 12 * edge + 5 * (14 - dist);
+    v += v > 0 ? mop : -mop;
+  }
+  return st.turn === 'w' ? v : -v;
+}
+const chOrder = (st, ms, best) => ms.map(m => ({ m, k: (best && m.f === best.f && m.t === best.t && m.promo === best.promo ? 1e6 : 0)
+  + (m.cap ? 10 * PV[(m.ep ? 'p' : st.board[m.t]).toLowerCase()] - PV[st.board[m.f].toLowerCase()] + 1000 : 0) + (m.promo === 'q' ? 900 : 0) }))
+  .sort((a,b) => b.k - a.k).map(x => x.m);
+function chQuiesce(st, a, b, ctx, qd){
+  ctx.n++;
+  const stand = chEval(st);
+  if (stand >= b) return b;
+  if (stand > a) a = stand;
+  if (qd <= 0) return a;
+  for (const m of chOrder(st, chLegal(st).filter(m => m.cap || m.promo === 'q'))) {
+    const sc = -chQuiesce(chApply(st, m), -b, -a, ctx, qd - 1);
+    if (sc >= b) return b;
+    if (sc > a) a = sc;
+  }
+  return a;
+}
+function chNega(st, d, a, b, ply, ctx){
+  if ((++ctx.n & 255) === 0 && ctx.done && Date.now() > ctx.end) throw 'T';
+  const ms = chLegal(st);
+  if (!ms.length) return chInCheck(st.board, st.turn) ? -100000 + ply : 0;
+  if (st.half >= 100) return 0;
+  if (d <= 0) return chQuiesce(st, a, b, ctx, 6);
+  for (const m of chOrder(st, ms)) {
+    const sc = -chNega(chApply(st, m), d - 1, -b, -a, ply + 1, ctx);
+    if (sc >= b) return b;
+    if (sc > a) a = sc;
+  }
+  return a;
+}
+function chBest(st, lv){
+  const L = AI_LV[lv] || AI_LV[2], ms = chLegal(st), ctx = { n:0, end: Date.now() + L.ms, done:false };
+  const winning = Math.abs(chEval(st)) > 400;
+  if (lv === 1 && !winning && Math.random() < .1) return ms[Math.floor(Math.random() * ms.length)];
+  let best = ms[0];
+  for (let d = 1; d <= L.depth; d++) {
+    try {
+      let a = -1e9, cur = null;
+      for (const m of chOrder(st, ms, best)) {
+        let sc = -chNega(chApply(st, m), d - 1, -1e9, -a, 1, ctx);
+        if (lv === 1 && !winning) sc += Math.random() * 90;
+        if (sc > a || !cur) { a = sc; cur = m; }
+      }
+      best = cur; ctx.done = true;
+      if (a > 90000 || Date.now() > ctx.end) break;
+    } catch (e) { if (e !== 'T') throw e; break; }
+  }
+  return best;
+}
+function chAiMaybe(){
+  const g = curGame?.data;
+  if (!curGame?.local || !g || g.status !== 'playing' || chThinking) return;
+  const ai = g.players.findIndex(p => p.uid === 'ai'); if (ai < 0 || g.turn !== (ai === 0 ? 'w' : 'b')) return;
+  chThinking = true; renderGame();
+  const cg = curGame;
+  setTimeout(() => {
+    if (curGame !== cg) { chThinking = false; return; }
+    const st = { board:g.board, turn:g.turn, castle:g.castle, ep:g.ep, half:g.half };
+    const t0 = Date.now(), m = chBest(st, g.lv);
+    setTimeout(() => { chThinking = false; if (curGame === cg && m) chCommit(m, 'ai'); }, Math.max(0, 450 - (Date.now() - t0)));
+  }, 60);
+}
+function chLocalSetup(){
+  return `<div class="status">🤖 AI와 체스 한판</div>
+    <div class="pf-label">난이도</div>
+    <div class="seg">${[1,2,3].map(l => `<button data-act="aiLv" data-v="${l}" class="${aiPick.lv === l ? 'on' : ''}">${['','🐣 ','🙂 ','🔥 '][l]}${AI_LV[l].name}</button>`).join('')}</div>
+    <div class="pf-label">내 색</div>
+    <div class="seg">${[['w','⚪ 백 (선공)'],['b','⚫ 흑'],['r','🎲 랜덤']].map(([k,l]) => `<button data-act="aiCol" data-v="${k}" class="${aiPick.col === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <button class="btn" data-act="aiStart" style="margin-top:16px">시작하기</button>
+    <p class="hint" style="text-align:center;margin-top:8px">AI 대결은 연습용이라 랭킹에는 기록되지 않아요</p>`;
+}
+ACT.aiLv = v => { aiPick.lv = +v; renderGame(); };
+ACT.aiCol = v => { aiPick.col = v; renderGame(); };
+ACT.aiStart = () => {
+  try { localStorage.setItem('aiChess', JSON.stringify(aiPick)); } catch {}
+  const col = aiPick.col === 'r' ? (Math.random() < .5 ? 'w' : 'b') : aiPick.col;
+  const mine = { uid: me.uid, name: me.name }, ai = { uid:'ai', name:`🤖 AI (${AI_LV[aiPick.lv].name})` };
+  chSel = null; chPromo = null; chHist = [];
+  Object.assign(curGame.data, { status:'playing', lv: aiPick.lv, players: col === 'w' ? [mine, ai] : [ai, mine],
+    board: CH_START, turn:'w', castle:'KQkq', ep:-1, half:0, moves:[], last:null, winner:null, reason:null, drawOffer:null });
+  renderGame(); chAiMaybe();
+};
+ACT.aiUndo = () => {
+  if (chThinking || !chHist.length) return;
+  Object.assign(curGame.data, chHist.pop(), { status:'playing', winner:null, reason:null });
+  chSel = null; chPromo = null; renderGame(); chAiMaybe();
+};
+ACT.aiNew = () => { curGame.data.status = 'setup'; chSel = null; chPromo = null; renderGame(); };
 R.chess = (g, meIn) => {
+  if (g.status === 'setup') return chLocalSetup();
   if (g.status === 'waiting') return waitingHTML(g, meIn);
   const myIdx = g.players.findIndex(p => p.uid === me.uid), myCol = myIdx === 0 ? 'w' : myIdx === 1 ? 'b' : null;
   const flip = myCol === 'b', st = { board:g.board, turn:g.turn, castle:g.castle, ep:g.ep, half:g.half };
-  const myTurn = g.status === 'playing' && myCol === g.turn;
+  const myTurn = g.status === 'playing' && myCol === g.turn && !chThinking;
   const legal = myTurn ? chLegal(st) : [];
   const targets = chSel != null ? legal.filter(m => m.f === chSel) : [];
   const chk = chInCheck(g.board, g.turn) ? g.board.indexOf(g.turn === 'w' ? 'K' : 'k') : -1;
@@ -3203,22 +3391,27 @@ R.chess = (g, meIn) => {
   const moves = (g.moves || []).reduce((a,m,i) => a + (i % 2 ? '' : `<b>${i / 2 + 1}.</b> `) + m + ' ', '');
   let status;
   if (g.status === 'done') status = g.winner ? `🏆 ${esc(nameOf(g, g.winner))} 승리! <small>(${esc(g.reason || '')})</small>` : `🤝 무승부 <small>(${esc(g.reason || '')})</small>`;
+  else if (chThinking) status = `🤖 AI가 생각 중...${chk >= 0 ? ' · 체크!' : ''}`;
   else status = myTurn ? (chk >= 0 ? '⚠️ 체크! 내 차례' : '🔥 내 차례') : `${esc(g.players[g.turn === 'w' ? 0 : 1]?.name || '')}님 차례${chk >= 0 ? ' · 체크!' : ''}`;
   const promo = chPromo ? `<div class="hint">승진할 기물을 고르세요</div><div class="ch-promo">${'qrbn'.split('').map(t => `<button data-act="chPromo" data-v="${t}"><span class="ch-pc ${myCol}">${CH_GLYPH[t]}︎</span></button>`).join('')}</div>` : '';
   const offer = g.drawOffer && g.status === 'playing' ? (g.drawOffer === myCol ? '<p class="hint">무승부를 제안했어요. 상대의 답을 기다리는 중...</p>' : myCol ? '<p class="hint">🤝 상대가 무승부를 제안했어요</p>' : '') : '';
   const top = flip ? player(0, 'w') : player(1, 'b'), bottom = flip ? player(1, 'b') : player(0, 'w');
   let btns = '';
-  if (g.status === 'playing' && myCol) btns = `<div class="ch-btns"><button class="btn ghost" data-act="chDraw">${g.drawOffer && g.drawOffer !== myCol ? '🤝 무승부 수락' : '🤝 무승부 제안'}</button><button class="btn ghost" data-act="chResign" style="color:#e53950">🏳️ 기권</button></div>`;
-  if (g.status === 'done' && myCol) btns = `<button class="btn" data-act="rematch" style="max-width:380px">한판 더! (색 바꾸기)</button>`;
+  if (g.local) btns = `<div class="ch-btns"><button class="btn ghost" data-act="aiUndo" ${chHist.length && !chThinking ? '' : 'disabled'}>↩️ 무르기</button>${g.status === 'playing' ? `<button class="btn ghost" data-act="chDraw">🤝 무승부</button><button class="btn ghost" data-act="chResign" style="color:#e53950">🏳️ 기권</button>` : `<button class="btn" data-act="aiNew">🔁 새 게임</button>`}</div>`;
+  else if (g.status === 'playing' && myCol) btns = `<div class="ch-btns"><button class="btn ghost" data-act="chDraw">${g.drawOffer && g.drawOffer !== myCol ? '🤝 무승부 수락' : '🤝 무승부 제안'}</button><button class="btn ghost" data-act="chResign" style="color:#e53950">🏳️ 기권</button></div>`;
+  if (g.status === 'done' && myCol && !g.local) btns = `<button class="btn" data-act="rematch" style="max-width:380px">한판 더! (색 바꾸기)</button>`;
   return `<div class="ch-wrap"><div class="status">${status}</div>${top}<div class="ch-frame"><div class="ch-board">${sq}</div></div>${bottom}${promo}${offer}
     ${moves ? `<div class="ch-moves">${moves}</div>` : ''}${btns}</div>`;
 };
-function chCommit(m){
+function chCommit(m, asUid){
   let msg = null;
+  const who = asUid || me.uid;
   chSel = null; chPromo = null;
+  if (curGame?.local && !asUid) { const g = curGame.data; chHist.push({ board:g.board, turn:g.turn, castle:g.castle, ep:g.ep, half:g.half, moves:[...g.moves], last:g.last }); }
   tx(g => {
     if (g.status !== 'playing') return null;
-    const myCol = g.players[0]?.uid === me.uid ? 'w' : g.players[1]?.uid === me.uid ? 'b' : null;
+    const myCol = g.players[0]?.uid === who ? 'w' : g.players[1]?.uid === who ? 'b' : null;
+    const myName = g.players.find(p => p.uid === who)?.name || '';
     if (myCol !== g.turn) return '내 차례가 아니에요';
     const st = { board:g.board, turn:g.turn, castle:g.castle, ep:g.ep, half:g.half };
     const legal = chLegal(st), mv = legal.find(x => x.f === m.f && x.t === m.t && (x.promo || null) === (m.promo || null));
@@ -3227,15 +3420,15 @@ function chCommit(m){
     const u = { board: nx.board, turn: nx.turn, castle: nx.castle, ep: nx.ep, half: nx.half, moves: [...(g.moves || []), san], last: [mv.f, mv.t], drawOffer: null };
     if (!oppLegal.length) {
       u.status = 'done';
-      if (chInCheck(nx.board, nx.turn)) { u.winner = me.uid; u.reason = '체크메이트'; msg = `♟️ 체스: ${me.name}님 체크메이트 승리! 👑 (${Math.ceil(u.moves.length / 2)}수)`; }
+      if (chInCheck(nx.board, nx.turn)) { u.winner = who; u.reason = '체크메이트'; msg = g.local ? (who === 'ai' ? '🤖 AI의 체크메이트! 다시 도전해보세요' : `👑 체크메이트! AI(${AI_LV[g.lv].name})를 이겼어요!`) : `♟️ 체스: ${myName}님 체크메이트 승리! 👑 (${Math.ceil(u.moves.length / 2)}수)`; }
       else { u.winner = null; u.reason = '스테일메이트'; msg = '♟️ 체스: 스테일메이트로 무승부 🤝'; }
     } else if (nx.half >= 100) { u.status = 'done'; u.winner = null; u.reason = '50수 규칙'; msg = '♟️ 체스: 50수 규칙으로 무승부 🤝'; }
     else if (chInsufficient(nx.board)) { u.status = 'done'; u.winner = null; u.reason = '기물 부족'; msg = '♟️ 체스: 기물 부족으로 무승부 🤝'; }
     return u;
-  }, () => { try { navigator.vibrate?.(15); } catch {} if (msg) sys(msg); });
+  }, () => { try { navigator.vibrate?.(15); } catch {} if (msg) chSay(msg); });
 }
 ACT.chSq = v => {
-  const g = curGame?.data; if (!g || g.status !== 'playing') return;
+  const g = curGame?.data; if (!g || g.status !== 'playing' || chThinking) return;
   const i = +v, myCol = g.players[0]?.uid === me.uid ? 'w' : g.players[1]?.uid === me.uid ? 'b' : null;
   if (myCol !== g.turn) return toast(myCol ? '상대 차례예요' : '관전 중이에요');
   chPromo = null;
@@ -3252,15 +3445,22 @@ ACT.chResign = async () => {
   if (!await uiConfirm('정말 기권할까요?', { ok:'기권', danger:true })) return;
   let msg = null;
   tx(g => { if (g.status !== 'playing') return null; const idx = g.players.findIndex(p => p.uid === me.uid); if (idx < 0) return null;
-    const w = g.players[1 - idx].uid; msg = `♟️ 체스: ${me.name}님 기권, ${g.players[1 - idx].name}님 승리!`; return { status:'done', winner:w, reason:'기권' }; }, () => msg && sys(msg));
+    const w = g.players[1 - idx].uid; msg = g.local ? '🏳️ 기권했어요' : `♟️ 체스: ${me.name}님 기권, ${g.players[1 - idx].name}님 승리!`; return { status:'done', winner:w, reason:'기권' }; }, () => msg && chSay(msg));
 };
 ACT.chDraw = () => {
   let msg = null;
+  if (curGame?.local) {   // AI는 자기가 불리할 때만 무승부를 받아줘요
+    const g = curGame.data; if (g.status !== 'playing' || chThinking) return;
+    const aiCol = g.players[0].uid === 'ai' ? 'w' : 'b';
+    const sc = chEval({ board:g.board, turn:aiCol, castle:g.castle, ep:-1, half:g.half });
+    if (sc < -150) return tx(() => ({ status:'done', winner:null, reason:'합의' }), () => chSay('🤝 AI가 무승부를 받아들였어요'));
+    return toast('🤖 AI: "아직 해볼 만한데요?" (거절)');
+  }
   tx(g => { if (g.status !== 'playing') return null; const idx = g.players.findIndex(p => p.uid === me.uid); if (idx < 0) return null;
     const col = idx === 0 ? 'w' : 'b';
     if (g.drawOffer && g.drawOffer !== col) { msg = '♟️ 체스: 합의 무승부 🤝'; return { status:'done', winner:null, reason:'합의', drawOffer:null }; }
     if (g.drawOffer === col) return null;
-    msg = `♟️ 체스: ${me.name}님이 무승부를 제안했어요`; return { drawOffer: col }; }, () => msg && sys(msg));
+    msg = `♟️ 체스: ${me.name}님이 무승부를 제안했어요`; return { drawOffer: col }; }, () => msg && chSay(msg));
 };
 
 /* ================= 🃏 프리셀 ================= */
