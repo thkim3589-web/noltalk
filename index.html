@@ -1468,13 +1468,14 @@ function renderGameTab(){
   const party = Object.keys(GAMES).filter(t => GAME_META[t]?.cat !== 'arcade');
   $('#gameTabBody').innerHTML = `
     <div class="sec-title">🕹️ 혼자 연습하기</div><div class="sec-sub">바로 시작해요 · 기록은 내 최고 기록에만 남아요</div>
-    <div class="ggrid">${arcade.map(tile).join('')}<button class="gtile" data-aichess="1"><span class="gi">♟️</span><b>체스</b><small>🤖 AI 대결</small></button></div>
+    <div class="ggrid">${arcade.map(tile).join('')}<button class="gtile" data-aichess="1"><span class="gi">♟️</span><b>체스</b><small>🤖 AI 대결</small></button><button class="gtile" data-photopx="1"><span class="gi">📷</span><b>사진 퍼즐</b><small>내 사진을 픽셀로</small></button></div>
     <div class="sec-title" style="margin-top:18px">👥 친구랑 대결하기</div><div class="sec-sub">채팅방에서 ${ic('game', 16)} 버튼을 눌러 시작해요</div>
     <div class="ggrid">${party.map(t => { const g = GAMES[t], m = GAME_META[t] || {}; return `<button class="gtile" data-party="${t}"><span class="gi">${g.icon}</span><b>${g.name}</b><small>${m.ppl || ''}</small></button>`; }).join('')}</div>
     <div class="howto"><b>방에서 대결하는 법</b><br>채팅방 입력창 왼쪽 게임 버튼 → 게임 고르기 → 채팅에 뜬 카드의 <b>참가</b>를 누르면 친구도 함께해요. 아케이드 게임은 방에서 열면 모두 같은 판으로 순위를 겨뤄요.</div>`;
 }
 $('#gameTabBody').addEventListener('click', e => {
   if (e.target.closest('[data-aichess]')) return openAiChess();
+  if (e.target.closest('[data-photopx]')) return photoBoard().then(c => c && openArcade('pixel', null, Math.floor(Math.random() * 2147483647), { custom: c }));
   const s1 = e.target.closest('[data-solo]'); if (s1) return openArcade(s1.dataset.solo, null, Math.floor(Math.random() * 2147483647), soloLevel(s1.dataset.solo));
   const p1 = e.target.closest('[data-party]'); if (p1) { showHomeTab('chat'); toast('채팅방에 들어가서 게임 버튼을 눌러주세요 🎮'); }
 });
@@ -2543,9 +2544,10 @@ function pxQuantize(g, bg, maxColors){   // 너무 적은 색은 비슷한 색�
   const cnt = {}; g.forEach(r => r.forEach(c => cnt[c] = (cnt[c] || 0) + 1));
   let cols = Object.keys(cnt);
   const map = {};
-  while (cols.length > maxColors || cols.some(c => cnt[c] < 10 && c !== bg)) {
-    const small = cols.filter(c => c !== bg).sort((a,b) => cnt[a] - cnt[b])[0]; if (!small) break;
-    const others = cols.filter(c => c !== small); if (!others.length) break;
+  const HOLE = '#000001', real = () => cols.filter(c => c !== HOLE);
+  while (real().length > maxColors || real().some(c => cnt[c] < 10 && c !== bg)) {
+    const small = real().filter(c => c !== bg).sort((a,b) => cnt[a] - cnt[b])[0]; if (!small) break;
+    const others = real().filter(c => c !== small); if (!others.length) break;
     const to = others.sort((a,b) => cdist(small, a) - cdist(small, b))[0];
     cnt[to] += cnt[small]; delete cnt[small]; map[small] = to;
     Object.keys(map).forEach(k => { if (map[k] === small) map[k] = to; });
@@ -2553,12 +2555,77 @@ function pxQuantize(g, bg, maxColors){   // 너무 적은 색은 비슷한 색�
   }
   return g.map(r => r.map(c => map[c] || c));
 }
-const PX_KINDS = ['손그림','몬스터','풍경','만다라','꽃','행성'];
+const PIXEL_IMG = [
+  { name:'생일 케이크', pal:["#eae7e0", "#9f5024", "#5f2a19", "#bbafa7", "#b26331", "#d88b4b", "#906551", "#783f2b", "#efe9b4", "#cb6bc6", "#a58d7e", "#eaa864", "#c7763b", "#d1c8c2"], px:'.................................................................................................................................................................................................................................b.................................................b................................................bb................................................88.................................................d.................................................d................................................d9................................................90................................................d9................................................90................................................39.........................................2222a..63222..6222...........................2270.6222767692226a62222.a2....................2.62227722777766d2627222226.0727.................2a..722226c767226977666672227727226..............22766227276722222792222276622226d222..............2222227d226a2222227222227a36722d06227.............22222230a2273a6a627666a33d727773d3227.............22222a0007222778d6636776d067777772222.............722227aa622222300677777a0006772277227.............17222222222227080d777777aaa7777722214.............111122222222777777777776666772227144c.............51111117777222227777777722222744cc4c5.............c54111111111417777711174114ccccccc554.............11c5c11111111444444444ccccccccc55bc4c............b4114c5cc4114144444444cccccc5bbb5cc4450.........d3ab1111114c5555555555555bbbbbb55cccc45500.......0d3a4bc1111111444cccccc555c4ccccccccc5bcc000.....0003a11cb5c111111444444444ccccccccc5bb54450008...0800aa511114c55c444144444444c4c5bbbbb5cc4cb0000...0800a6c54111114ccc5bbbbbbbbbbbbb5ccccccc55a0d008..08003611c5c41111111444444cc4ccccccccc5bb54a00008..d880da6111455cc4111444444444cccc55bbb5cc44a00080..d3800da711114cc5bb55555555bbbbbbbb5ccccc47300080...33800d36711111114cbbb555555cccccccccc4163000800...d3a8800d3a671111144444444444cccccc446ad00088dd.....33ad8800ddd3aa66111444444444466aa3dd000888d30......33aad888000ddddd3333aaa3333ddd000008888d3d0.........33aa3d8880000000000000000000088888dd33d.............33aaaa3d888800000000000000000dd33ddd.................3333aaa3333dddddddddd33333dddd........................333333333333333ddddddd.....................................................................................................................................................................................................................' },
+];
+const PX_MODES = { empty:'배경 없음', solid:'꽉 찬 배경', stripe:'줄무늬', checker:'체크무늬', frame:'테두리 성벽' };
+const PX_KINDS = ['손그림','몬스터','풍경','만다라','꽃','행성','그림'];
+const PX_CH = '0123456789abcdefghijklmnopqrstuvwxyz';
+function pxDecode(img, S){ return Array.from({ length:S }, (_, y) => Array.from({ length:S }, (_, x) => { const c = img.px[y * S + x]; return c === '.' || c === undefined ? null : img.pal[PX_CH.indexOf(c)]; })); }
+// 사진 → 50×50 픽셀 (배경 흰색/투명 제거 + k-means 색 줄이기)
+async function pxFromImage(file, N = PX_S, K = 14){
+  const url = URL.createObjectURL(file), img = new Image();
+  await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = url; });
+  const B = 240, cv = document.createElement('canvas'); cv.width = cv.height = B;
+  const c = cv.getContext('2d', { willReadFrequently:true }), sc = Math.min(B / img.width, B / img.height), w = img.width * sc, h = img.height * sc;
+  c.drawImage(img, (B - w) / 2, (B - h) / 2, w, h); URL.revokeObjectURL(url);
+  const d = c.getImageData(0, 0, B, B).data, bg = new Uint8Array(B * B), q = [];
+  const isW = i => d[i * 4 + 3] < 40 || (d[i * 4] > 232 && d[i * 4 + 1] > 232 && d[i * 4 + 2] > 232);
+  for (let i = 0; i < B; i++) for (const k of [i, (B - 1) * B + i, i * B, i * B + B - 1]) if (!bg[k] && isW(k)) { bg[k] = 1; q.push(k); }
+  for (let h2 = 0; h2 < q.length; h2++) { const k = q[h2], x = k % B, y = (k / B) | 0;
+    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) { const nx = x + dx, ny = y + dy, nk = ny * B + nx; if (nx >= 0 && nx < B && ny >= 0 && ny < B && !bg[nk] && isW(nk)) { bg[nk] = 1; q.push(nk); } } }
+  let x0 = B, y0 = B, x1 = 0, y1 = 0;
+  for (let k = 0; k < B * B; k++) if (!bg[k]) { const x = k % B, y = (k / B) | 0; x0 = Math.min(x0, x); x1 = Math.max(x1, x + 1); y0 = Math.min(y0, y); y1 = Math.max(y1, y + 1); }
+  if (x1 <= x0) throw new Error('빈 그림이에요');
+  const side = Math.max(x1 - x0, y1 - y0), inner = N - 2, cell = side / inner, ox = (x0 + x1) / 2 - side / 2 - cell, oy = (y0 + y1) / 2 - side / 2 - cell;
+  const cols = [], idx = [];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    let r = 0, g = 0, b = 0, n = 0, tot = 0;
+    for (let sy = Math.floor(oy + y * cell); sy < Math.floor(oy + (y + 1) * cell); sy++) for (let sx = Math.floor(ox + x * cell); sx < Math.floor(ox + (x + 1) * cell); sx++) {
+      tot++; if (sx < 0 || sy < 0 || sx >= B || sy >= B) continue; const k = sy * B + sx; if (bg[k]) continue;
+      r += d[k * 4]; g += d[k * 4 + 1]; b += d[k * 4 + 2]; n++; }
+    if (tot && n / tot > .45) { idx.push(y * N + x); cols.push([r / n, g / n, b / n]); } }
+  // k-means++
+  const dist = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
+  let C = [cols[Math.floor(Math.random() * cols.length)]];
+  while (C.length < Math.min(K, cols.length)) { const ds = cols.map(p => Math.min(...C.map(cc => dist(p, cc)))), sum = ds.reduce((a, b) => a + b, 0) || 1; let t = Math.random() * sum, i = 0; while (i < ds.length - 1 && (t -= ds[i]) > 0) i++; C.push(cols[i]); }
+  let lab = [];
+  for (let it = 0; it < 25; it++) {
+    lab = cols.map(p => { let bi = 0, bd = Infinity; C.forEach((cc, j) => { const v = dist(p, cc); if (v < bd) { bd = v; bi = j; } }); return bi; });
+    C = C.map((cc, j) => { let r = 0, g = 0, b = 0, n = 0; cols.forEach((p, i) => { if (lab[i] === j) { r += p[0]; g += p[1]; b += p[2]; n++; } }); return n ? [r / n, g / n, b / n] : cc; });
+  }
+  const used = [...new Set(lab)], pal = used.map(j => rgb2hex(C[j])), px = Array(N * N).fill('.');
+  idx.forEach((k, i) => px[k] = PX_CH[used.indexOf(lab[i])]);
+  return { pal, px: px.join('') };
+}
+function pickImage(){
+  return new Promise(res => {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+    inp.onchange = () => res(inp.files[0] || null); inp.click();
+  });
+}
+async function photoBoard(){
+  const f = await pickImage(); if (!f) return null;
+  toast('🎨 사진을 픽셀로 바꾸는 중...');
+  try { return await pxFromImage(f); } catch { toast('사진을 읽을 수 없어요'); return null; }
+}
 const pxCache = new Map();
 function pixelBoard(level){
+  if (level && typeof level === 'object') {   // 사진으로 만든 판
+    const key = level.custom.px.slice(0, 60) + level.custom.pal.join('');
+    if (pxCache.has(key)) return pxCache.get(key);
+    const out = { S: PX_S, grid: pxDecode(level.custom, PX_S), name:'📷 사진 퍼즐', mode:'empty', kind:'사진' };
+    pxCache.set(key, out); return out;
+  }
   level = Math.abs(level | 0);
   if (pxCache.has(level)) return pxCache.get(level);
-  const S = PX_S, kind = level % 6, n = Math.floor(level / 6), rng = mulberry32(level * 131 + 7);
+  const S = PX_S, kind = level % 7, n = Math.floor(level / 7), rng = mulberry32(level * 131 + 7);
+  if (kind === 6) {   // 실제 그림을 픽셀로 바꾼 판
+    const im = PIXEL_IMG[n % PIXEL_IMG.length];
+    let g = pxDecode(im, S); if (rng() < .5) g = g.map(r => [...r].reverse());
+    const out = { S, grid: g, name: im.name, mode:'empty', kind:'그림' };
+    pxCache.set(level, out); return out;
+  }
   let res;
   if (kind === 0 || kind === 1) {
     const art = kind === 0 ? PIXEL_ART[n % PIXEL_ART.length] : genPixelArt(n * 2 + 1);
@@ -2582,7 +2649,12 @@ function pixelBoard(level){
     if (mode === 'frame') return (x < 3 || y < 3 || x >= S - 3 || y >= S - 3) ? alt : null;
     return c;
   }));
-  const qz = pxQuantize(g.map(r => r.map(c => c || '#000001')), bg, 14).map(r => r.map(c => c === '#000001' ? null : c));
+  // 질감: 부드러운 노이즈로 같은 색 덩어리를 비슷한 색 3~4가지로 쪼개요 (헷갈리게!)
+  const NS = 7, nw = Math.ceil(S / NS) + 2, nv = Array.from({ length: nw * nw }, () => rng());
+  const noise = (x, y) => { const gx = x / NS, gy = y / NS, x0 = Math.floor(gx), y0 = Math.floor(gy), fx = gx - x0, fy = gy - y0, at = (a, b) => nv[b * nw + a];
+    return at(x0, y0) * (1 - fx) * (1 - fy) + at(x0 + 1, y0) * fx * (1 - fy) + at(x0, y0 + 1) * (1 - fx) * fy + at(x0 + 1, y0 + 1) * fx * fy; };
+  g = g.map((r,y) => r.map((c,x) => { if (!c) return c; const v = noise(x, y); return v < .3 ? shade(c, -.16) : v < .45 ? shade(c, -.07) : v > .72 ? shade(c, .14) : c; }));
+  const qz = pxQuantize(g.map(r => r.map(c => c || '#000001')), bg, 16).map(r => r.map(c => c === '#000001' ? null : c));
   const out = { S, grid: qz, name: res.name, mode, kind: PX_KINDS[kind] };
   pxCache.set(level, out);
   return out;
@@ -2607,11 +2679,12 @@ function arcadeView(g){
     freecell:'카드를 눌러 고르고 옮길 곳을 누르세요. 8줄의 카드를 같은 무늬 A→K 순서로 오른쪽 위 4칸에 모두 올리면 완성! 빈 칸 4개를 잘 활용하세요.',
     blockpuz:'아래 블록 3개를 끌어서 판에 놓으세요. 가로나 세로 한 줄을 꽉 채우면 사라져요. 더 놓을 곳이 없으면 끝!',
     queens:'가로줄·세로줄·같은 색 구역마다 🐱 1마리씩! 고양이끼리는 대각선 포함 붙으면 안 돼요. 맞는 자리면 주변이 자동으로 ✕, 틀리면 🐟를 잃어요 (3번까지)' }[g.type];
-  const lv = g.type === 'pixel' ? `<p class="hint">🖼️ 오늘의 그림: <b>${esc(pixelBoard(g.level || 0).name)}</b> · ${PX_MODES[pixelBoard(g.level || 0).mode]}</p>`
+  const lv = g.type === 'pixel' ? `<p class="hint">🖼️ 오늘의 그림: <b>${esc(pixelBoard(g.custom ? { custom: g.custom } : (g.level || 0)).name)}</b> · ${PX_MODES[pixelBoard(g.custom ? { custom: g.custom } : (g.level || 0)).mode]}</p>`
     : g.type === 'queens' ? `<p class="hint">🐱 이번 판 크기: <b>${queensSize(g.seed)}×${queensSize(g.seed)}</b></p>` : '';
   return `<p class="hint">${rule}</p>${lv}
     <button class="btn" data-act="arcadePlay">▶ ${mine >= 0 ? '같은 판 다시 도전하기' : '도전하기'}</button>
     <button class="btn ghost" data-act="arcadeNew" style="margin-top:8px">🎲 새 ${{ pixel:'그림', sudoku:'문제' }[g.type] || '판'}으로 바꾸기</button>
+    ${g.type === 'pixel' ? '<button class="btn ghost" data-act="arcadePhoto" style="margin-top:8px">📷 내 사진으로 퍼즐 만들기</button>' : ''}
     <div class="pf-label">🏆 이 방 순위 · 모두 같은 ${{ pixel:'그림', sudoku:'문제', queens:'판' }[g.type] || '순서'}로 도전해요</div>
     ${rows.length ? rows.map(([u,r],i) => `<div class="rank-row ${u === me.uid ? 'me' : ''}"><span class="rk">${['🥇','🥈','🥉'][i] || i + 1}</span><b>${esc(r.name)}</b><span>${arcadeFmt(g.type, r)}</span></div>`).join('')
       : '<p class="empty" style="padding:16px">아직 기록이 없어요. 첫 기록의 주인공이 되어보세요!</p>'}`;
@@ -2623,13 +2696,21 @@ ACT.arcadeNew = async () => {
   const info = GAMES[g.type];
   let lv = Math.floor(Math.random() * 1000);
   if (g.type === 'pixel') for (let k = 0; k < 20 && pixelBoard(lv).name === pixelBoard(g.level || 0).name; k++) lv = Math.floor(Math.random() * 1000);
-  tx(() => ({ seed: Math.floor(Math.random() * 2147483647), level: lv, results: {} }),
+  tx(() => ({ seed: Math.floor(Math.random() * 2147483647), level: lv, results: {}, custom: null }),
     () => sys(`${info.icon} ${info.name} 새 판으로 바꿨어요!${g.type === 'pixel' ? ` 🖼️ ${pixelBoard(lv).name}` : ''}`));
 };
-ACT.arcadePlay = () => { const g = curGame?.data; if (g) openArcade(g.type, curGame.id, g.seed, g.level || 0); };
+ACT.arcadePlay = () => { const g = curGame?.data; if (g) openArcade(g.type, curGame.id, g.seed, g.custom ? { custom: g.custom } : (g.level || 0)); };
+ACT.arcadePhoto = async () => {
+  const g = curGame?.data; if (!g) return;
+  if (Object.keys(g.results || {}).length && !await uiConfirm('사진 판으로 바꾸면 이 방 순위가 초기화돼요. 바꿀까요?', { ok:'바꾸기' })) return;
+  const custom = await photoBoard(); if (!custom) return;
+  tx(() => ({ custom, seed: Math.floor(Math.random() * 2147483647), results: {} }), () => sys('🖼️ 픽셀 퍼즐: ' + me.name + '님이 사진으로 새 판을 만들었어요! 📷'));
+};
 
 let arcadeGame = null;
+let arcadeLevel = null;
 function openArcade(type, gid, seed, level){
+  arcadeLevel = level;
   $('#arcade').style.display = 'flex';
   $('#arTitle').textContent = `${GAMES[type].icon} ${GAMES[type].name}`;
   $('#arInfo').textContent = ''; $('#arStage').innerHTML = ''; $('#arCtrl').innerHTML = '';
@@ -2658,7 +2739,7 @@ function showArcadeOver(type, res, gid){
     <button class="btn" style="width:210px" id="arAgain">🔁 다시 하기</button><button class="btn ghost" style="width:210px" id="arExit">${gid ? '🏆 순위 보기' : '닫기'}</button>`;
   $('#arStage').appendChild(ov);
   ov.querySelector('#arExit').onclick = () => closeArcade(false);
-  ov.querySelector('#arAgain').onclick = async () => { await closeArcade(false); if (gid) ACT.arcadePlay(); else openArcade(type, null, Math.floor(Math.random() * 2147483647), soloLevel(type)); };
+  ov.querySelector('#arAgain').onclick = async () => { await closeArcade(false); if (gid) ACT.arcadePlay(); else openArcade(type, null, Math.floor(Math.random() * 2147483647), arcadeLevel && typeof arcadeLevel === 'object' ? arcadeLevel : soloLevel(type)); };
 }
 async function submitArcade(gid, type, res){
   if (!room) return;
@@ -2872,11 +2953,11 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
   // 색마다 테두리에서 평균 깊이 → 대체로 바깥 색이 먼저지만 섞여 있어서 순서를 잘 골라야 해요
   const depth = {}, dcnt = {};
   grid.forEach((r,y) => r.forEach((ch,x) => { if (!ch) return; const d = Math.min(y, S - 1 - y, x, S - 1 - x); depth[ch] = (depth[ch] || 0) + d; dcnt[ch] = (dcnt[ch] || 0) + 1; }));
-  tiles.forEach(t => t.key = depth[t.ch] / dcnt[t.ch] / (S / 2) * .55 + t.key * .45);
+  tiles.forEach(t => t.key = depth[t.ch] / dcnt[t.ch] / (S / 2) * .8 + t.key * .2);
   tiles.sort((a,b) => a.key - b.key);
   const COLS = 5;
   let stacks = Array.from({ length:COLS }, () => []); tiles.forEach((t,i) => stacks[i % COLS].push(t));
-  let slots = 5, queue = [], ants = [], remaining = ALL, alive = true, t0 = Date.now(), items = { slot:1, shuffle:1 }, used = 0, clock = null, raf = 0, warned = false, dirty = true, last = 0;
+  let slots = 5, queue = [], ants = [], remaining = ALL, alive = true, t0 = Date.now(), items = { slot:2, shuffle:2 }, used = 0, clock = null, raf = 0, warned = false, dirty = true, last = 0;
   const pops = [];
   stage.innerHTML = `<div class="px-wrap"><canvas class="px-pic"></canvas><div class="px-queue"></div><div class="px-stacks"></div></div>`;
   const cv = stage.querySelector('canvas'), ctx = cv.getContext('2d'), qEl = stage.querySelector('.px-queue'), sEl = stage.querySelector('.px-stacks');
@@ -3801,7 +3882,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261018e';
+const BUILD = 'b20261018g';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();

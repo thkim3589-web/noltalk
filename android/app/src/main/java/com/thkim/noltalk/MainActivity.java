@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.JavascriptInterface;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -35,6 +36,18 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import org.json.JSONObject;
 
 public class MainActivity extends Activity {
+    private ValueCallback<Uri[]> fileCb;
+    private static final int FILE_REQ = 7031;
+
+    @Override
+    protected void onActivityResult(int req, int res, Intent data) {
+        if (req == FILE_REQ) {
+            if (fileCb != null) fileCb.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(res, data));
+            fileCb = null;
+            return;
+        }
+        super.onActivityResult(req, res, data);
+    }
     private static final String HOME = "https://thkim3589-web.github.io/noltalk/";
     private WebView web;
 
@@ -53,7 +66,16 @@ public class MainActivity extends Activity {
         s.setUserAgentString(s.getUserAgentString() + " NoltalkApp");
 
         web.addJavascriptInterface(new Bridge(), "NoltalkApp");
-        web.setWebChromeClient(new WebChromeClient()); // alert/confirm/prompt 사용
+        web.setWebChromeClient(new WebChromeClient() { // alert/confirm/prompt + 갤러리에서 사진 고르기
+            @Override
+            public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams params) {
+                if (fileCb != null) fileCb.onReceiveValue(null);
+                fileCb = cb;
+                try { startActivityForResult(params.createIntent(), FILE_REQ); }
+                catch (Exception e) { fileCb = null; return false; }
+                return true;
+            }
+        });
         web.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
