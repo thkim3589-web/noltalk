@@ -2085,7 +2085,7 @@ function arcadeView(g){
   const rows = arcadeSort(g.type, g.results), mine = rows.findIndex(([u]) => u === me.uid);
   const rule = { blocks:'블록을 돌리고 쌓아서 가로줄을 꽉 채우면 사라져요. 4줄을 한 번에 지우면 대박!',
     jewel:'떨어지는 보석 3개의 순서를 바꿔서, 같은 색 3개 이상을 가로·세로·대각선으로 맞추세요. 연쇄되면 점수가 껑충!',
-    pixel:'색깔 블록을 눌러 아래 칸에 올리면, 그 색 픽셀을 숫자만큼 바깥쪽(위·아래·왼쪽·오른쪽)부터 지워요. 칸이 꽉 차서 막히면 실패!',
+    pixel:'색깔 블록을 눌러 아래 칸에 올리면 개미들이 나와 그림 테두리를 돌며, 바깥쪽에 드러난 같은 색 픽셀을 숫자만큼 먹어요. 칸이 꽉 차서 막히면 실패!',
     sudoku:'가로줄·세로줄·3×3 칸마다 1~9가 한 번씩만 들어가게 채우세요. 3번 틀리면 실패, 힌트는 +30초!',
     blockpuz:'아래 블록 3개를 끌어서 판에 놓으세요. 가로나 세로 한 줄을 꽉 채우면 사라져요. 더 놓을 곳이 없으면 끝!',
     queens:'가로줄·세로줄·같은 색 구역마다 🐱 1마리씩! 고양이끼리는 대각선 포함 붙으면 안 돼요. 맞는 자리면 주변이 자동으로 ✕, 틀리면 🐟를 잃어요 (3번까지)' }[g.type];
@@ -2332,77 +2332,120 @@ function JewelGame(stage, ctrl, seed, _lv, onEnd, setInfo){
   return { stop(){ alive = false; clearTimeout(timer); window.removeEventListener('resize', resize); } };
 }
 
-/* 🖼️ 픽셀 퍼즐 */
+/* 🖼️ 픽셀 퍼즐: 블록을 올리면 개미들이 구멍에서 나와 테두리를 돌며 같은 색 픽셀을 먹어요 */
 function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
-  const art = PIXEL_ART[level % PIXEL_ART.length], rng = mulberry32(seed), S = 16;
+  const art = PIXEL_ART[level % PIXEL_ART.length], rng = mulberry32(seed), S = 16, P = S * 4;
   const grid = art.rows.map(r => [...(r + '................').slice(0, S)].map(ch => PCOL[ch] ? ch : '.'));
   while (grid.length < S) grid.push([...'................']);
   const total = {}, avg = {};
   grid.forEach((r,y) => r.forEach((ch,x) => { total[ch] = (total[ch] || 0) + 1; avg[ch] = (avg[ch] || 0) + Math.min(y, S - 1 - y, x, S - 1 - x); }));
   Object.keys(avg).forEach(ch => avg[ch] /= total[ch]);
-  // 색깔별 개수를 블록으로 나누고, 아래쪽 색이 앞에 오도록 섞기
   const tiles = [];
-  Object.entries(total).forEach(([ch, n]) => { while (n > 0) { let k = n <= 30 ? n : 10 + Math.floor(rng() * 21); if (n - k > 0 && n - k < 6) k = n; tiles.push({ ch, n:k, key: avg[ch] + (rng() - .5) * 7 }); n -= k; } });
+  Object.entries(total).forEach(([ch, n]) => { while (n > 0) { let k = n <= 30 ? n : 10 + Math.floor(rng() * 21); if (n - k > 0 && n - k < 6) k = n; tiles.push({ ch, n:k, fly:0, cool:0 }); tiles[tiles.length - 1].key = avg[ch] + (rng() - .5) * 7; n -= k; } });
   tiles.sort((a,b) => a.key - b.key); // 바깥쪽 색이 앞에 오도록
   let stacks = [[],[],[],[]]; tiles.forEach((t,i) => stacks[i % 4].push(t));
-  let slots = 5, queue = [], remaining = S * S, alive = true, t0 = Date.now(), items = { slot:1, shuffle:1 }, used = 0, timer = null, clock = null, warned = false;
+  let slots = 5, queue = [], ants = [], remaining = S * S, alive = true, t0 = Date.now(), items = { slot:1, shuffle:1 }, used = 0, clock = null, raf = 0, warned = false, dirty = true, last = 0;
+  const pops = [];
   stage.innerHTML = `<div class="px-wrap"><canvas class="px-pic"></canvas><div class="px-queue"></div><div class="px-stacks"></div></div>`;
   const cv = stage.querySelector('canvas'), ctx = cv.getContext('2d'), qEl = stage.querySelector('.px-queue'), sEl = stage.querySelector('.px-stacks');
   let cell = 12;
   const dark = ch => ['k','n','G','b','u','v'].includes(ch);
   const tileStyle = ch => `background:${PCOL[ch]};color:${dark(ch) ? '#fff' : '#222'}`;
-  function sizePic(){
-    cell = Math.max(8, Math.floor(Math.min(stage.clientWidth - 40, stage.clientHeight * .42) / S));
-    const dpr = window.devicePixelRatio || 1;
-    cv.width = S * cell * dpr; cv.height = S * cell * dpr; cv.style.width = S * cell + 'px'; cv.style.height = S * cell + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawPic();
+  // 테두리 길: 위(→) · 오른쪽(↓) · 아래(←) · 왼쪽(↑). 개미는 아래 가운데 구멍에서 출발
+  const START = S * 2 + Math.floor(S / 2);
+  function spot(i){ // 테두리 위치 → 그림 밖 칸 좌표, 안쪽으로 훑을 방향
+    i = ((i % P) + P) % P;
+    const k = Math.floor(i / S), j = i % S;
+    if (k === 0) return { x: j, y: -1, dx: 0, dy: 1 };
+    if (k === 1) return { x: S, y: j, dx: -1, dy: 0 };
+    if (k === 2) return { x: S - 1 - j, y: S, dx: 0, dy: -1 };
+    return { x: -1, y: S - 1 - j, dx: 1, dy: 0 };
   }
-  function drawPic(){
-    ctx.fillStyle = '#120e22'; ctx.fillRect(0, 0, S * cell, S * cell);
+  function eatFrom(i, ch){ // 그 자리에서 안쪽으로 처음 만나는 픽셀이 같은 색이면 먹기
+    const sp = spot(i); let x = sp.x + sp.dx, y = sp.y + sp.dy;
+    while (x >= 0 && x < S && y >= 0 && y < S) {
+      if (grid[y][x]) { if (grid[y][x] !== ch) return false; grid[y][x] = null; remaining--; pops.push({ x, y, c: PCOL[ch], t: 0 }); return true; }
+      x += sp.dx; y += sp.dy;
+    }
+    return false;
+  }
+  const canEat = ch => { for (let i = 0; i < P; i++) { const sp = spot(i); let x = sp.x + sp.dx, y = sp.y + sp.dy; while (x >= 0 && x < S && y >= 0 && y < S) { if (grid[y][x]) { if (grid[y][x] === ch) return true; break; } x += sp.dx; y += sp.dy; } } return false; };
+  function sizePic(){
+    cell = Math.max(8, Math.floor(Math.min(stage.clientWidth - 24, stage.clientHeight * .46) / (S + 2)));
+    const dpr = window.devicePixelRatio || 1, W = (S + 2) * cell;
+    cv.width = W * dpr; cv.height = W * dpr; cv.style.width = W + 'px'; cv.style.height = W + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  const cx = gx => (gx + 1) * cell, cy = gy => (gy + 1) * cell;
+  function draw(){
+    const W = (S + 2) * cell;
+    ctx.clearRect(0, 0, W, W);
+    ctx.fillStyle = '#2a2140'; ctx.fillRect(0, 0, W, W);               // 개미 길
+    ctx.fillStyle = '#120e22'; ctx.fillRect(cell, cell, S * cell, S * cell);
     grid.forEach((r,y) => r.forEach((ch,x) => {
-      if (!ch) { ctx.fillStyle = 'rgba(255,255,255,.05)'; ctx.fillRect(x * cell + 1, y * cell + 1, cell - 2, cell - 2); return; }
-      ctx.fillStyle = PCOL[ch]; ctx.fillRect(x * cell + .5, y * cell + .5, cell - 1, cell - 1);
-      ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(x * cell + .5, y * cell + .5, cell - 1, Math.max(1, cell * .2));
+      if (!ch) { ctx.fillStyle = 'rgba(255,255,255,.04)'; ctx.fillRect(cx(x) + 1, cy(y) + 1, cell - 2, cell - 2); return; }
+      ctx.fillStyle = PCOL[ch]; ctx.fillRect(cx(x) + .5, cy(y) + .5, cell - 1, cell - 1);
+      ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(cx(x) + .5, cy(y) + .5, cell - 1, Math.max(1, cell * .2));
     }));
+    pops.forEach(p => { const k = p.t / 250; ctx.globalAlpha = 1 - k; ctx.fillStyle = p.c; const g = cell * (1 + k); ctx.fillRect(cx(p.x) + cell / 2 - g / 2, cy(p.y) + cell / 2 - g / 2, g, g); ctx.globalAlpha = 1; });
+    // 구멍
+    const hs = spot(START); ctx.fillStyle = '#05030a'; ctx.beginPath(); ctx.ellipse(cx(hs.x) + cell / 2, cy(hs.y) + cell / 2, cell * .7, cell * .4, 0, 0, Math.PI * 2); ctx.fill();
+    // 개미
+    ants.forEach(a => {
+      const f = a.i - Math.floor(a.i), s1 = spot(Math.floor(a.i)), s2 = spot(Math.floor(a.i) + 1);
+      const x = cx(s1.x + (s2.x - s1.x) * f) + cell / 2, y = cy(s1.y + (s2.y - s1.y) * f) + cell / 2, r = cell * .3;
+      ctx.fillStyle = PCOL[a.t.ch]; ctx.strokeStyle = '#120e22'; ctx.lineWidth = Math.max(1, cell * .08);
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#120e22'; ctx.beginPath(); ctx.arc(x + (s2.x - s1.x) * r * .9, y + (s2.y - s1.y) * r * .9, r * .45, 0, Math.PI * 2); ctx.fill();
+    });
   }
   function renderTiles(){
     qEl.innerHTML = Array.from({ length:slots }, (_,i) => queue[i] ? `<div class="px-slot" style="${tileStyle(queue[i].ch)}">${queue[i].n}</div>` : '<div class="px-slot"></div>').join('');
     sEl.innerHTML = stacks.map((st,c) => `<div class="px-col">${st.slice(0,3).map((t,i) => `<button class="px-tile ${i ? 'back' : ''}" data-c="${c}" style="${tileStyle(t.ch)}">${t.n}</button>`).join('')}</div>`).join('');
     ctrl.innerHTML = `<button class="wide" data-it="slot" ${items.slot ? '' : 'disabled'}>➕ 칸 추가 (${items.slot})</button><button class="wide" data-it="shuffle" ${items.shuffle ? '' : 'disabled'}>🔀 섞기 (${items.shuffle})</button>`;
   }
-  // 상하좌우 네 방향에서 바깥쪽에 드러난 픽셀만 지울 수 있음
-  function findTarget(ch){
-    for (let k = 0; k < S; k++) {
-      for (let y = 0; y < S; y++) if (grid[y][k]) { if (grid[y][k] === ch) return [y, k]; break; }          // 위
-      for (let y = S - 1; y >= 0; y--) if (grid[y][k]) { if (grid[y][k] === ch) return [y, k]; break; }     // 아래
-      for (let x = 0; x < S; x++) if (grid[k][x]) { if (grid[k][x] === ch) return [k, x]; break; }          // 왼쪽
-      for (let x = S - 1; x >= 0; x--) if (grid[k][x]) { if (grid[k][x] === ch) return [k, x]; break; }     // 오른쪽
-    }
-    return null;
-  }
   const pct = () => Math.round((1 - remaining / (S * S)) * 100);
   const secs = () => Math.round((Date.now() - t0) / 1000);
   const info = () => setInfo(`${pct()}% · ${secs()}초`);
   function finish(cleared){
-    if (!alive) return; alive = false; clearInterval(timer); clearInterval(clock); info();
+    if (!alive) return; alive = false; cancelAnimationFrame(raf); clearInterval(clock); info(); draw();
     onEnd(cleared ? { cleared:true, time: secs() + used * 10, pct:100 } : { cleared:false, pct: pct(), time: secs() });
   }
-  function tick(){
-    if (!alive || !queue.length) return;
-    let fired = false;
-    queue.forEach(t => { const p = findTarget(t.ch); if (p) { grid[p[0]][p[1]] = null; remaining--; t.n--; fired = true; } });
-    if (fired) { queue = queue.filter(t => t.n > 0); warned = false; drawPic(); renderTiles(); if (!remaining) return finish(true); return; }
-    // 아무것도 못 쏘면: 칸이 꽉 찼거나 더 꺼낼 블록이 없을 때 막힘
-    if (queue.length >= slots || stacks.every(s => !s.length)) {
-      if (items.slot || (items.shuffle && stacks.some(s => s.length))) { if (!warned) { warned = true; toast('막혔어요! 아래 아이템을 써보세요'); } }
-      else finish(false);
+  const SPEED = 16; // 초당 칸 수
+  function frame(ts){
+    if (!alive) return;
+    const dt = Math.min(50, ts - (last || ts)); last = ts;
+    // 블록마다 개미를 줄지어 내보냄 (남은 개수만큼만)
+    queue.forEach(t => { t.cool -= dt; if (t.cool <= 0 && t.fly < Math.min(t.n, 8)) { ants.push({ t, i: START, run: 0 }); t.fly++; t.cool = 110; } });
+    const keep = [];
+    for (const a of ants) {
+      const from = a.i, to = a.i + SPEED * dt / 1000; let ate = false;
+      for (let k = Math.floor(from) + 1; k <= Math.floor(to); k++) if (eatFrom(k, a.t.ch)) { ate = true; break; }
+      a.i = to; a.run += to - from;
+      if (ate) { a.t.n--; a.t.fly--; dirty = true; try { navigator.vibrate?.(5); } catch {} }
+      else if (a.run >= P) a.t.fly--;          // 한 바퀴 돌고 못 먹으면 돌아감
+      else keep.push(a);
     }
+    ants = keep;
+    pops.forEach(p => p.t += dt); while (pops.length && pops[0].t > 250) pops.shift();
+    const before = queue.length; queue = queue.filter(t => t.n > 0 || t.fly > 0);
+    if (queue.length !== before) dirty = true;
+    if (dirty) { renderTiles(); dirty = false; }
+    draw();
+    if (!remaining) return finish(true);
+    // 막힘: 대기 칸이 꽉 찼거나 꺼낼 블록이 없는데 어떤 개미도 먹을 게 없을 때
+    if (!ants.length && queue.length && (queue.length >= slots || stacks.every(s => !s.length)) && !queue.some(t => canEat(t.ch))) {
+      if (items.slot || (items.shuffle && stacks.some(s => s.length))) { if (!warned) { warned = true; toast('막혔어요! 아래 아이템을 써보세요'); } }
+      else return finish(false);
+    }
+    raf = requestAnimationFrame(frame);
   }
   sEl.addEventListener('click', e => {
     const b = e.target.closest('[data-c]'); if (!b || !alive) return;
     if (queue.length >= slots) return toast('칸이 꽉 찼어요');
     const c = +b.dataset.c; if (!stacks[c].length) return;
-    queue.push(stacks[c].shift()); try { navigator.vibrate?.(10); } catch {}
+    const t = stacks[c].shift(); t.cool = 0; queue.push(t); warned = false;
+    try { navigator.vibrate?.(10); } catch {}
     renderTiles();
   });
   ctrl.addEventListener('click', e => {
@@ -2415,10 +2458,11 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
     }
     renderTiles();
   });
-  window.addEventListener('resize', sizePic);
-  sizePic(); renderTiles(); info();
-  timer = setInterval(tick, 45); clock = setInterval(() => alive && info(), 1000);
-  return { stop(){ alive = false; clearInterval(timer); clearInterval(clock); window.removeEventListener('resize', sizePic); } };
+  const resize = () => { sizePic(); draw(); };
+  window.addEventListener('resize', resize);
+  sizePic(); renderTiles(); info(); draw();
+  raf = requestAnimationFrame(frame); clock = setInterval(() => alive && info(), 1000);
+  return { stop(){ alive = false; cancelAnimationFrame(raf); clearInterval(clock); window.removeEventListener('resize', resize); } };
 }
 
 /* 🔢 스도쿠: 시드로 같은 문제 생성 (정답이 하나뿐인 문제만) */
