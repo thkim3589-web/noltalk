@@ -240,11 +240,11 @@ input{font:inherit}
 .ar-ctrl button.wide{max-width:150px;font-size:15px}
 .ar-ctrl button:disabled{opacity:.35}
 .ar-over{position:absolute;inset:0;background:rgba(10,6,24,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;z-index:2}
-.px-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;height:100%;padding:8px;overflow-y:auto}
+.px-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;height:100%;padding:8px 8px 0;overflow:hidden}
 .px-pic{border-radius:10px;background:#120e22;flex-shrink:0}
 .px-queue{display:flex;gap:6px;flex-shrink:0}
 .px-slot{width:48px;height:48px;border-radius:12px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px}
-.px-stacks{display:grid;grid-template-columns:repeat(4,66px);gap:8px;flex-shrink:0}
+.px-stacks{display:grid;grid-template-columns:repeat(4,66px);gap:8px;flex:1 1 0;min-height:150px;overflow:hidden;align-items:start;-webkit-mask-image:linear-gradient(#000 85%,transparent);mask-image:linear-gradient(#000 85%,transparent)}
 .px-col{display:flex;flex-direction:column;gap:6px}
 .px-tile{height:48px;border-radius:12px;font-weight:900;font-size:18px;box-shadow:0 4px 0 rgba(0,0,0,.3)}
 .px-tile.back{background:repeating-linear-gradient(45deg,#3a3352 0 6px,#332d49 6px 12px);color:rgba(255,255,255,.35);transform:scale(.9);pointer-events:none;display:flex;align-items:center;justify-content:center}
@@ -1543,7 +1543,7 @@ const GAME_META = {
   blocks:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, jewel:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, pixel:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
   sudoku:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, queens:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
   blockpuz:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, freecell:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
-  chess:{ cat:'duel', min:2, ppl:'2명' },
+  chess:{ cat:'duel', min:2, ppl:'2명 · 🤖AI' },
 };
 let gameCat = 'all';
 function recentGames(){ try { return JSON.parse(localStorage.getItem('recentGames') || '[]').filter(t => GAMES[t]); } catch { return []; } }
@@ -2815,7 +2815,7 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
   function renderTiles(){
     qEl.innerHTML = Array.from({ length:slots }, (_,i) => queue[i] ? `<div class="px-slot" style="${tileStyle(queue[i].ch)}">${queue[i].n}</div>` : '<div class="px-slot"></div>').join('');
     // 맨 윗줄만 색·숫자가 보이고, 아래는 뒤집힌 블록(?)으로 남은 개수만 보여요
-    sEl.innerHTML = stacks.map((st,c) => `<div class="px-col">${st.length ? `<button class="px-tile" data-c="${c}" style="${tileStyle(st[0].ch)}">${st[0].n}</button>` : '<div class="px-tile empty"></div>'}${st.slice(1,3).map(() => '<div class="px-tile back">?</div>').join('')}${st.length > 3 ? `<small class="px-more">+${st.length - 3}</small>` : ''}</div>`).join('');
+    sEl.innerHTML = stacks.map((st,c) => `<div class="px-col">${st.length ? `<button class="px-tile" data-c="${c}" style="${tileStyle(st[0].ch)}">${st[0].n}</button>` : '<div class="px-tile empty"></div>'}${st.slice(1).map(() => '<div class="px-tile back">?</div>').join('')}</div>`).join('');
     ctrl.innerHTML = `<button class="wide" data-it="slot" ${items.slot ? '' : 'disabled'}>➕ 칸 추가 (${items.slot})</button><button class="wide" data-it="shuffle" ${items.shuffle ? '' : 'disabled'}>🔀 섞기 (${items.shuffle})</button>`;
   }
   const pct = () => Math.round((1 - remaining / ALL) * 100);
@@ -3386,6 +3386,7 @@ function chLocalSetup(){
     <button class="btn" data-act="aiStart" style="margin-top:16px">시작하기</button>
     <p class="hint" style="text-align:center;margin-top:8px">AI 대결은 연습용이라 랭킹에는 기록되지 않아요</p>`;
 }
+ACT.aiChess = () => openAiChess();
 ACT.aiLv = v => { aiPick.lv = +v; renderGame(); };
 ACT.aiCol = v => { aiPick.col = v; renderGame(); };
 ACT.aiStart = () => {
@@ -3405,7 +3406,7 @@ ACT.aiUndo = () => {
 ACT.aiNew = () => { curGame.data.status = 'setup'; chSel = null; chPromo = null; renderGame(); };
 R.chess = (g, meIn) => {
   if (g.status === 'setup') return chLocalSetup();
-  if (g.status === 'waiting') return waitingHTML(g, meIn);
+  if (g.status === 'waiting') return waitingHTML(g, meIn) + (meIn ? `<button class="btn ghost" data-act="aiChess" style="margin-top:10px">🤖 기다리는 동안 AI와 한판</button>` : '');
   const myIdx = g.players.findIndex(p => p.uid === me.uid), myCol = myIdx === 0 ? 'w' : myIdx === 1 ? 'b' : null;
   const flip = myCol === 'b', st = { board:g.board, turn:g.turn, castle:g.castle, ep:g.ep, half:g.half };
   const myTurn = g.status === 'playing' && myCol === g.turn && !chThinking;
