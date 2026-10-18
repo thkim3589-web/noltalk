@@ -3267,7 +3267,7 @@ function QueensGame(stage, ctrl, seed, _lv, onEnd, setInfo){
   const isSol = i => !!queensSolve(N, reg, { ...fixedNow(), [Math.floor(i / N)]: i % N });
   const st = Array(N * N).fill(0); // 0 빈칸, 1 내가 표시한 ✕, 2 🐱(정답), 3 자동 ✕
   let lives = 3, hints = 3, used = 0, alive = true, t0 = Date.now(), clock = null, wrong = -1, good = -1;
-  stage.innerHTML = `<div class="qn-wrap"><div class="qn-rule">가로줄 · 세로줄 · 색깔 구역마다 🐱 <b>1마리</b><br>고양이끼리는 <b>대각선 포함</b> 붙으면 안 돼요<br><span style="opacity:.8">한 번 ✕ · 두 번 🐱 · 세 번 누르면 · 으로 되돌려요 · 틀리면 🐟 하나 잃어요</span></div><div class="qn-grid"></div></div>`;
+  stage.innerHTML = `<div class="qn-wrap"><div class="qn-rule">가로줄 · 세로줄 · 색깔 구역마다 🐱 <b>1마리</b><br>고양이끼리는 <b>대각선 포함</b> 붙으면 안 돼요<br><span style="opacity:.8">한 번 ✕ · 두 번 🐱 · 세 번 누르면 빈칸으로 · 틀리면 🐟 하나 잃어요</span></div><div class="qn-grid"></div></div>`;
   const gEl = stage.querySelector('.qn-grid');
   const secs = () => Math.round((Date.now() - t0) / 1000);
   const cats = () => st.filter(v => v === 2).length;
@@ -3313,8 +3313,8 @@ function QueensGame(stage, ctrl, seed, _lv, onEnd, setInfo){
   gEl.addEventListener('click', e => {
     const b = e.target.closest('[data-i]'); if (!b || !alive) return;
     const i = +b.dataset.i;
-    if (st[i] === 2) {                      // 세 번째: 고양이 빼고 · 으로 되돌리기
-      st[i] = 4;
+    if (st[i] === 2) {                      // 세 번째: 고양이 빼고 빈칸으로 되돌리기
+      st[i] = 0;
       for (let k = 0; k < N * N; k++) if (st[k] === 3) st[k] = 0;   // 자동 표시 다시 계산
       st.forEach((v,k) => { if (v === 2) autoMark(k); });
       return render();
@@ -3896,7 +3896,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261018k';
+const BUILD = 'b20261018l';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
