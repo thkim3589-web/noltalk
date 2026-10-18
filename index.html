@@ -3267,7 +3267,7 @@ function QueensGame(stage, ctrl, seed, _lv, onEnd, setInfo){
   const isSol = i => !!queensSolve(N, reg, { ...fixedNow(), [Math.floor(i / N)]: i % N });
   const st = Array(N * N).fill(0); // 0 빈칸, 1 내가 표시한 ✕, 2 🐱(정답), 3 자동 ✕
   let lives = 3, hints = 3, used = 0, alive = true, t0 = Date.now(), clock = null, wrong = -1, good = -1;
-  stage.innerHTML = `<div class="qn-wrap"><div class="qn-rule">가로줄 · 세로줄 · 색깔 구역마다 🐱 <b>1마리</b><br>고양이끼리는 <b>대각선 포함</b> 붙으면 안 돼요<br><span style="opacity:.8">한 번 누르면 ✕ 표시 · 두 번 누르면 🐱 · 틀리면 🐟 하나 잃어요</span></div><div class="qn-grid"></div></div>`;
+  stage.innerHTML = `<div class="qn-wrap"><div class="qn-rule">가로줄 · 세로줄 · 색깔 구역마다 🐱 <b>1마리</b><br>고양이끼리는 <b>대각선 포함</b> 붙으면 안 돼요<br><span style="opacity:.8">한 번 ✕ · 두 번 🐱 · 세 번 누르면 · 으로 되돌려요 · 틀리면 🐟 하나 잃어요</span></div><div class="qn-grid"></div></div>`;
   const gEl = stage.querySelector('.qn-grid');
   const secs = () => Math.round((Date.now() - t0) / 1000);
   const cats = () => st.filter(v => v === 2).length;
@@ -3285,10 +3285,10 @@ function QueensGame(stage, ctrl, seed, _lv, onEnd, setInfo){
     const size = Math.max(36, Math.floor(Math.min(stage.clientWidth - 32, stage.clientHeight * .66) / N));
     gEl.style.gridTemplateColumns = `repeat(${N}, ${size}px)`;
     gEl.innerHTML = st.map((v,i) => {
-      const txt = v === 2 ? '🐱' : v === 1 ? '✕' : v === 3 ? '·' : '';
+      const txt = v === 2 ? '🐱' : v === 1 ? '✕' : v === 3 || v === 4 ? '·' : '';
       const fx = i === wrong ? 'box-shadow:inset 0 0 0 4px #ff1744;' : i === good ? 'box-shadow:inset 0 0 0 4px #fff;' : '';
-      const fs = Math.floor(size * (v === 2 ? .62 : v === 3 ? .6 : .45));
-      return `<button class="qn-c" data-i="${i}" style="height:${size}px;background:${COLS[reg[i] % COLS.length]};font-size:${fs}px;${v === 3 ? 'color:rgba(255,255,255,.75);' : ''}${fx}">${i === wrong ? '❌' : txt}</button>`;
+      const fs = Math.floor(size * (v === 2 ? .62 : v === 3 || v === 4 ? .6 : .45));
+      return `<button class="qn-c" data-i="${i}" style="height:${size}px;background:${COLS[reg[i] % COLS.length]};font-size:${fs}px;${v === 3 ? 'color:rgba(255,255,255,.75);' : v === 4 ? 'color:rgba(0,0,0,.45);' : ''}${fx}">${i === wrong ? '❌' : txt}</button>`;
     }).join('');
     ctrl.innerHTML = `<button class="wide" data-q="hint" ${hints ? '' : 'disabled'}>💡 힌트 (${hints})</button><button class="wide" data-q="clear">🧹 ✕ 지우기</button>`;
     info();
@@ -3313,14 +3313,19 @@ function QueensGame(stage, ctrl, seed, _lv, onEnd, setInfo){
   gEl.addEventListener('click', e => {
     const b = e.target.closest('[data-i]'); if (!b || !alive) return;
     const i = +b.dataset.i;
-    if (st[i] === 2) return;               // 맞힌 고양이는 그대로
+    if (st[i] === 2) {                      // 세 번째: 고양이 빼고 · 으로 되돌리기
+      st[i] = 4;
+      for (let k = 0; k < N * N; k++) if (st[k] === 3) st[k] = 0;   // 자동 표시 다시 계산
+      st.forEach((v,k) => { if (v === 2) autoMark(k); });
+      return render();
+    }
     if (st[i] === 3) return toast('점(·) 칸은 다른 고양이 때문에 놓을 수 없어요');
-    if (st[i] === 0) { st[i] = 1; render(); } // 빈칸 → ✕
+    if (st[i] === 0 || st[i] === 4) { st[i] = 1; render(); } // 빈칸 → ✕
     else placeCat(i);                       // 내 ✕ 표시 → 🐱 시도
   });
   ctrl.addEventListener('click', e => {
     const b = e.target.closest('[data-q]'); if (!b || !alive) return;
-    if (b.dataset.q === 'clear') { for (let k = 0; k < N * N; k++) if (st[k] === 1) st[k] = 0; render(); return; }
+    if (b.dataset.q === 'clear') { for (let k = 0; k < N * N; k++) if (st[k] === 1 || st[k] === 4) st[k] = 0; render(); return; }
     if (!hints) return;
     const sol = queensSolve(N, reg, fixedNow()); if (!sol) return;
     const r = sol.findIndex((c,row) => st[row * N + c] !== 2);
@@ -3891,7 +3896,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261018j';
+const BUILD = 'b20261018k';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
