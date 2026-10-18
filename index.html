@@ -2244,8 +2244,13 @@ const ACT = {
       if (g.type === 'rps') return { picks:{}, status:'playing', result:null };
       if (g.type === 'omok') return { players:[g.players[1], g.players[0]], board:'.'.repeat(225), turn:0, last:-1, winner:null, status:'playing' };
       if (g.type === 'bingo') {
+        // 진 사람 중 줄을 가장 적게 만든 사람이 먼저 시작
+        const losers = g.players.map((p,i) => ({ i, n: bingoLines(g.boards[p.uid], g.called || []), w: (g.winners || []).includes(p.name) }))
+          .filter(x => !x.w).sort((a,b) => a.n - b.n);
+        const first = losers.length ? losers[0].i : 0;
+        msg = `🎱 빙고 새 판! 지난 판에서 진 ${g.players[first].name}님부터 시작해요`;
         const boards = {}; g.players.forEach(p => boards[p.uid] = newBingoBoard());
-        return { boards, called:[], turn:0, turnStartedAt: Date.now(), winners:null, status:'playing' };
+        return { boards, called:[], turn:first, turnStartedAt: Date.now(), winners:null, status:'playing' };
       }
       return { words:[], turn:0, turnStartedAt: Date.now(), loser:null, reason:null, status:'playing' };
     })(); if (u && typeof u === 'object') u.rc = (g.rc || 0) + 1; return u; }, () => msg && sys(msg));
