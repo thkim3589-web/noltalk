@@ -314,6 +314,8 @@ input{font:inherit}
 #obNext{background:#fff;color:var(--p);max-width:300px}
 #obSkip{background:none;color:#fff;opacity:.85;margin-top:14px;font-size:14px;padding:8px}
 /* ♟️ 체스 */
+.pr-banner{background:linear-gradient(90deg,#efe9ff,#ffe9f4);color:#5b3cc4;border-radius:12px;padding:9px 12px;margin-bottom:10px;text-align:center;font-weight:800;font-size:14px}
+.pr-banner small{display:block;font-weight:600;color:#8a7bb5;font-size:12px;margin-top:2px}
 .ch-wrap{display:flex;flex-direction:column;gap:8px;align-items:center}
 .ch-player{display:flex;align-items:center;gap:8px;width:100%;max-width:380px;padding:8px 10px;border-radius:12px;background:var(--bg)}
 .ch-player.turn{background:linear-gradient(90deg,#f7e3b5,#efd08a);color:#3b2a10}
@@ -1618,18 +1620,38 @@ function openGame(id){
   gameUnsub = onSnapshot(doc(db,'rooms',room.id,'games',id), s => {
     if (curGame !== cg) return;
     if (!s.exists()) { $('#gvTitle').textContent = '🧹 정리된 게임'; $('#gvBody').innerHTML = '<p class="empty">오래돼서 정리된 게임이에요.<br>🎮 버튼으로 새 게임을 열어보세요!</p>'; return; }
-    cg.data = s.data(); renderGame();
+    const d = cg.data = s.data();
+    if (!cg.pr && !cg.prDone && PRACTICE.includes(d.type) && d.status === 'waiting' && d.players.length === 1 && d.players[0].uid === me.uid) {
+      cg.pr = practiceData(d.type); chSel = null; chPromo = null; chHist = []; chThinking = false;
+    }
+    if (cg.pr && d.status !== 'waiting' && !cg.prDone) {
+      cg.prDone = true; chSel = null; chPromo = null; chHist = []; chThinking = false;
+      toast('🎉 상대가 참가했어요! 진짜 게임 시작!'); try { navigator.vibrate?.([30,40,30]); } catch {}
+    }
+    renderGame();
+    if (isLocal()) aiMaybe();
   });
 }
 function closeGame(){ gameUnsub?.(); gameUnsub = null; curGame = null; closeDlg('gameView'); }
 $('#gvClose').onclick = closeGame;
 
+// 지금 화면에 보이는 게임 데이터: 방 게임이 '모집 중'이고 연습판이 있으면 연습판
+const gd = () => curGame ? (curGame.pr && curGame.data?.status === 'waiting' ? curGame.pr : curGame.data) : null;
+const isLocal = () => !!curGame && (!!curGame.local || (!!curGame.pr && curGame.data?.status === 'waiting'));
+const PRACTICE = ['chess','omok'];
+function practiceData(type){
+  const mine = { uid: me.uid, name: me.name };
+  if (type === 'chess') return { type:'chess', status:'playing', local:true, lv: aiPick.lv, players:[mine, { uid:'ai', name:`🤖 AI (${AI_LV[aiPick.lv].name})` }],
+    board: CH_START, turn:'w', castle:'KQkq', ep:-1, half:0, moves:[], last:null, winner:null, reason:null, drawOffer:null };
+  return { type:'omok', status:'playing', local:true, players:[mine, { uid:'ai', name:'🤖 AI' }], board:'.'.repeat(225), turn:0, last:-1, winner:null };
+}
+function aiMaybe(){ const g = gd(); if (!g) return; if (g.type === 'chess') chAiMaybe(); if (g.type === 'omok') omAiMaybe(); }
 async function tx(fn, after){
-  if (curGame?.local) {   // 혼자 하는 AI 대결: 서버 없이 바로 적용
-    const r = fn(JSON.parse(JSON.stringify(curGame.data)));
+  if (isLocal()) {   // 혼자 하는 AI 대결: 서버 없이 바로 적용
+    const d = gd(), r = fn(JSON.parse(JSON.stringify(d)));
     if (typeof r === 'string') return toast(r);
-    if (r) { Object.assign(curGame.data, r); renderGame(); }
-    after && after(); curGame.data.type === 'chess' && chAiMaybe(); return;
+    if (r) { Object.assign(d, r); renderGame(); }
+    after && after(); aiMaybe(); return;
   }
   if (!curGame || !room) return;
   const ref = doc(db,'rooms',room.id,'games',curGame.id);
@@ -2079,19 +2101,20 @@ const R = {
 };
 
 function renderGame(){
-  const g = curGame?.data; if (!g) return;
+  const g = gd(); if (!g) return;
   const info = GAMES[g.type];
   $('#gvTitle').textContent = `${info.icon} ${info.name}`;
   const ids = ['wcInput','ladderOut','liarGuess','choInput','bbSecret','bbGuess'], keep = {};
   ids.forEach(id => { const el = document.getElementById(id); if (el) keep[id] = { v: el.value, f: document.activeElement === el }; });
-  $('#gvBody').innerHTML = R[g.type](g, g.players.some(p => p.uid === me.uid));
+  const banner = curGame.pr && isLocal() ? `<div class="pr-banner">👀 상대를 기다리는 동안 🤖 AI와 연습 중<small>친구가 참가하면 바로 진짜 게임으로 바뀌어요 (${curGame.data.players.length}/${curGame.data.maxPlayers})</small></div>` : '';
+  $('#gvBody').innerHTML = banner + R[g.type](g, g.players.some(p => p.uid === me.uid));
   ids.forEach(id => {
     const el = document.getElementById(id); if (!el) return;
     const k = keep[id];
     if (k) { el.value = k.v; if (k.f) el.focus(); } else if (id !== 'ladderOut') el.focus();
   });
   if (g.turnStartedAt !== lastTurnStart) { lastTurnStart = g.turnStartedAt; timeoutSent = false; }
-  if (!curGame.local) recordStats(g, curGame.id);
+  if (!isLocal()) recordStats(g, curGame.id);
 }
 
 const ACT = {
@@ -2218,21 +2241,22 @@ const ACT = {
   },
   giveup(){ endWordchain('포기', false); },
   call(v){ bingoCall(+v, false); },
-  cell(v){
-    const i = +v; let msg = null;
+  cell(v, who){
+    const i = +v; let msg = null; who = who || me.uid;
+    if (!who.startsWith?.('ai') && omThinking) return;
     tx(g => {
       if (g.status !== 'playing') return null;
-      const idx = g.players.findIndex(p => p.uid === me.uid);
+      const idx = g.players.findIndex(p => p.uid === who);
       if (idx < 0) return '관전 중이에요';
       if (g.turn !== idx) return '상대 차례예요';
       if (g.board[i] !== '.') return null;
       const s = idx === 0 ? 'B' : 'W';
       const board = g.board.slice(0,i) + s + g.board.slice(i+1);
       const u = { board, last:i, turn:1 - idx };
-      if (fiveInRow(board, i, s)) { u.status = 'done'; u.winner = idx; msg = `⚫ 오목: ${g.players[idx].name} 승리! 🎉`; }
+      if (fiveInRow(board, i, s)) { u.status = 'done'; u.winner = idx; msg = g.local ? (who === 'ai' ? '🤖 AI가 이겼어요! 다시 도전해보세요' : '🎉 AI를 이겼어요!') : `⚫ 오목: ${g.players[idx].name} 승리! 🎉`; }
       else if (!board.includes('.')) { u.status = 'done'; u.winner = -1; msg = '⚫ 오목: 무승부!'; }
       return u;
-    }, () => msg && sys(msg));
+    }, () => msg && chSay(msg));
   },
   choSubmit(){
     const v = (document.getElementById('choInput')?.value || '').trim().replace(/\s/g, '');
@@ -3314,6 +3338,46 @@ function BlockPuzzleGame(stage, ctrl, seed, _lv, onEnd, setInfo){
   return { stop(){ alive = false; window.removeEventListener('resize', resize); } };
 }
 
+/* ================= ⚫ 오목 AI ================= */
+let omThinking = false;
+function omScore(b, i, s){   // i에 s를 놓았을 때 4방향 모양 점수
+  const x = i % 15, y = Math.floor(i / 15); let total = 0;
+  for (const [dx,dy] of [[1,0],[0,1],[1,1],[1,-1]]) {
+    let n = 1, open = 0;
+    for (const k of [1,-1]) {
+      let cx = x + dx*k, cy = y + dy*k;
+      while (cx >= 0 && cx < 15 && cy >= 0 && cy < 15 && b[cy*15+cx] === s) { n++; cx += dx*k; cy += dy*k; }
+      if (cx >= 0 && cx < 15 && cy >= 0 && cy < 15 && b[cy*15+cx] === '.') open++;
+    }
+    total += n >= 5 ? 1e7 : n === 4 ? (open === 2 ? 2e5 : open ? 2e4 : 0) : n === 3 ? (open === 2 ? 8e3 : open ? 600 : 0) : n === 2 ? (open === 2 ? 300 : open ? 40 : 0) : open * 5;
+  }
+  return total;
+}
+function omBest(b, s){
+  const o = s === 'B' ? 'W' : 'B'; let best = -1, bs = -1;
+  if (!b.includes(o) && !b.includes(s)) return 112;
+  for (let i = 0; i < 225; i++) {
+    if (b[i] !== '.') continue;
+    const x = i % 15, y = Math.floor(i / 15); let near = false;
+    for (let dy = -2; dy <= 2 && !near; dy++) for (let dx = -2; dx <= 2; dx++) { const cx = x + dx, cy = y + dy; if (cx >= 0 && cx < 15 && cy >= 0 && cy < 15 && b[cy*15+cx] !== '.') { near = true; break; } }
+    if (!near) continue;
+    const sc = omScore(b, i, s) * 1.1 + omScore(b, i, o) + (7 - Math.max(Math.abs(x - 7), Math.abs(y - 7))) + Math.random() * 3;
+    if (sc > bs) { bs = sc; best = i; }
+  }
+  return best;
+}
+function omAiMaybe(){
+  const g = gd();
+  if (!isLocal() || !g || g.type !== 'omok' || g.status !== 'playing' || omThinking) return;
+  const ai = g.players.findIndex(p => p.uid === 'ai'); if (ai < 0 || g.turn !== ai) return;
+  omThinking = true; const cg = curGame;
+  setTimeout(() => {
+    omThinking = false;
+    if (curGame !== cg || !isLocal() || gd() !== g || g.turn !== ai || g.status !== 'playing') return;
+    const i = omBest(g.board, ai === 0 ? 'B' : 'W'); if (i >= 0) ACT.cell(String(i), 'ai');
+  }, 450);
+}
+
 /* ================= ♟️ 체스 ================= */
 const CH_START = 'rnbqkbnrpppppppp' + '.'.repeat(32) + 'PPPPPPPPRNBQKBNR'; // 0=a8 … 63=h1
 const CH_GLYPH = { k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟' };
@@ -3398,7 +3462,7 @@ function chInsufficient(b){
   return !rest || (rest.length === 1 && /[nNbB]/.test(rest));
 }
 let chSel = null, chPromo = null, chThinking = false, chHist = [];
-const chSay = t => curGame?.local ? toast(t) : sys(t);
+const chSay = t => isLocal() ? toast(t) : sys(t);
 const AI_LV = { 1:{ name:'쉬움', depth:2, ms:300 }, 2:{ name:'보통', depth:3, ms:900 }, 3:{ name:'어려움', depth:6, ms:2200 } };
 let aiPick = { lv:2, col:'w' };
 try { aiPick = { ...aiPick, ...JSON.parse(localStorage.getItem('aiChess') || '{}') }; } catch {}
@@ -3486,16 +3550,16 @@ function chBest(st, lv){
   return best;
 }
 function chAiMaybe(){
-  const g = curGame?.data;
-  if (!curGame?.local || !g || g.status !== 'playing' || chThinking) return;
+  const g = gd();
+  if (!isLocal() || !g || g.type !== 'chess' || g.status !== 'playing' || chThinking) return;
   const ai = g.players.findIndex(p => p.uid === 'ai'); if (ai < 0 || g.turn !== (ai === 0 ? 'w' : 'b')) return;
   chThinking = true; renderGame();
   const cg = curGame;
   setTimeout(() => {
-    if (curGame !== cg) { chThinking = false; return; }
+    if (curGame !== cg || !isLocal() || gd() !== g) { chThinking = false; return; }
     const st = { board:g.board, turn:g.turn, castle:g.castle, ep:g.ep, half:g.half };
     const t0 = Date.now(), m = chBest(st, g.lv);
-    setTimeout(() => { chThinking = false; if (curGame === cg && m) chCommit(m, 'ai'); }, Math.max(0, 450 - (Date.now() - t0)));
+    setTimeout(() => { chThinking = false; if (curGame === cg && isLocal() && gd() === g && m) chCommit(m, 'ai'); else renderGame(); }, Math.max(0, 450 - (Date.now() - t0)));
   }, 60);
 }
 function chLocalSetup(){
@@ -3515,19 +3579,19 @@ ACT.aiStart = () => {
   const col = aiPick.col === 'r' ? (Math.random() < .5 ? 'w' : 'b') : aiPick.col;
   const mine = { uid: me.uid, name: me.name }, ai = { uid:'ai', name:`🤖 AI (${AI_LV[aiPick.lv].name})` };
   chSel = null; chPromo = null; chHist = [];
-  Object.assign(curGame.data, { status:'playing', lv: aiPick.lv, players: col === 'w' ? [mine, ai] : [ai, mine],
+  Object.assign(gd(), { status:'playing', lv: aiPick.lv, players: col === 'w' ? [mine, ai] : [ai, mine],
     board: CH_START, turn:'w', castle:'KQkq', ep:-1, half:0, moves:[], last:null, winner:null, reason:null, drawOffer:null });
   renderGame(); chAiMaybe();
 };
 ACT.aiUndo = () => {
   if (chThinking || !chHist.length) return;
-  Object.assign(curGame.data, chHist.pop(), { status:'playing', winner:null, reason:null });
+  Object.assign(gd(), chHist.pop(), { status:'playing', winner:null, reason:null });
   chSel = null; chPromo = null; renderGame(); chAiMaybe();
 };
-ACT.aiNew = () => { curGame.data.status = 'setup'; chSel = null; chPromo = null; renderGame(); };
+ACT.aiNew = () => { gd().status = 'setup'; chSel = null; chPromo = null; renderGame(); };
 R.chess = (g, meIn) => {
   if (g.status === 'setup') return chLocalSetup();
-  if (g.status === 'waiting') return waitingHTML(g, meIn) + (meIn ? `<button class="btn ghost" data-act="aiChess" style="margin-top:10px">🤖 기다리는 동안 AI와 한판</button>` : '');
+  if (g.status === 'waiting') return waitingHTML(g, meIn);
   const myIdx = g.players.findIndex(p => p.uid === me.uid), myCol = myIdx === 0 ? 'w' : myIdx === 1 ? 'b' : null;
   const flip = myCol === 'b', st = { board:g.board, turn:g.turn, castle:g.castle, ep:g.ep, half:g.half };
   const myTurn = g.status === 'playing' && myCol === g.turn && !chThinking;
@@ -3569,7 +3633,7 @@ function chCommit(m, asUid){
   let msg = null;
   const who = asUid || me.uid;
   chSel = null; chPromo = null;
-  if (curGame?.local && !asUid) { const g = curGame.data; chHist.push({ board:g.board, turn:g.turn, castle:g.castle, ep:g.ep, half:g.half, moves:[...g.moves], last:g.last }); }
+  if (isLocal() && !asUid) { const g = gd(); chHist.push({ board:g.board, turn:g.turn, castle:g.castle, ep:g.ep, half:g.half, moves:[...g.moves], last:g.last }); }
   tx(g => {
     if (g.status !== 'playing') return null;
     const myCol = g.players[0]?.uid === who ? 'w' : g.players[1]?.uid === who ? 'b' : null;
@@ -3590,7 +3654,7 @@ function chCommit(m, asUid){
   }, () => { try { navigator.vibrate?.(15); } catch {} if (msg) chSay(msg); });
 }
 ACT.chSq = v => {
-  const g = curGame?.data; if (!g || g.status !== 'playing' || chThinking) return;
+  const g = gd(); if (!g || g.status !== 'playing' || chThinking) return;
   const i = +v, myCol = g.players[0]?.uid === me.uid ? 'w' : g.players[1]?.uid === me.uid ? 'b' : null;
   if (myCol !== g.turn) return toast(myCol ? '상대 차례예요' : '관전 중이에요');
   chPromo = null;
@@ -3611,8 +3675,8 @@ ACT.chResign = async () => {
 };
 ACT.chDraw = () => {
   let msg = null;
-  if (curGame?.local) {   // AI는 자기가 불리할 때만 무승부를 받아줘요
-    const g = curGame.data; if (g.status !== 'playing' || chThinking) return;
+  if (isLocal()) {   // AI는 자기가 불리할 때만 무승부를 받아줘요
+    const g = gd(); if (g.status !== 'playing' || chThinking) return;
     const aiCol = g.players[0].uid === 'ai' ? 'w' : 'b';
     const sc = chEval({ board:g.board, turn:aiCol, castle:g.castle, ep:-1, half:g.half });
     if (sc < -150) return tx(() => ({ status:'done', winner:null, reason:'합의' }), () => chSay('🤝 AI가 무승부를 받아들였어요'));
@@ -3737,7 +3801,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261018d';
+const BUILD = 'b20261018e';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
