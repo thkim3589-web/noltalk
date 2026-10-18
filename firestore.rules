@@ -57,7 +57,7 @@ service cloud.firestore {
         // 방장: 강퇴, 공개/비공개 전환, 비밀번호, 공지, 방장 넘기기(멤버에게만)
         (request.auth.uid == resource.data.createdBy
           && changed().hasOnly(['members', 'banned', 'lastMessage', 'lastAt', 'lastUid', 'msgCount', 'pubAt', 'pubMembers',
-                                'isPublic', 'pwHash', 'notice', 'noticeAt', 'createdBy'])
+                                'isPublic', 'pwHash', 'notice', 'noticeAt', 'createdBy', 'icon', 'color'])
           && (request.resource.data.createdBy == resource.data.createdBy
               || request.resource.data.createdBy in request.resource.data.members))
         ||
