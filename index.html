@@ -208,6 +208,24 @@ input{font:inherit}
 .rank-row span:last-child{font-size:13px;color:var(--sub)}
 .on-dot{color:#2ecc71;font-size:10px}
 .member .av{width:36px;height:36px}
+/* 게임 메뉴 정리 */
+.gcats{display:flex;gap:6px;overflow-x:auto;margin:6px 0 10px;scrollbar-width:none}
+.gcats::-webkit-scrollbar{display:none}
+.gcats button{flex-shrink:0;background:var(--bg);border-radius:16px;padding:7px 12px;font-size:13px;font-weight:700;color:var(--sub)}
+.gcats button.on{background:var(--p);color:#fff}
+.ggrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}
+.gtile{background:var(--bg);border-radius:14px;padding:12px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.gtile .gi{font-size:30px;line-height:1.1}
+.gtile b{font-size:13px}
+.gtile small{font-size:11px;color:var(--sub)}
+.gtile.dim{opacity:.4}
+.gtile:active{transform:scale(.95)}
+.game-card{display:flex;align-items:center;gap:10px;padding:10px 12px;min-width:220px}
+.gc-icon{font-size:28px;line-height:1}
+.gc-info{flex:1;min-width:0}
+.gc-info b{display:block;font-size:14px}
+.gc-info small{font-size:12px;color:var(--sub)}
+.game-card button{width:auto!important;padding:8px 14px!important;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -843,8 +861,8 @@ function renderMsgs(msgs){
     else if ((m.reportedBy || []).length >= 3) body = `<div class="bubble muted">🚨 신고가 쌓여 가려진 메시지예요</div>`;
     else if (m.type === 'game') {
       const g = GAMES[m.game] || {};
-      body = `<div class="game-card" data-mid="${m.id}"><div class="gc-title">${g.icon || '🎮'} ${g.name || '게임'}</div>
-        <div class="gc-sub">${esc(m.name)}님이 게임을 열었어요! (${g.desc || ''})</div><button data-game="${m.gameId}">입장하기</button></div>`;
+      body = `<div class="game-card" data-mid="${m.id}"><span class="gc-icon">${g.icon || '🎮'}</span>
+        <div class="gc-info"><b>${g.name || '게임'}</b><small>${mine ? '내가 열었어요' : `${esc(m.name)}님이 열었어요`}</small></div><button data-game="${m.gameId}">참가</button></div>`;
     } else {
       const quote = m.reply ? `<div class="quote" data-jump="${esc(m.reply.id)}">↪ <b>${esc(m.reply.name)}</b> ${esc((m.reply.text || '').slice(0,40))}</div>` : '';
       body = `<div class="bubble" data-mid="${m.id}">${quote}${esc(m.text)}</div>`;
@@ -1197,10 +1215,37 @@ async function openRank(){
 }
 
 /* ---------- 게임 메뉴 ---------- */
-$('#gameList').innerHTML = Object.entries(GAMES).map(([k,g]) =>
-  `<button class="game-pick" data-type="${k}"><span class="gi">${g.icon}</span><span><b>${g.name}</b><small>${g.desc}</small></span></button>`).join('');
-$('#gameBtn').onclick = () => openDlg('gameMenu');
-$('#gameList').addEventListener('click', e => { const b = e.target.closest('[data-type]'); if (b) startGame(b.dataset.type); });
+const GAME_CATS = [['all','전체'], ['duel','⚔️ 1:1 대결'], ['group','👥 여럿이'], ['mind','🕵️ 심리전'], ['quiz','🧠 퀴즈']];
+const GAME_META = {
+  rps:{ cat:'duel', min:2, ppl:'2명' }, omok:{ cat:'duel', min:2, ppl:'2명' }, baseball:{ cat:'duel', min:2, ppl:'2명' },
+  wordchain:{ cat:'group', min:2, ppl:'2~6명' }, bingo:{ cat:'group', min:2, ppl:'2~4명' }, ladder:{ cat:'group', min:2, ppl:'2~8명' },
+  liar:{ cat:'mind', min:3, ppl:'3~8명' }, mafia:{ cat:'mind', min:4, ppl:'4~10명' },
+  chosung:{ cat:'quiz', min:2, ppl:'2~8명' },
+};
+let gameCat = 'all';
+function recentGames(){ try { return JSON.parse(localStorage.getItem('recentGames') || '[]').filter(t => GAMES[t]); } catch { return []; } }
+function renderGameMenu(){
+  const n = (room?.members || []).length, recent = recentGames();
+  const tile = t => {
+    const g = GAMES[t], m = GAME_META[t] || {}, few = n < (m.min || 2);
+    return `<button class="gtile ${few ? 'dim' : ''}" data-type="${t}"><span class="gi">${g.icon}</span><b>${g.name}</b><small>${few ? `${m.min}명부터` : (m.ppl || '')}</small></button>`;
+  };
+  const list = Object.keys(GAMES).filter(t => gameCat === 'all' || GAME_META[t]?.cat === gameCat);
+  $('#gameList').innerHTML =
+    (recent.length && gameCat === 'all' ? `<div class="pf-label" style="margin-top:0">⭐ 최근 한 게임</div><div class="ggrid">${recent.map(tile).join('')}</div>` : '') +
+    `<div class="gcats">${GAME_CATS.map(([k,l]) => `<button data-cat="${k}" class="${gameCat === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+     <div class="ggrid">${list.map(tile).join('')}</div>
+     <p class="hint">지금 방 인원 ${n}명 · 흐린 게임은 인원이 더 필요해요</p>`;
+}
+$('#gameBtn').onclick = () => { renderGameMenu(); openDlg('gameMenu'); };
+$('#gameList').addEventListener('click', e => {
+  const c = e.target.closest('[data-cat]'); if (c) { gameCat = c.dataset.cat; return renderGameMenu(); }
+  const b = e.target.closest('[data-type]'); if (!b) return;
+  const t = b.dataset.type, m = GAME_META[t] || {}, n = (room?.members || []).length;
+  if (n < (m.min || 2) && !confirm(`${GAMES[t].name}은(는) ${m.min}명부터 할 수 있어요. 지금 방에는 ${n}명이에요.\n그래도 열어둘까요? (친구가 들어오면 참가할 수 있어요)`)) return;
+  try { localStorage.setItem('recentGames', JSON.stringify([t, ...recentGames().filter(x => x !== t)].slice(0,3))); } catch {}
+  startGame(t);
+});
 
 async function startGame(type){
   closeDlg('gameMenu');
