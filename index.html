@@ -1434,7 +1434,7 @@ $('#gameTabBody').addEventListener('click', e => {
 function openProfile(){
   const st = myDoc.stats || {};
   let theme = 'system', sound = 'on'; try { theme = localStorage.getItem('theme') || 'system'; sound = localStorage.getItem('sound') || 'on'; } catch {}
-  const nOn = notifyOn();
+  const nOn = notifyOn(), pk = periodKeys();
   $('#pfBody').innerHTML = `
     <div class="pf-top">${avatarHtml(me.name, me.avatar, me.color, 'pf-av')}<div><b>${esc(me.name)}</b><button class="mini" data-pf="rename">${ic('edit', 14)} 닉네임 바꾸기</button></div></div>
     <div class="pf-label">아바타</div>
@@ -1447,9 +1447,9 @@ function openProfile(){
     <div class="seg"><button data-pf="notifyset" data-v="on" class="${nOn ? 'on' : ''}">${ic('bell', 16)} 받기</button><button data-pf="notifyset" data-v="off" class="${!nOn ? 'on' : ''}">${ic('belloff', 16)} 안 받기</button></div>
     <div class="pf-label">새 메시지 소리·진동</div>
     <div class="seg"><button data-pf="sound" data-v="on" class="${sound !== 'off' ? 'on' : ''}">🔔 켜기</button><button data-pf="sound" data-v="off" class="${sound === 'off' ? 'on' : ''}">🔕 끄기</button></div>
-    <div class="pf-label">내 전적 · 🏆 ${myDoc.wins || 0}승 / ${myDoc.played || 0}판</div>
-    <div class="stat-grid">${Object.entries(GAMES).filter(([k]) => k !== 'ladder').map(([k,g]) => { const x = st[k] || {}; return `<div>${g.icon} ${g.name}<b>${x.w || 0}승 · ${x.p || 0}판</b></div>`; }).join('')}</div>
-    <div class="menu-list" style="margin-top:14px"><button data-pf="rank">${ic('trophy')} 전체 랭킹 보기</button>${nOn ? `<button data-pf="notify">${ic('bell')} 휴대폰 알림 권한 허용하기</button>` : ''}
+    <div class="pf-label">내 전적 (친구와 대결한 게임)</div>
+    <div class="stat-grid"><div>📅 이번 주 <small style="color:var(--sub)">${pk.wLabel}</small><b>${myDoc[pk.w] || 0}승 · ${myDoc[pk.wp] || 0}판</b></div><div>🗓️ 이번 달 <small style="color:var(--sub)">${pk.mLabel}</small><b>${myDoc[pk.m] || 0}승 · ${myDoc[pk.mp] || 0}판</b></div></div>
+    <div class="menu-list" style="margin-top:14px"><button data-pf="rank">${ic('trophy')} 주간·월간 랭킹 보기</button>${nOn ? `<button data-pf="notify">${ic('bell')} 휴대폰 알림 권한 허용하기</button>` : ''}
       ${auth.currentUser?.isAnonymous ? `<button data-pf="link">${ic('lock')} 구글 계정 연결 (계정 지키기)</button>` : ''}</div>`;
 }
 $('#pfBody').addEventListener('click', async e => {
@@ -1471,17 +1471,22 @@ $('#pfBody').addEventListener('click', async e => {
     try { await updateDoc(doc(db,'users',me.uid), { [key]: v ? v : deleteField() }); } catch(err) { toast('저장 실패: ' + (err.code || err.message)); }
   }
 });
+let rankPeriod = 'w';
 async function openRank(){
-  const box = $('#rankTabBody');
-  box.innerHTML = '<p class="empty">불러오는 중...</p>';
+  const box = $('#rankTabBody'), k = periodKeys(), wk = rankPeriod === 'w';
+  const winF = wk ? k.w : k.m, playF = wk ? k.wp : k.mp;
+  const head = `<div class="seg" style="margin-bottom:14px"><button data-rp="w" class="${wk ? 'on' : ''}">주간 랭킹</button><button data-rp="m" class="${!wk ? 'on' : ''}">월간 랭킹</button></div>
+    <div class="sec-title">🏆 ${wk ? '이번 주' : '이번 달'} 랭킹</div><div class="sec-sub">${wk ? k.wLabel + ' (월요일마다 새로 시작)' : k.mLabel + ' (매달 1일 새로 시작)'} · 승리 수 순 · 상위 30명</div>`;
+  box.innerHTML = head + '<p class="empty">불러오는 중...</p>';
   try {
-    const s = await getDocs(query(collection(db,'users'), orderBy('wins','desc'), limit(30)));
-    const rows = s.docs.map(d => ({ id:d.id, ...d.data() })).filter(u => u.name && (u.wins || 0) > 0);
-    box.innerHTML = `<div class="sec-title">🏆 전체 랭킹</div><div class="sec-sub">모든 게임의 승리 수 합계 · 상위 30명</div>` + (rows.length ? rows.map((u,i) => `<div class="rank-row ${u.id === me.uid ? 'me' : ''}"><span class="rk">${['🥇','🥈','🥉'][i] || i + 1}</span>
-      ${avatarHtml(u.name, u.avatar, u.color, 'av')}<b>${esc(u.name)}</b><span>${u.wins || 0}승 · ${u.played || 0}판</span></div>`).join('')
-      : '<p class="empty">아직 기록이 없어요. 게임에서 이겨보세요! 🎮</p>');
-  } catch { box.innerHTML = '<p class="empty">랭킹을 불러오지 못했어요</p>'; }
+    const s = await getDocs(query(collection(db,'users'), orderBy(winF,'desc'), limit(30)));
+    const rows = s.docs.map(d => ({ id:d.id, ...d.data() })).filter(u => u.name && (u[winF] || 0) > 0);
+    box.innerHTML = head + (rows.length ? rows.map((u,i) => `<div class="rank-row ${u.id === me.uid ? 'me' : ''}"><span class="rk">${['🥇','🥈','🥉'][i] || i + 1}</span>
+      ${avatarHtml(u.name, u.avatar, u.color, 'av')}<b>${esc(u.name)}</b><span>${u[winF] || 0}승 · ${u[playF] || 0}판</span></div>`).join('')
+      : `<p class="empty">${wk ? '이번 주' : '이번 달'} 기록이 아직 없어요.<br>친구들과 게임에서 이겨보세요! 🎮</p>`);
+  } catch { box.innerHTML = head + '<p class="empty">랭킹을 불러오지 못했어요</p>'; }
 }
+$('#rankTabBody').addEventListener('click', e => { const b = e.target.closest('[data-rp]'); if (b) { rankPeriod = b.dataset.rp; openRank(); } });
 
 /* ---------- 게임 메뉴 ---------- */
 const GAME_CATS = [['all','전체'], ['duel','⚔️ 1:1 대결'], ['group','👥 여럿이'], ['mind','🕵️ 심리전'], ['quiz','🧠 퀴즈'], ['arcade','🕹️ 아케이드']];
@@ -1763,8 +1768,29 @@ function recordStats(g, gid){
   const o = gameOutcome(g); if (!o || !o.P.includes(me.uid)) return;
   const key = `st_${room?.id}_${gid}_${g.rc || 0}`;
   try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1'); } catch { return; }
-  const w = o.W.includes(me.uid) ? 1 : 0;
-  updateDoc(doc(db,'users',me.uid), { [`stats.${g.type}.p`]: increment(1), [`stats.${g.type}.w`]: increment(w), played: increment(1), wins: increment(w) }).catch(() => {});
+  const w = o.W.includes(me.uid) ? 1 : 0, k = periodKeys(), ref = doc(db,'users',me.uid);
+  // 이번 주·이번 달 기록만 남기고 지난 기간·누적 기록은 지움
+  runTransaction(db, async t => {
+    const d = (await t.get(ref)).data() || {}, u = {};
+    const keep = [k.w, k.wp, k.m, k.mp];
+    Object.keys(d).forEach(f => { if (/^(w|wp|m|mp)_\d{4}_\d{2}$/.test(f) && !keep.includes(f)) u[f] = deleteField(); });
+    ['wins','played','stats'].forEach(f => { if (f in d) u[f] = deleteField(); });
+    u[k.w] = (d[k.w] || 0) + w; u[k.wp] = (d[k.wp] || 0) + 1;
+    u[k.m] = (d[k.m] || 0) + w; u[k.mp] = (d[k.mp] || 0) + 1;
+    t.update(ref, u);
+  }).catch(() => {});
+}
+/* 주(월~일)·월 기준 키 (한국 시간) */
+function periodKeys(){
+  const d = new Date(Date.now() + 9 * 3600e3), y = d.getUTCFullYear(), mo = d.getUTCMonth() + 1;
+  const t = new Date(Date.UTC(y, d.getUTCMonth(), d.getUTCDate())), day = t.getUTCDay() || 7;
+  const mon = new Date(t); mon.setUTCDate(t.getUTCDate() - day + 1);
+  const sun = new Date(mon); sun.setUTCDate(mon.getUTCDate() + 6);
+  t.setUTCDate(t.getUTCDate() + 4 - day);
+  const wy = t.getUTCFullYear(), wn = Math.ceil(((t - Date.UTC(wy, 0, 1)) / 864e5 + 1) / 7);
+  const W = `${wy}_${String(wn).padStart(2,'0')}`, M = `${y}_${String(mo).padStart(2,'0')}`;
+  const md = x => `${x.getUTCMonth() + 1}/${x.getUTCDate()}`;
+  return { w:'w_' + W, wp:'wp_' + W, m:'m_' + M, mp:'mp_' + M, wLabel:`${md(mon)} ~ ${md(sun)}`, mLabel:`${y}년 ${mo}월` };
 }
 
 function fiveInRow(b, i, s){
