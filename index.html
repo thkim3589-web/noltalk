@@ -247,7 +247,7 @@ input{font:inherit}
 .px-stacks{display:grid;grid-template-columns:repeat(5,58px);gap:7px;flex:1 1 0;min-height:150px;overflow:hidden;align-items:start;-webkit-mask-image:linear-gradient(#000 85%,transparent);mask-image:linear-gradient(#000 85%,transparent)}
 .px-col{display:flex;flex-direction:column;gap:6px}
 .px-tile{height:48px;border-radius:12px;font-weight:900;font-size:18px;box-shadow:0 4px 0 rgba(0,0,0,.3),inset 0 0 0 2px rgba(255,255,255,.28)}
-.px-tile.back{background:repeating-linear-gradient(45deg,#3a3352 0 6px,#332d49 6px 12px);color:rgba(255,255,255,.35);transform:scale(.9);pointer-events:none;display:flex;align-items:center;justify-content:center}
+.px-tile.back{transform:scale(.88);pointer-events:none;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 2px rgba(0,0,0,.18)}
 .px-tile.empty{background:rgba(255,255,255,.05);box-shadow:none}
 .px-more{text-align:center;color:rgba(255,255,255,.45);font-size:12px;font-weight:700}
 .px-tile:active{transform:translateY(2px)}
@@ -2674,7 +2674,7 @@ function arcadeView(g){
   const rows = arcadeSort(g.type, g.results), mine = rows.findIndex(([u]) => u === me.uid);
   const rule = { blocks:'블록을 돌리고 쌓아서 가로줄을 꽉 채우면 사라져요. 4줄을 한 번에 지우면 대박!',
     jewel:'떨어지는 보석 3개의 순서를 바꿔서, 같은 색 3개 이상을 가로·세로·대각선으로 맞추세요. 연쇄되면 점수가 껑충!',
-    pixel:'색깔 블록을 눌러 위 칸(5칸)에 올리면 개미들이 나와 테두리와 뚫린 길을 따라 같은 색 픽셀을 먹어요. 아래 블록은 뒤집혀 있어서 맨 윗줄만 보여요! 90초 안에 다 먹이세요. (50×50 · 난이도 ★★★★★)',
+    pixel:'색깔 블록을 눌러 위 칸(5칸)에 올리면 개미들이 나와 테두리와 뚫린 길을 따라 같은 색 픽셀을 먹어요. 맨 윗줄 블록만 누를 수 있어요. 아래 줄을 보고 순서를 계획하세요! 120초 안에 다 먹이세요. (50×50 · 난이도 ★★★★★)',
     sudoku:'가로줄·세로줄·3×3 칸마다 1~9가 한 번씩만 들어가게 채우세요. 3번 틀리면 실패, 힌트는 +30초!',
     freecell:'카드를 눌러 고르고 옮길 곳을 누르세요. 8줄의 카드를 같은 무늬 A→K 순서로 오른쪽 위 4칸에 모두 올리면 완성! 빈 칸 4개를 잘 활용하세요.',
     blockpuz:'아래 블록 3개를 끌어서 판에 놓으세요. 가로나 세로 한 줄을 꽉 채우면 사라져요. 더 놓을 곳이 없으면 끝!',
@@ -3040,7 +3040,7 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
   function renderTiles(){
     qEl.innerHTML = Array.from({ length:slots }, (_,i) => queue[i] ? `<div class="px-slot" style="${tileStyle(queue[i].ch)}">${queue[i].n}</div>` : '<div class="px-slot"></div>').join('');
     // 맨 윗줄만 색·숫자가 보이고, 아래는 뒤집힌 블록(?)으로 남은 개수만 보여요
-    sEl.innerHTML = stacks.map((st,c) => `<div class="px-col">${st.length ? `<button class="px-tile" data-c="${c}" style="${tileStyle(st[0].ch)}">${st[0].n}</button>` : '<div class="px-tile empty"></div>'}${st.slice(1).map(() => '<div class="px-tile back">?</div>').join('')}</div>`).join('');
+    sEl.innerHTML = stacks.map((st,c) => `<div class="px-col">${st.length ? `<button class="px-tile" data-c="${c}" style="${tileStyle(st[0].ch)}">${st[0].n}</button>` : '<div class="px-tile empty"></div>'}${st.slice(1).map(t => `<div class="px-tile back" style="${tileStyle(t.ch)}">${t.n}</div>`).join('')}</div>`).join('');
     ctrl.innerHTML = `<button class="wide" data-it="slot" ${items.slot ? '' : 'disabled'}>➕ 칸 추가 (${items.slot})</button><button class="wide" data-it="shuffle" ${items.shuffle ? '' : 'disabled'}>🔀 섞기 (${items.shuffle})</button>`;
   }
   const pct = () => Math.round((1 - remaining / ALL) * 100);
@@ -3051,12 +3051,12 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
     if (!alive) return; alive = false; cancelAnimationFrame(raf); clearInterval(clock); info(); draw();
     onEnd(cleared ? { cleared:true, time: secs() + used * 10, pct:100 } : { cleared:false, pct: pct(), time: secs() });
   }
-  const SPEED = 34, MAX_ANTS = 30, LIMIT = 90; // 초당 칸 수 · 길 위 개미 최대 수 · 제한 시간(초)
+  const SPEED = 40, MAX_ANTS = 44, LIMIT = 120; // 초당 칸 수 · 길 위 개미 최대 수 · 제한 시간(초)
   function frame(ts){
     if (!alive) return;
     const dt = Math.min(50, ts - (last || ts)); last = ts;
     // 블록마다 개미를 줄지어 내보냄 (남은 개수만큼만)
-    queue.forEach(t => { t.cool -= dt; if (t.cool <= 0 && t.fly < Math.min(t.n, 8) && ants.length < MAX_ANTS) { ants.push({ t, i: START, run: 0 }); t.fly++; t.cool = 60; } });
+    queue.forEach(t => { t.cool -= dt; if (t.cool <= 0 && t.fly < Math.min(t.n, 12) && ants.length < MAX_ANTS) { ants.push({ t, i: START, run: 0 }); t.fly++; t.cool = 40; } });
     const keep = [];
     for (const a of ants) {
       const from = a.i, to = a.i + SPEED * dt / 1000; let ate = false;
@@ -3882,7 +3882,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261018g';
+const BUILD = 'b20261018i';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
