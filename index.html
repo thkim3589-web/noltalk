@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#7c4dff">
 <link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols+2&text=%E2%99%94%E2%99%95%E2%99%96%E2%99%97%E2%99%98%E2%99%99%E2%99%9A%E2%99%9B%E2%99%9C%E2%99%9D%E2%99%9E%E2%99%9F%E2%99%A0%E2%99%A1%E2%99%A3%E2%99%A5%E2%99%A6%E2%99%A2&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -310,6 +311,45 @@ input{font:inherit}
 .ob-dots i.on{width:24px;background:#fff}
 #obNext{background:#fff;color:var(--p);max-width:300px}
 #obSkip{background:none;color:#fff;opacity:.85;margin-top:14px;font-size:14px;padding:8px}
+/* ♟️ 체스 */
+.ch-wrap{display:flex;flex-direction:column;gap:8px;align-items:center}
+.ch-player{display:flex;align-items:center;gap:8px;width:100%;max-width:380px;padding:8px 10px;border-radius:12px;background:var(--bg)}
+.ch-player.turn{background:linear-gradient(90deg,#f7e3b5,#efd08a);color:#3b2a10}
+.ch-player b{flex:1;font-size:14px}
+.ch-dot{width:14px;height:14px;border-radius:50%;border:2px solid #6b4a1e}
+.ch-cap{font-family:"Noto Sans Symbols 2",serif;font-size:15px;letter-spacing:-2px;opacity:.85}
+.ch-frame{padding:10px;border-radius:14px;background:linear-gradient(145deg,#5a3a1c,#3a2410);box-shadow:0 10px 24px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.15);width:100%;max-width:380px}
+.ch-board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-auto-rows:auto;border-radius:4px;overflow:hidden;box-shadow:0 0 0 2px #2b1a0b}
+.ch-sq{position:relative;aspect-ratio:1;padding:0;min-width:0;min-height:0;contain:size;overflow:hidden;border:0;border-radius:0;display:flex;align-items:center;justify-content:center}
+.ch-sq.l{background:#f0dcb4}
+.ch-sq.d{background:#b07d4f}
+.ch-sq.last.l{background:#f3e48b}.ch-sq.last.d{background:#cdb04f}
+.ch-sq.sel{box-shadow:inset 0 0 0 3px #4ecb71}
+.ch-sq.ch-chk{background:radial-gradient(circle,#ff4d4d 0%,#e03131 40%,transparent 75%)!important}
+.ch-pc{font-family:"Noto Sans Symbols 2",serif;line-height:1;pointer-events:none;font-size:min(9.2vw,40px)}
+.ch-pc.w{color:#fffdf6;-webkit-text-stroke:1.2px #2a1a08;text-shadow:0 2px 2px rgba(0,0,0,.35)}
+.ch-pc.b{color:#1d1610;-webkit-text-stroke:.6px #000;text-shadow:0 2px 2px rgba(0,0,0,.35)}
+.ch-mv::after{content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:rgba(30,30,30,.28)}
+.ch-cp::after{content:"";position:absolute;inset:6%;border-radius:50%;border:4px solid rgba(30,30,30,.3)}
+.ch-co{position:absolute;font-size:9px;font-weight:800;opacity:.7;pointer-events:none}
+.ch-co.f{right:3px;bottom:1px}.ch-co.r{left:3px;top:1px}
+.ch-sq.l .ch-co{color:#8a5a2e}.ch-sq.d .ch-co{color:#f6e7c9}
+.ch-moves{width:100%;max-width:380px;font-size:13px;color:var(--sub);background:var(--bg);border-radius:10px;padding:8px 10px;max-height:66px;overflow-y:auto;font-family:ui-monospace,Menlo,monospace}
+.ch-btns{display:flex;gap:8px;width:100%;max-width:380px}
+.ch-btns .btn{padding:11px;font-size:14px}
+.ch-promo{display:flex;gap:8px;justify-content:center;margin:6px 0}
+.ch-promo button{width:62px;height:62px;border-radius:14px;background:#f0dcb4;font-size:40px}
+/* 🃏 프리셀 */
+.fc-wrap{width:100%;height:100%;padding:8px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.fc-top,.fc-cols{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.fc-slot{border-radius:7px;border:1.5px dashed rgba(255,255,255,.25);position:relative}
+.fc-slot.found{border-style:solid;border-color:rgba(255,210,63,.45);display:flex;align-items:center;justify-content:center;color:rgba(255,210,63,.5);font-family:"Noto Sans Symbols 2",serif}
+.fc-col{position:relative}
+.fc-card{position:absolute;left:0;right:0;display:block;cursor:pointer;user-select:none;-webkit-user-select:none;border-radius:7px;background:linear-gradient(180deg,#fff,#f3f1ea);box-shadow:0 1px 3px rgba(0,0,0,.4);color:#1d1d1f;font-weight:800;padding:2px 3px;line-height:1;text-align:left;font-family:inherit}
+.fc-card.red{color:#d63031}
+.fc-card .s{font-family:"Noto Sans Symbols 2",serif}
+.fc-card .fc-big{position:absolute;right:3px;bottom:2px;font-family:"Noto Sans Symbols 2",serif;opacity:.9}
+.fc-card.sel{box-shadow:0 0 0 3px #ffd23f,0 2px 6px rgba(0,0,0,.5);transform:translateY(-3px)}
 </style>
 </head>
 <body>
@@ -462,6 +502,8 @@ const GAMES = {
   sudoku:    { icon:'🔢', name:'스도쿠',     desc:'각자 플레이 · 기록 대결', max:99 },
   queens:    { icon:'🐱', name:'냥이 배치',  desc:'각자 플레이 · 기록 대결', max:99 },
   blockpuz:  { icon:'🟦', name:'블록 퍼즐',  desc:'각자 플레이 · 점수 대결', max:99 },
+  chess:     { icon:'♟️', name:'체스',       desc:'1:1 정통 체스', max:2 },
+  freecell:  { icon:'🃏', name:'프리셀',     desc:'각자 플레이 · 기록 대결', max:99 },
 };
 const TURN_GAMES = ['wordchain','bingo']; // 턴 타이머가 있는 게임
 const HOST_START = { wordchain:2, bingo:2, ladder:2, liar:3, mafia:4, chosung:2 }; // 방장이 시작 버튼을 누르는 게임 (최소 인원)
@@ -1497,7 +1539,8 @@ const GAME_META = {
   chosung:{ cat:'quiz', min:2, ppl:'2~8명' },
   blocks:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, jewel:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, pixel:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
   sudoku:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, queens:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
-  blockpuz:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
+  blockpuz:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, freecell:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
+  chess:{ cat:'duel', min:2, ppl:'2명' },
 };
 let gameCat = 'all';
 function recentGames(){ try { return JSON.parse(localStorage.getItem('recentGames') || '[]').filter(t => GAMES[t]); } catch { return []; } }
@@ -1543,6 +1586,8 @@ async function startGame(type){
     sudoku:    { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
     queens:    { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
     blockpuz:  { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
+    freecell:  { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
+    chess:     { board: CH_START, turn:'w', castle:'KQkq', ep:-1, half:0, moves:[], last:null, winner:null, reason:null, drawOffer:null },
   }[type];
   cleanupGames();
   try {
@@ -1760,6 +1805,7 @@ function gameOutcome(g){
     case 'mafia': return { P, W: P.filter(u => (g.roles?.[u] === 'mafia') === (g.winner === 'mafia')) };
     case 'chosung': { const sc = g.scores || {}, mx = Math.max(0, ...Object.values(sc)); return { P, W: mx > 0 ? P.filter(u => (sc[u] || 0) === mx) : [] }; }
     case 'baseball': return { P, W: g.winner ? [g.winner] : [] };
+    case 'chess': return g.status === 'done' ? { P, W: g.winner ? [g.winner] : [] } : null;
     default: return null;
   }
 }
@@ -2238,6 +2284,8 @@ const ACT = {
       if (g.status !== 'done') return null;
       if (g.type === 'chosung') { msg = '🔡 초성퀴즈 새 판 시작!'; return { status:'playing', round:1, scores:{}, lastWord:null, lastWinner:null, ...choRound() }; }
       if (g.type === 'baseball') return { players:[g.players[1], g.players[0]], phase:'setup', secrets:{}, guesses:[], turn:0, winner:null, status:'playing' };
+      if (g.type === 'chess') { msg = `♟️ 체스 새 판! 이번엔 ${g.players[1].name}님이 백(선공)이에요`; chSel = null; chPromo = null;
+        return { players:[g.players[1], g.players[0]], board: CH_START, turn:'w', castle:'KQkq', ep:-1, half:0, moves:[], last:null, winner:null, reason:null, drawOffer:null, status:'playing' }; }
       if (g.type === 'ladder') { const r = ladderRound(g, shuffle(g.outcomes)); msg = r.msg; return r.u; }
       if (g.type === 'liar') { msg = '🤥 라이어게임 새 라운드! 카드를 확인하세요'; return liarRound(g); }
       if (g.type === 'mafia') { msg = '🔪 마피아 새 게임! 직업을 새로 뽑았어요 🌙'; return mafiaRound(g); }
@@ -2308,7 +2356,7 @@ setInterval(() => {
 
 /* ================= 🕹️ 아케이드: 각자 같은 판으로 플레이 → 기록만 저장 ================= */
 function mulberry32(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-const TIMED = ['pixel','sudoku','queens'];
+const TIMED = ['pixel','sudoku','queens','freecell'];
 const arcadeBetter = (type, a, b) => TIMED.includes(type)
   ? (a.cleared !== b.cleared ? !!a.cleared : a.cleared ? a.time < b.time : a.pct > b.pct)
   : (a.score || 0) > (b.score || 0);
@@ -2335,8 +2383,9 @@ function arcadeView(g){
   const rows = arcadeSort(g.type, g.results), mine = rows.findIndex(([u]) => u === me.uid);
   const rule = { blocks:'블록을 돌리고 쌓아서 가로줄을 꽉 채우면 사라져요. 4줄을 한 번에 지우면 대박!',
     jewel:'떨어지는 보석 3개의 순서를 바꿔서, 같은 색 3개 이상을 가로·세로·대각선으로 맞추세요. 연쇄되면 점수가 껑충!',
-    pixel:'색깔 블록을 눌러 아래 칸에 올리면 개미들이 나와 그림 테두리를 돌며, 바깥쪽에 드러난 같은 색 픽셀을 숫자만큼 먹어요. 칸이 꽉 차서 막히면 실패!',
+    pixel:'색깔 블록을 눌러 아래 칸(4칸)에 올리면 개미들이 나와 테두리와 뚫린 길을 따라 같은 색 픽셀을 먹어요. 안쪽 색을 먼저 올리면 개미가 헛돌아요! 40초 안에 다 먹이세요.',
     sudoku:'가로줄·세로줄·3×3 칸마다 1~9가 한 번씩만 들어가게 채우세요. 3번 틀리면 실패, 힌트는 +30초!',
+    freecell:'카드를 눌러 고르고 옮길 곳을 누르세요. 8줄의 카드를 같은 무늬 A→K 순서로 오른쪽 위 4칸에 모두 올리면 완성! 빈 칸 4개를 잘 활용하세요.',
     blockpuz:'아래 블록 3개를 끌어서 판에 놓으세요. 가로나 세로 한 줄을 꽉 채우면 사라져요. 더 놓을 곳이 없으면 끝!',
     queens:'가로줄·세로줄·같은 색 구역마다 🐱 1마리씩! 고양이끼리는 대각선 포함 붙으면 안 돼요. 맞는 자리면 주변이 자동으로 ✕, 틀리면 🐟를 잃어요 (3번까지)' }[g.type];
   const lv = g.type === 'pixel' ? `<p class="hint">🖼️ 오늘의 그림: <b>${esc(PIXEL_ART[(g.level || 0) % PIXEL_ART.length].name)}</b></p>`
@@ -2347,7 +2396,7 @@ function arcadeView(g){
     ${rows.length ? rows.map(([u,r],i) => `<div class="rank-row ${u === me.uid ? 'me' : ''}"><span class="rk">${['🥇','🥈','🥉'][i] || i + 1}</span><b>${esc(r.name)}</b><span>${arcadeFmt(g.type, r)}</span></div>`).join('')
       : '<p class="empty" style="padding:16px">아직 기록이 없어요. 첫 기록의 주인공이 되어보세요!</p>'}`;
 }
-R.blocks = R.jewel = R.pixel = R.sudoku = R.queens = R.blockpuz = g => arcadeView(g);
+R.blocks = R.jewel = R.pixel = R.sudoku = R.queens = R.blockpuz = R.freecell = g => arcadeView(g);
 ACT.arcadePlay = () => { const g = curGame?.data; if (g) openArcade(g.type, curGame.id, g.seed, g.level || 0); };
 
 let arcadeGame = null;
@@ -2358,7 +2407,7 @@ function openArcade(type, gid, seed, level){
   const roomId = room?.id;
   const onEnd = res => { arcadeGame = null; if (gid && room?.id === roomId) submitArcade(gid, type, res); showArcadeOver(type, res, gid); };
   requestAnimationFrame(() => {
-    arcadeGame = ({ blocks: BlocksGame, jewel: JewelGame, pixel: PixelGame, sudoku: SudokuGame, queens: QueensGame, blockpuz: BlockPuzzleGame })[type]($('#arStage'), $('#arCtrl'), seed, level, onEnd, t => { $('#arInfo').textContent = t; });
+    arcadeGame = ({ blocks: BlocksGame, jewel: JewelGame, pixel: PixelGame, sudoku: SudokuGame, queens: QueensGame, blockpuz: BlockPuzzleGame, freecell: FreeCellGame })[type]($('#arStage'), $('#arCtrl'), seed, level, onEnd, t => { $('#arInfo').textContent = t; });
   });
 }
 async function closeArcade(ask){
@@ -2591,10 +2640,10 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
   grid.forEach((r,y) => r.forEach((ch,x) => { total[ch] = (total[ch] || 0) + 1; avg[ch] = (avg[ch] || 0) + Math.min(y, S - 1 - y, x, S - 1 - x); }));
   Object.keys(avg).forEach(ch => avg[ch] /= total[ch]);
   const tiles = [];
-  Object.entries(total).forEach(([ch, n]) => { while (n > 0) { let k = n <= 30 ? n : 10 + Math.floor(rng() * 21); if (n - k > 0 && n - k < 6) k = n; tiles.push({ ch, n:k, fly:0, cool:0 }); tiles[tiles.length - 1].key = avg[ch] + (rng() - .5) * 7; n -= k; } });
-  tiles.sort((a,b) => a.key - b.key); // 바깥쪽 색이 앞에 오도록
+  Object.entries(total).forEach(([ch, n]) => { while (n > 0) { let k = n <= 40 ? n : 14 + Math.floor(rng() * 27); if (n - k > 0 && n - k < 8) k = n; tiles.push({ ch, n:k, fly:0, cool:0 }); tiles[tiles.length - 1].key = rng(); n -= k; } });
+  tiles.sort((a,b) => a.key - b.key); // 순서를 완전히 섞음: 안쪽 색을 먼저 올리면 칸이 막혀요
   let stacks = [[],[],[],[]]; tiles.forEach((t,i) => stacks[i % 4].push(t));
-  let slots = 5, queue = [], ants = [], remaining = S * S, alive = true, t0 = Date.now(), items = { slot:1, shuffle:1 }, used = 0, clock = null, raf = 0, warned = false, dirty = true, last = 0;
+  let slots = 4, queue = [], ants = [], remaining = S * S, alive = true, t0 = Date.now(), items = { slot:1, shuffle:1 }, used = 0, clock = null, raf = 0, warned = false, dirty = true, last = 0;
   const pops = [];
   stage.innerHTML = `<div class="px-wrap"><canvas class="px-pic"></canvas><div class="px-queue"></div><div class="px-stacks"></div></div>`;
   const cv = stage.querySelector('canvas'), ctx = cv.getContext('2d'), qEl = stage.querySelector('.px-queue'), sEl = stage.querySelector('.px-stacks');
@@ -2611,15 +2660,29 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
     if (k === 2) return { x: S - 1 - j, y: S, dx: 0, dy: -1 };
     return { x: -1, y: S - 1 - j, dx: 1, dy: 0 };
   }
-  function eatFrom(i, ch){ // 그 자리에서 안쪽으로 처음 만나는 픽셀이 같은 색이면 먹기
-    const sp = spot(i); let x = sp.x + sp.dx, y = sp.y + sp.dy;
-    while (x >= 0 && x < S && y >= 0 && y < S) {
-      if (grid[y][x]) { if (grid[y][x] !== ch) return false; grid[y][x] = null; remaining--; pops.push({ x, y, c: PCOL[ch], t: 0 }); return true; }
-      x += sp.dx; y += sp.dy;
+  // 테두리 자리에서 안쪽 첫 칸이 픽셀이면 그 픽셀만, 비어 있으면 뚫린 길을 따라 들어가 가장 가까운 같은 색 픽셀을 찾음
+  function findFrom(i, ch){
+    const sp = spot(i), x0 = sp.x + sp.dx, y0 = sp.y + sp.dy;
+    if (x0 < 0 || x0 >= S || y0 < 0 || y0 >= S) return null;
+    if (grid[y0][x0]) return grid[y0][x0] === ch ? [y0, x0] : null;
+    const seen = new Uint8Array(S * S), q = [[y0, x0]]; seen[y0 * S + x0] = 1;
+    for (let h = 0; h < q.length; h++) {
+      const [y, x] = q[h];
+      for (const [dy, dx] of [[0,1],[1,0],[0,-1],[-1,0]]) {
+        const ny = y + dy, nx = x + dx;
+        if (ny < 0 || ny >= S || nx < 0 || nx >= S || seen[ny * S + nx]) continue;
+        seen[ny * S + nx] = 1;
+        if (grid[ny][nx]) { if (grid[ny][nx] === ch) return [ny, nx]; }
+        else q.push([ny, nx]);
+      }
     }
-    return false;
+    return null;
   }
-  const canEat = ch => { for (let i = 0; i < P; i++) { const sp = spot(i); let x = sp.x + sp.dx, y = sp.y + sp.dy; while (x >= 0 && x < S && y >= 0 && y < S) { if (grid[y][x]) { if (grid[y][x] === ch) return true; break; } x += sp.dx; y += sp.dy; } } return false; };
+  function eatFrom(i, ch){
+    const t = findFrom(i, ch); if (!t) return false;
+    const [y, x] = t; grid[y][x] = null; remaining--; pops.push({ x, y, c: PCOL[ch], t: 0 }); return true;
+  }
+  const canEat = ch => { for (let i = 0; i < P; i++) if (findFrom(i, ch)) return true; return false; };
   function sizePic(){
     cell = Math.max(8, Math.floor(Math.min(stage.clientWidth - 24, stage.clientHeight * .46) / (S + 2)));
     const dpr = window.devicePixelRatio || 1, W = (S + 2) * cell;
@@ -2656,17 +2719,18 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
   }
   const pct = () => Math.round((1 - remaining / (S * S)) * 100);
   const secs = () => Math.round((Date.now() - t0) / 1000);
-  const info = () => setInfo(`${pct()}% · ${secs()}초`);
+  const left = () => Math.max(0, LIMIT - Math.floor((Date.now() - t0) / 1000));
+  const info = () => setInfo(`${pct()}% · ⏱ ${left()}초 남음`);
   function finish(cleared){
     if (!alive) return; alive = false; cancelAnimationFrame(raf); clearInterval(clock); info(); draw();
     onEnd(cleared ? { cleared:true, time: secs() + used * 10, pct:100 } : { cleared:false, pct: pct(), time: secs() });
   }
-  const SPEED = 16; // 초당 칸 수
+  const SPEED = 12, MAX_ANTS = 10, LIMIT = 40; // 초당 칸 수 · 길 위 개미 최대 수 · 제한 시간(초)
   function frame(ts){
     if (!alive) return;
     const dt = Math.min(50, ts - (last || ts)); last = ts;
     // 블록마다 개미를 줄지어 내보냄 (남은 개수만큼만)
-    queue.forEach(t => { t.cool -= dt; if (t.cool <= 0 && t.fly < Math.min(t.n, 8)) { ants.push({ t, i: START, run: 0 }); t.fly++; t.cool = 110; } });
+    queue.forEach(t => { t.cool -= dt; if (t.cool <= 0 && t.fly < Math.min(t.n, 6) && ants.length < MAX_ANTS) { ants.push({ t, i: START, run: 0 }); t.fly++; t.cool = 120; } });
     const keep = [];
     for (const a of ants) {
       const from = a.i, to = a.i + SPEED * dt / 1000; let ate = false;
@@ -2683,6 +2747,7 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
     if (dirty) { renderTiles(); dirty = false; }
     draw();
     if (!remaining) return finish(true);
+    if (left() <= 0) { toast('⏰ 시간 초과!'); return finish(false); }
     // 막힘: 대기 칸이 꽉 찼거나 꺼낼 블록이 없는데 어떤 개미도 먹을 게 없을 때
     if (!ants.length && queue.length && (queue.length >= slots || stacks.every(s => !s.length)) && !queue.some(t => canEat(t.ch))) {
       if (items.slot || (items.shuffle && stacks.some(s => s.length))) { if (!warned) { warned = true; toast('막혔어요! 아래 아이템을 써보세요'); } }
@@ -3025,6 +3090,278 @@ function BlockPuzzleGame(stage, ctrl, seed, _lv, onEnd, setInfo){
   ctrl.innerHTML = `<div class="hint" style="color:#fff;opacity:.75">블록을 손가락으로 끌어서 판 위에 놓으세요</div>`;
   refill(); window.addEventListener('resize', resize); resize(); info();
   return { stop(){ alive = false; window.removeEventListener('resize', resize); } };
+}
+
+/* ================= ♟️ 체스 ================= */
+const CH_START = 'rnbqkbnrpppppppp' + '.'.repeat(32) + 'PPPPPPPPRNBQKBNR'; // 0=a8 … 63=h1
+const CH_GLYPH = { k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟' };
+const chWhite = p => p !== '.' && p === p.toUpperCase();
+const chColor = p => p === '.' ? null : chWhite(p) ? 'w' : 'b';
+const chOn = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
+const N_OFF = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]], K_OFF = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+const ORTH = [[-1,0],[1,0],[0,-1],[0,1]], DIAG = [[-1,-1],[-1,1],[1,-1],[1,1]];
+function chAttacked(b, sq, by){
+  const r = Math.floor(sq / 8), c = sq % 8, W = by === 'w';
+  const at = (rr, cc) => chOn(rr, cc) ? b[rr * 8 + cc] : null;
+  const pr = W ? r + 1 : r - 1; for (const dc of [-1,1]) if (at(pr, c + dc) === (W ? 'P' : 'p')) return true;
+  for (const [dr,dc] of N_OFF) if (at(r + dr, c + dc) === (W ? 'N' : 'n')) return true;
+  for (const [dr,dc] of K_OFF) if (at(r + dr, c + dc) === (W ? 'K' : 'k')) return true;
+  const slide = (dirs, set) => { for (const [dr,dc] of dirs) { let rr = r + dr, cc = c + dc; while (chOn(rr, cc)) { const p = b[rr * 8 + cc]; if (p !== '.') { if (chColor(p) === by && set.includes(p.toLowerCase())) return true; break; } rr += dr; cc += dc; } } return false; };
+  return slide(ORTH, 'rq') || slide(DIAG, 'bq');
+}
+function chInCheck(b, col){ const k = b.indexOf(col === 'w' ? 'K' : 'k'); return k >= 0 && chAttacked(b, k, col === 'w' ? 'b' : 'w'); }
+function chPseudo(st){
+  const b = st.board, me_ = st.turn, opp = me_ === 'w' ? 'b' : 'w', out = [];
+  for (let i = 0; i < 64; i++) {
+    const p = b[i]; if (chColor(p) !== me_) continue;
+    const r = Math.floor(i / 8), c = i % 8, t = p.toLowerCase();
+    const add = (to, extra = {}) => out.push({ f:i, t:to, ...extra });
+    if (t === 'p') {
+      const d = me_ === 'w' ? -1 : 1, start = me_ === 'w' ? 6 : 1, last = me_ === 'w' ? 0 : 7;
+      const push = (to, cap) => { if (Math.floor(to / 8) === last) for (const pr of 'qrbn') add(to, { promo:pr, cap }); else add(to, { cap }); };
+      if (chOn(r + d, c) && b[(r + d) * 8 + c] === '.') {
+        push((r + d) * 8 + c, false);
+        if (r === start && b[(r + 2 * d) * 8 + c] === '.') add((r + 2 * d) * 8 + c, { dbl:true });
+      }
+      for (const dc of [-1,1]) { if (!chOn(r + d, c + dc)) continue; const to = (r + d) * 8 + c + dc;
+        if (chColor(b[to]) === opp) push(to, true); else if (to === st.ep) add(to, { ep:true, cap:true }); }
+    } else if (t === 'n' || t === 'k') {
+      for (const [dr,dc] of (t === 'n' ? N_OFF : K_OFF)) { if (!chOn(r + dr, c + dc)) continue; const to = (r + dr) * 8 + c + dc; if (chColor(b[to]) !== me_) add(to, { cap: b[to] !== '.' }); }
+      if (t === 'k') {
+        const W = me_ === 'w', home = W ? 60 : 4;
+        if (i === home && !chInCheck(b, me_)) {
+          if (st.castle.includes(W ? 'K' : 'k') && b[home + 1] === '.' && b[home + 2] === '.' && b[home + 3] === (W ? 'R' : 'r') && !chAttacked(b, home + 1, opp) && !chAttacked(b, home + 2, opp)) add(home + 2, { castle:'k' });
+          if (st.castle.includes(W ? 'Q' : 'q') && b[home - 1] === '.' && b[home - 2] === '.' && b[home - 3] === '.' && b[home - 4] === (W ? 'R' : 'r') && !chAttacked(b, home - 1, opp) && !chAttacked(b, home - 2, opp)) add(home - 2, { castle:'q' });
+        }
+      }
+    } else {
+      const dirs = t === 'r' ? ORTH : t === 'b' ? DIAG : [...ORTH, ...DIAG];
+      for (const [dr,dc] of dirs) { let rr = r + dr, cc = c + dc; while (chOn(rr, cc)) { const to = rr * 8 + cc, q = b[to]; if (q === '.') add(to); else { if (chColor(q) === opp) add(to, { cap:true }); break; } rr += dr; cc += dc; } }
+    }
+  }
+  return out;
+}
+function chApply(st, m){
+  const b = st.board.split(''), p = b[m.f], W = chWhite(p), t = p.toLowerCase();
+  b[m.t] = m.promo ? (W ? m.promo.toUpperCase() : m.promo) : p; b[m.f] = '.';
+  if (m.ep) b[m.t + (W ? 8 : -8)] = '.';
+  if (m.castle === 'k') { b[m.t - 1] = b[m.t + 1]; b[m.t + 1] = '.'; }
+  if (m.castle === 'q') { b[m.t + 1] = b[m.t - 2]; b[m.t - 2] = '.'; }
+  let castle = st.castle;
+  const strip = chars => { for (const x of chars) castle = castle.replace(x, ''); };
+  if (p === 'K') strip('KQ'); if (p === 'k') strip('kq');
+  [[63,'K'],[56,'Q'],[7,'k'],[0,'q']].forEach(([sq, ch]) => { if (m.f === sq || m.t === sq) strip(ch); });
+  return { ...st, board: b.join(''), turn: W ? 'b' : 'w', castle, ep: m.dbl ? (m.f + m.t) / 2 : -1, half: (t === 'p' || m.cap) ? 0 : (st.half || 0) + 1 };
+}
+const chLegal = st => chPseudo(st).filter(m => !chInCheck(chApply(st, m).board, st.turn));
+const chSqName = i => 'abcdefgh'[i % 8] + (8 - Math.floor(i / 8));
+function chSAN(st, m, legal){
+  const p = st.board[m.f].toLowerCase();
+  let s;
+  if (m.castle) s = m.castle === 'k' ? 'O-O' : 'O-O-O';
+  else {
+    s = p === 'p' ? (m.cap ? 'abcdefgh'[m.f % 8] : '') : p.toUpperCase();
+    if (p !== 'p') {
+      const others = legal.filter(x => x.t === m.t && x.f !== m.f && st.board[x.f] === st.board[m.f]);
+      if (others.length) { const sameFile = others.some(x => x.f % 8 === m.f % 8); s += sameFile ? chSqName(m.f)[1] : chSqName(m.f)[0]; }
+    }
+    s += (m.cap ? 'x' : '') + chSqName(m.t) + (m.promo ? '=' + m.promo.toUpperCase() : '');
+  }
+  const nx = chApply(st, m);
+  if (chInCheck(nx.board, nx.turn)) s += chLegal(nx).length ? '+' : '#';
+  return s;
+}
+function chInsufficient(b){
+  const rest = b.replace(/[.kK]/g, '');
+  return !rest || (rest.length === 1 && /[nNbB]/.test(rest));
+}
+let chSel = null, chPromo = null;
+R.chess = (g, meIn) => {
+  if (g.status === 'waiting') return waitingHTML(g, meIn);
+  const myIdx = g.players.findIndex(p => p.uid === me.uid), myCol = myIdx === 0 ? 'w' : myIdx === 1 ? 'b' : null;
+  const flip = myCol === 'b', st = { board:g.board, turn:g.turn, castle:g.castle, ep:g.ep, half:g.half };
+  const myTurn = g.status === 'playing' && myCol === g.turn;
+  const legal = myTurn ? chLegal(st) : [];
+  const targets = chSel != null ? legal.filter(m => m.f === chSel) : [];
+  const chk = chInCheck(g.board, g.turn) ? g.board.indexOf(g.turn === 'w' ? 'K' : 'k') : -1;
+  // 잡은 기물
+  const VAL = { q:9, r:5, b:3, n:3, p:1 }, FULL = { q:1, r:2, b:2, n:2, p:8 };
+  const capBy = col => { const opp = col === 'w' ? 'b' : 'w'; let txt = '', sc = 0;
+    for (const t of 'qrbnp') { const have = [...g.board].filter(x => x !== '.' && x.toLowerCase() === t && chColor(x) === opp).length, lost = Math.max(0, FULL[t] - have); txt += CH_GLYPH[t].repeat(lost); sc += lost * VAL[t]; } return { txt, sc }; };
+  const cw = capBy('w'), cb = capBy('b');
+  const player = (idx, col) => { const pl = g.players[idx]; if (!pl) return ''; const cap = col === 'w' ? cw : cb, diff = cap.sc - (col === 'w' ? cb : cw).sc;
+    return `<div class="ch-player ${g.status === 'playing' && g.turn === col ? 'turn' : ''}"><span class="ch-dot" style="background:${col === 'w' ? '#fffdf6' : '#1d1610'}"></span><b>${esc(pl.name)}${pl.uid === me.uid ? ' (나)' : ''}</b><span class="ch-cap">${cap.txt}</span>${diff > 0 ? `<small>+${diff}</small>` : ''}</div>`; };
+  let sq = '';
+  for (let k = 0; k < 64; k++) {
+    const i = flip ? 63 - k : k, r = Math.floor(i / 8), c = i % 8, p = g.board[i];
+    const tg = targets.find(m => m.t === i);
+    const cls = ['ch-sq', (r + c) % 2 ? 'd' : 'l', g.last && (g.last[0] === i || g.last[1] === i) ? 'last' : '', i === chSel ? 'sel' : '', i === chk ? 'ch-chk' : '', tg ? (tg.cap ? 'ch-cp' : 'ch-mv') : ''].join(' ');
+    const fileLbl = (flip ? r === 0 : r === 7) ? `<span class="ch-co f">${'abcdefgh'[c]}</span>` : '';
+    const rankLbl = (flip ? c === 7 : c === 0) ? `<span class="ch-co r">${8 - r}</span>` : '';
+    sq += `<button class="${cls}" data-act="chSq" data-v="${i}">${p !== '.' ? `<span class="ch-pc ${chColor(p)}">${CH_GLYPH[p.toLowerCase()]}︎</span>` : ''}${fileLbl}${rankLbl}</button>`;
+  }
+  const moves = (g.moves || []).reduce((a,m,i) => a + (i % 2 ? '' : `<b>${i / 2 + 1}.</b> `) + m + ' ', '');
+  let status;
+  if (g.status === 'done') status = g.winner ? `🏆 ${esc(nameOf(g, g.winner))} 승리! <small>(${esc(g.reason || '')})</small>` : `🤝 무승부 <small>(${esc(g.reason || '')})</small>`;
+  else status = myTurn ? (chk >= 0 ? '⚠️ 체크! 내 차례' : '🔥 내 차례') : `${esc(g.players[g.turn === 'w' ? 0 : 1]?.name || '')}님 차례${chk >= 0 ? ' · 체크!' : ''}`;
+  const promo = chPromo ? `<div class="hint">승진할 기물을 고르세요</div><div class="ch-promo">${'qrbn'.split('').map(t => `<button data-act="chPromo" data-v="${t}"><span class="ch-pc ${myCol}">${CH_GLYPH[t]}︎</span></button>`).join('')}</div>` : '';
+  const offer = g.drawOffer && g.status === 'playing' ? (g.drawOffer === myCol ? '<p class="hint">무승부를 제안했어요. 상대의 답을 기다리는 중...</p>' : myCol ? '<p class="hint">🤝 상대가 무승부를 제안했어요</p>' : '') : '';
+  const top = flip ? player(0, 'w') : player(1, 'b'), bottom = flip ? player(1, 'b') : player(0, 'w');
+  let btns = '';
+  if (g.status === 'playing' && myCol) btns = `<div class="ch-btns"><button class="btn ghost" data-act="chDraw">${g.drawOffer && g.drawOffer !== myCol ? '🤝 무승부 수락' : '🤝 무승부 제안'}</button><button class="btn ghost" data-act="chResign" style="color:#e53950">🏳️ 기권</button></div>`;
+  if (g.status === 'done' && myCol) btns = `<button class="btn" data-act="rematch" style="max-width:380px">한판 더! (색 바꾸기)</button>`;
+  return `<div class="ch-wrap"><div class="status">${status}</div>${top}<div class="ch-frame"><div class="ch-board">${sq}</div></div>${bottom}${promo}${offer}
+    ${moves ? `<div class="ch-moves">${moves}</div>` : ''}${btns}</div>`;
+};
+function chCommit(m){
+  let msg = null;
+  chSel = null; chPromo = null;
+  tx(g => {
+    if (g.status !== 'playing') return null;
+    const myCol = g.players[0]?.uid === me.uid ? 'w' : g.players[1]?.uid === me.uid ? 'b' : null;
+    if (myCol !== g.turn) return '내 차례가 아니에요';
+    const st = { board:g.board, turn:g.turn, castle:g.castle, ep:g.ep, half:g.half };
+    const legal = chLegal(st), mv = legal.find(x => x.f === m.f && x.t === m.t && (x.promo || null) === (m.promo || null));
+    if (!mv) return '둘 수 없는 수예요';
+    const san = chSAN(st, mv, legal), nx = chApply(st, mv), oppLegal = chLegal(nx);
+    const u = { board: nx.board, turn: nx.turn, castle: nx.castle, ep: nx.ep, half: nx.half, moves: [...(g.moves || []), san], last: [mv.f, mv.t], drawOffer: null };
+    if (!oppLegal.length) {
+      u.status = 'done';
+      if (chInCheck(nx.board, nx.turn)) { u.winner = me.uid; u.reason = '체크메이트'; msg = `♟️ 체스: ${me.name}님 체크메이트 승리! 👑 (${Math.ceil(u.moves.length / 2)}수)`; }
+      else { u.winner = null; u.reason = '스테일메이트'; msg = '♟️ 체스: 스테일메이트로 무승부 🤝'; }
+    } else if (nx.half >= 100) { u.status = 'done'; u.winner = null; u.reason = '50수 규칙'; msg = '♟️ 체스: 50수 규칙으로 무승부 🤝'; }
+    else if (chInsufficient(nx.board)) { u.status = 'done'; u.winner = null; u.reason = '기물 부족'; msg = '♟️ 체스: 기물 부족으로 무승부 🤝'; }
+    return u;
+  }, () => { try { navigator.vibrate?.(15); } catch {} if (msg) sys(msg); });
+}
+ACT.chSq = v => {
+  const g = curGame?.data; if (!g || g.status !== 'playing') return;
+  const i = +v, myCol = g.players[0]?.uid === me.uid ? 'w' : g.players[1]?.uid === me.uid ? 'b' : null;
+  if (myCol !== g.turn) return toast(myCol ? '상대 차례예요' : '관전 중이에요');
+  chPromo = null;
+  const st = { board:g.board, turn:g.turn, castle:g.castle, ep:g.ep, half:g.half };
+  if (chSel != null) {
+    const ms = chLegal(st).filter(m => m.f === chSel && m.t === i);
+    if (ms.length) { if (ms[0].promo) { chPromo = { f: chSel, t: i }; return renderGame(); } return chCommit(ms[0]); }
+  }
+  chSel = chColor(g.board[i]) === myCol && chSel !== i ? i : null;
+  renderGame();
+};
+ACT.chPromo = v => { if (chPromo) chCommit({ ...chPromo, promo: v }); };
+ACT.chResign = async () => {
+  if (!await uiConfirm('정말 기권할까요?', { ok:'기권', danger:true })) return;
+  let msg = null;
+  tx(g => { if (g.status !== 'playing') return null; const idx = g.players.findIndex(p => p.uid === me.uid); if (idx < 0) return null;
+    const w = g.players[1 - idx].uid; msg = `♟️ 체스: ${me.name}님 기권, ${g.players[1 - idx].name}님 승리!`; return { status:'done', winner:w, reason:'기권' }; }, () => msg && sys(msg));
+};
+ACT.chDraw = () => {
+  let msg = null;
+  tx(g => { if (g.status !== 'playing') return null; const idx = g.players.findIndex(p => p.uid === me.uid); if (idx < 0) return null;
+    const col = idx === 0 ? 'w' : 'b';
+    if (g.drawOffer && g.drawOffer !== col) { msg = '♟️ 체스: 합의 무승부 🤝'; return { status:'done', winner:null, reason:'합의', drawOffer:null }; }
+    if (g.drawOffer === col) return null;
+    msg = `♟️ 체스: ${me.name}님이 무승부를 제안했어요`; return { drawOffer: col }; }, () => msg && sys(msg));
+};
+
+/* ================= 🃏 프리셀 ================= */
+function FreeCellGame(stage, ctrl, seed, _lv, onEnd, setInfo){
+  const rng = mulberry32(seed), SUITS = ['♠','♥','♦','♣'], RANKS = ['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  const deck = []; for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) deck.push({ s, r });
+  for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+  let cols = Array.from({ length:8 }, () => []); deck.forEach((c,i) => cols[i % 8].push(c));
+  let cells = [null,null,null,null], found = [0,0,0,0], sel = null, moves = 0, alive = true, t0 = Date.now(), clock = null, history = [];
+  const red = c => c.s === 1 || c.s === 2;
+  const fits = (a, b) => red(a) !== red(b) && a.r === b.r - 1;          // a를 b 위에
+  const snap = () => JSON.stringify({ cols, cells, found });
+  stage.innerHTML = '<div class="fc-wrap"><div class="fc-top"></div><div class="fc-cols"></div></div>';
+  const topEl = stage.querySelector('.fc-top'), colEl = stage.querySelector('.fc-cols');
+  let cw = 40, chh = 56;
+  const secs = () => Math.round((Date.now() - t0) / 1000);
+  const info = () => setInfo(`⏱ ${secs()}초 · ${moves}수 · 🂠 ${found.reduce((a,b) => a + b, 0)}/52`);
+  const capacity = toEmpty => { const fc = cells.filter(c => !c).length, ec = cols.filter(c => !c.length).length - (toEmpty ? 1 : 0); return (fc + 1) * Math.pow(2, Math.max(0, ec)); };
+  const cardHtml = (c, attrs, style) => `<div class="fc-card ${red(c) ? 'red' : ''}" ${attrs} style="${style}"><span style="font-size:${Math.floor(cw * .36)}px;letter-spacing:-1px">${RANKS[c.r]}</span><span class="s" style="font-size:${Math.floor(cw * .3)}px">${SUITS[c.s]}︎</span><span class="fc-big" style="font-size:${Math.floor(cw * .6)}px">${SUITS[c.s]}︎</span></div>`;
+  function render(){
+    cw = Math.floor((stage.clientWidth - 16 - 28) / 8); chh = Math.round(cw * 1.42);
+    topEl.innerHTML = cells.map((c,i) => `<div class="fc-slot" data-cell="${i}" style="height:${chh}px">${c ? cardHtml(c, `data-cell="${i}"`, `top:0;height:${chh}px;${sel?.from === 'cell' && sel.i === i ? '' : ''}`).replace('fc-card', 'fc-card' + (sel?.from === 'cell' && sel.i === i ? ' sel' : '')) : ''}</div>`).join('')
+      + found.map((f,s) => `<div class="fc-slot found" data-found="${s}" style="height:${chh}px;font-size:${Math.floor(cw * .6)}px">${f ? cardHtml({ s, r:f }, `data-found="${s}"`, `top:0;height:${chh}px`) : SUITS[s] + '︎'}</div>`).join('');
+    const avail = stage.clientHeight - chh - 40, maxLen = Math.max(...cols.map(c => c.length), 1);
+    const off = Math.max(12, Math.min(Math.round(chh * .32), Math.floor((avail - chh) / Math.max(1, maxLen - 1))));
+    colEl.innerHTML = cols.map((col,ci) => `<div class="fc-col" data-col="${ci}" style="height:${chh + off * Math.max(0, col.length - 1)}px;min-height:${chh}px">${col.length ? '' : `<div class="fc-slot" data-col="${ci}" style="height:${chh}px"></div>`}${col.map((c,k) => cardHtml(c, `data-col="${ci}" data-k="${k}"`, `top:${k * off}px;height:${chh}px`).replace('fc-card', 'fc-card' + (sel?.from === 'col' && sel.i === ci && k >= sel.k ? ' sel' : ''))).join('')}</div>`).join('');
+    ctrl.innerHTML = `<button class="wide" data-fc="undo" ${history.length ? '' : 'disabled'}>↩️ 되돌리기</button><button class="wide" data-fc="auto">⬆️ 자동 올리기</button>`;
+    info();
+  }
+  const validRun = (col, k) => { for (let j = k; j < col.length - 1; j++) if (!fits(col[j + 1], col[j])) return false; return true; };
+  function pushHist(){ history.push(snap()); if (history.length > 200) history.shift(); }
+  function toFoundation(c){ return found[c.s] === c.r - 1; }
+  function autoUp(manual){
+    let movedAny = false, again = true;
+    while (again) {
+      again = false;
+      const safe = c => c.r <= 2 || (red(c) ? Math.min(found[0], found[3]) >= c.r - 1 : Math.min(found[1], found[2]) >= c.r - 1);
+      for (let i = 0; i < 4; i++) { const c = cells[i]; if (c && toFoundation(c) && (manual || safe(c))) { found[c.s] = c.r; cells[i] = null; again = movedAny = true; } }
+      for (const col of cols) { const c = col[col.length - 1]; if (c && toFoundation(c) && (manual || safe(c))) { found[c.s] = c.r; col.pop(); again = movedAny = true; } }
+    }
+    return movedAny;
+  }
+  function after(){
+    autoUp(false); render();
+    if (found.every(f => f === 13)) { alive = false; clearInterval(clock); info(); setTimeout(() => onEnd({ cleared:true, time: secs(), pct:100 }), 500); }
+  }
+  function moveTo(dest){
+    if (!sel) return false;
+    const stack = sel.from === 'cell' ? [cells[sel.i]] : cols[sel.i].slice(sel.k), first = stack[0];
+    if (dest.type === 'found') {
+      if (stack.length !== 1 || dest.i !== first.s || !toFoundation(first)) return false;
+      pushHist(); found[first.s] = first.r;
+    } else if (dest.type === 'cell') {
+      if (stack.length !== 1 || cells[dest.i]) return false;
+      pushHist(); cells[dest.i] = first;
+    } else {
+      const col = cols[dest.i], top = col[col.length - 1];
+      if (sel.from === 'col' && sel.i === dest.i) return false;
+      if (top && !fits(first, top)) return false;
+      if (stack.length > capacity(!top)) { toast(`한 번에 ${capacity(!top)}장까지만 옮길 수 있어요`); return false; }
+      pushHist(); col.push(...stack);
+    }
+    if (sel.from === 'cell') cells[sel.i] = null; else cols[sel.i].splice(sel.k);
+    moves++; sel = null; try { navigator.vibrate?.(8); } catch {}
+    return true;
+  }
+  // 같은 카드를 한 번 더 누르면: 올릴 수 있으면 위로, 아니면 놓을 수 있는 줄 → 빈 칸 순서로 자동 이동
+  function quickMove(){
+    const stack = sel.from === 'cell' ? [cells[sel.i]] : cols[sel.i].slice(sel.k), first = stack[0];
+    if (stack.length === 1 && toFoundation(first) && moveTo({ type:'found', i:first.s })) return true;
+    for (let i = 0; i < 8; i++) { const top = cols[i][cols[i].length - 1]; if (top && fits(first, top) && moveTo({ type:'col', i })) return true; }
+    for (let i = 0; i < 8; i++) if (!cols[i].length && moveTo({ type:'col', i })) return true;
+    if (stack.length === 1 && sel.from === 'col') { const f = cells.indexOf(null); if (f >= 0 && moveTo({ type:'cell', i:f })) return true; }
+    return false;
+  }
+  stage.addEventListener('click', e => {
+    if (!alive) return;
+    const el = e.target.closest('[data-col],[data-cell],[data-found]'); if (!el) { sel = null; return render(); }
+    if (el.dataset.found != null) { if (sel && moveTo({ type:'found', i:+el.dataset.found })) return after(); sel = null; return render(); }
+    if (el.dataset.cell != null) {
+      const i = +el.dataset.cell;
+      if (sel) { if (sel.from === 'cell' && sel.i === i) { if (quickMove()) return after(); sel = null; return render(); } if (moveTo({ type:'cell', i })) return after(); }
+      sel = cells[i] ? { from:'cell', i } : null; return render();
+    }
+    const ci = +el.dataset.col, k = el.dataset.k != null ? +el.dataset.k : null;
+    if (sel) {
+      if (sel.from === 'col' && sel.i === ci && k === sel.k) { if (quickMove()) return after(); sel = null; return render(); }
+      if (moveTo({ type:'col', i:ci })) return after();
+    }
+    if (k != null && validRun(cols[ci], k)) sel = { from:'col', i:ci, k }; else { sel = null; if (k != null) toast('순서대로 이어진 카드만 함께 옮길 수 있어요'); }
+    render();
+  });
+  ctrl.addEventListener('click', e => {
+    const b = e.target.closest('[data-fc]'); if (!b || !alive) return;
+    if (b.dataset.fc === 'undo' && history.length) { const h = JSON.parse(history.pop()); cols = h.cols; cells = h.cells; found = h.found; sel = null; moves++; render(); }
+    if (b.dataset.fc === 'auto') { pushHist(); if (!autoUp(true)) { history.pop(); toast('지금은 올릴 카드가 없어요'); } after(); }
+  });
+  const resize = () => render();
+  window.addEventListener('resize', resize);
+  render(); clock = setInterval(() => alive && info(), 1000);
+  return { stop(){ alive = false; clearInterval(clock); window.removeEventListener('resize', resize); } };
 }
 
 // 안드로이드 앱 뒤로가기: 열린 창 닫기 → 채팅방에서 홈으로 → (없으면 앱 종료)
