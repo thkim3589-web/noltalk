@@ -2085,7 +2085,7 @@ function arcadeView(g){
   const rows = arcadeSort(g.type, g.results), mine = rows.findIndex(([u]) => u === me.uid);
   const rule = { blocks:'블록을 돌리고 쌓아서 가로줄을 꽉 채우면 사라져요. 4줄을 한 번에 지우면 대박!',
     jewel:'떨어지는 보석 3개의 순서를 바꿔서, 같은 색 3개 이상을 가로·세로·대각선으로 맞추세요. 연쇄되면 점수가 껑충!',
-    pixel:'색깔 블록을 눌러 아래 칸에 올리면, 그 색 픽셀을 숫자만큼 아래쪽부터 지워요. 칸이 꽉 차서 막히면 실패!',
+    pixel:'색깔 블록을 눌러 아래 칸에 올리면, 그 색 픽셀을 숫자만큼 바깥쪽(위·아래·왼쪽·오른쪽)부터 지워요. 칸이 꽉 차서 막히면 실패!',
     sudoku:'가로줄·세로줄·3×3 칸마다 1~9가 한 번씩만 들어가게 채우세요. 3번 틀리면 실패, 힌트는 +30초!',
     blockpuz:'아래 블록 3개를 끌어서 판에 놓으세요. 가로나 세로 한 줄을 꽉 채우면 사라져요. 더 놓을 곳이 없으면 끝!',
     queens:'가로줄·세로줄·같은 색 구역마다 🐱 1마리씩! 고양이끼리는 대각선 포함 붙으면 안 돼요. 맞는 자리면 주변이 자동으로 ✕, 틀리면 🐟를 잃어요 (3번까지)' }[g.type];
@@ -2337,14 +2337,13 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
   const art = PIXEL_ART[level % PIXEL_ART.length], rng = mulberry32(seed), S = 16;
   const grid = art.rows.map(r => [...(r + '................').slice(0, S)].map(ch => PCOL[ch] ? ch : '.'));
   while (grid.length < S) grid.push([...'................']);
-  const bottom = Array(S).fill(S - 1);
   const total = {}, avg = {};
-  grid.forEach((r,y) => r.forEach(ch => { total[ch] = (total[ch] || 0) + 1; avg[ch] = (avg[ch] || 0) + y; }));
+  grid.forEach((r,y) => r.forEach((ch,x) => { total[ch] = (total[ch] || 0) + 1; avg[ch] = (avg[ch] || 0) + Math.min(y, S - 1 - y, x, S - 1 - x); }));
   Object.keys(avg).forEach(ch => avg[ch] /= total[ch]);
   // 색깔별 개수를 블록으로 나누고, 아래쪽 색이 앞에 오도록 섞기
   const tiles = [];
   Object.entries(total).forEach(([ch, n]) => { while (n > 0) { let k = n <= 30 ? n : 10 + Math.floor(rng() * 21); if (n - k > 0 && n - k < 6) k = n; tiles.push({ ch, n:k, key: avg[ch] + (rng() - .5) * 7 }); n -= k; } });
-  tiles.sort((a,b) => b.key - a.key);
+  tiles.sort((a,b) => a.key - b.key); // 바깥쪽 색이 앞에 오도록
   let stacks = [[],[],[],[]]; tiles.forEach((t,i) => stacks[i % 4].push(t));
   let slots = 5, queue = [], remaining = S * S, alive = true, t0 = Date.now(), items = { slot:1, shuffle:1 }, used = 0, timer = null, clock = null, warned = false;
   stage.innerHTML = `<div class="px-wrap"><canvas class="px-pic"></canvas><div class="px-queue"></div><div class="px-stacks"></div></div>`;
@@ -2371,8 +2370,16 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
     sEl.innerHTML = stacks.map((st,c) => `<div class="px-col">${st.slice(0,3).map((t,i) => `<button class="px-tile ${i ? 'back' : ''}" data-c="${c}" style="${tileStyle(t.ch)}">${t.n}</button>`).join('')}</div>`).join('');
     ctrl.innerHTML = `<button class="wide" data-it="slot" ${items.slot ? '' : 'disabled'}>➕ 칸 추가 (${items.slot})</button><button class="wide" data-it="shuffle" ${items.shuffle ? '' : 'disabled'}>🔀 섞기 (${items.shuffle})</button>`;
   }
-  const ORDER = [7,8,6,9,5,10,4,11,3,12,2,13,1,14,0,15];
-  const findCol = ch => ORDER.find(c => bottom[c] >= 0 && grid[bottom[c]][c] === ch) ?? -1;
+  // 상하좌우 네 방향에서 바깥쪽에 드러난 픽셀만 지울 수 있음
+  function findTarget(ch){
+    for (let k = 0; k < S; k++) {
+      for (let y = 0; y < S; y++) if (grid[y][k]) { if (grid[y][k] === ch) return [y, k]; break; }          // 위
+      for (let y = S - 1; y >= 0; y--) if (grid[y][k]) { if (grid[y][k] === ch) return [y, k]; break; }     // 아래
+      for (let x = 0; x < S; x++) if (grid[k][x]) { if (grid[k][x] === ch) return [k, x]; break; }          // 왼쪽
+      for (let x = S - 1; x >= 0; x--) if (grid[k][x]) { if (grid[k][x] === ch) return [k, x]; break; }     // 오른쪽
+    }
+    return null;
+  }
   const pct = () => Math.round((1 - remaining / (S * S)) * 100);
   const secs = () => Math.round((Date.now() - t0) / 1000);
   const info = () => setInfo(`${pct()}% · ${secs()}초`);
@@ -2383,7 +2390,7 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
   function tick(){
     if (!alive || !queue.length) return;
     let fired = false;
-    queue.forEach(t => { const c = findCol(t.ch); if (c >= 0) { grid[bottom[c]][c] = null; bottom[c]--; remaining--; t.n--; fired = true; } });
+    queue.forEach(t => { const p = findTarget(t.ch); if (p) { grid[p[0]][p[1]] = null; remaining--; t.n--; fired = true; } });
     if (fired) { queue = queue.filter(t => t.n > 0); warned = false; drawPic(); renderTiles(); if (!remaining) return finish(true); return; }
     // 아무것도 못 쏘면: 칸이 꽉 찼거나 더 꺼낼 블록이 없을 때 막힘
     if (queue.length >= slots || stacks.every(s => !s.length)) {
