@@ -2089,7 +2089,8 @@ function arcadeView(g){
     sudoku:'가로줄·세로줄·3×3 칸마다 1~9가 한 번씩만 들어가게 채우세요. 3번 틀리면 실패, 힌트는 +30초!',
     blockpuz:'아래 블록 3개를 끌어서 판에 놓으세요. 가로나 세로 한 줄을 꽉 채우면 사라져요. 더 놓을 곳이 없으면 끝!',
     queens:'가로줄·세로줄·같은 색 구역마다 🐱 1마리씩! 고양이끼리는 대각선 포함 붙으면 안 돼요. 맞는 자리면 주변이 자동으로 ✕, 틀리면 🐟를 잃어요 (3번까지)' }[g.type];
-  const lv = g.type === 'pixel' ? `<p class="hint">🖼️ 오늘의 그림: <b>${esc(PIXEL_ART[(g.level || 0) % PIXEL_ART.length].name)}</b></p>` : '';
+  const lv = g.type === 'pixel' ? `<p class="hint">🖼️ 오늘의 그림: <b>${esc(PIXEL_ART[(g.level || 0) % PIXEL_ART.length].name)}</b></p>`
+    : g.type === 'queens' ? `<p class="hint">🐱 이번 판 크기: <b>${queensSize(g.seed)}×${queensSize(g.seed)}</b></p>` : '';
   return `<p class="hint">${rule}</p>${lv}
     <button class="btn" data-act="arcadePlay">▶ ${mine >= 0 ? '다시 도전하기' : '도전하기'}</button>
     <div class="pf-label">🏆 이 방 순위 · 모두 같은 ${{ pixel:'그림', sudoku:'문제', queens:'판' }[g.type] || '순서'}로 도전해요</div>
@@ -2514,6 +2515,21 @@ function queensCount(N, reg, lim = 2){
   };
   go(0); return n;
 }
+function queensSolve(N, reg, fixed){
+  const col = Array(N).fill(false), rg = Array(N).fill(false), pos = [];
+  const go = r => {
+    if (r === N) return true;
+    for (let c = 0; c < N; c++) {
+      if (fixed[r] !== undefined && fixed[r] !== c) continue;
+      const k = reg[r * N + c];
+      if (col[c] || rg[k] || (r > 0 && Math.abs(pos[r - 1] - c) <= 1)) continue;
+      col[c] = rg[k] = true; pos[r] = c; if (go(r + 1)) return true; col[c] = rg[k] = false;
+    }
+    return false;
+  };
+  return go(0) ? pos : null;
+}
+const queensSize = seed => [6,7,8][Math.abs(seed) % 3];
 function queensMake(seed, N){
   const rng = mulberry32(seed), shuf = a => { for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(rng() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
   let last = null;
@@ -2543,9 +2559,10 @@ function queensMake(seed, N){
   return last;
 }
 function QueensGame(stage, ctrl, seed, _lv, onEnd, setInfo){
-  const N = 6, { pos, reg } = queensMake(seed, N);
+  const N = queensSize(seed), { reg } = queensMake(seed, N);
   const COLS = ['#e88a8a','#f2c14e','#9b7fd6','#4bb6b0','#f4a261','#7fa6d6','#e98ab9','#8fcf7a'];
-  const isSol = i => pos[Math.floor(i / N)] === i % N;
+  const fixedNow = () => { const f = {}; st.forEach((v,k) => { if (v === 2) f[Math.floor(k / N)] = k % N; }); return f; };
+  const isSol = i => !!queensSolve(N, reg, { ...fixedNow(), [Math.floor(i / N)]: i % N });
   const st = Array(N * N).fill(0); // 0 빈칸, 1 내가 표시한 ✕, 2 🐱(정답), 3 자동 ✕
   let lives = 3, hints = 3, used = 0, alive = true, t0 = Date.now(), clock = null, wrong = -1, good = -1;
   stage.innerHTML = `<div class="qn-wrap"><div class="qn-rule">가로줄 · 세로줄 · 색깔 구역마다 🐱 <b>1마리</b><br>고양이끼리는 <b>대각선 포함</b> 붙으면 안 돼요<br><span style="opacity:.8">한 번 누르면 ✕ 표시 · 두 번 누르면 🐱 · 틀리면 🐟 하나 잃어요</span></div><div class="qn-grid"></div></div>`;
@@ -2603,9 +2620,10 @@ function QueensGame(stage, ctrl, seed, _lv, onEnd, setInfo){
     const b = e.target.closest('[data-q]'); if (!b || !alive) return;
     if (b.dataset.q === 'clear') { for (let k = 0; k < N * N; k++) if (st[k] === 1) st[k] = 0; render(); return; }
     if (!hints) return;
-    const r = pos.findIndex((c,row) => st[row * N + c] !== 2);
+    const sol = queensSolve(N, reg, fixedNow()); if (!sol) return;
+    const r = sol.findIndex((c,row) => st[row * N + c] !== 2);
     if (r < 0) return;
-    hints--; used++; st[r * N + pos[r]] = 2; autoMark(r * N + pos[r]); render();
+    hints--; used++; st[r * N + sol[r]] = 2; autoMark(r * N + sol[r]); render();
     if (cats() === N) setTimeout(() => finish(true), 400);
   });
   const resize = () => render();
