@@ -772,7 +772,9 @@ function beep(){
   } catch {}
   try { navigator.vibrate?.(90); } catch {}
 }
+const notifyOn = () => { try { return localStorage.getItem('notify') !== 'off'; } catch { return true; } };
 function onRoomActivity(id, r){
+  if (!notifyOn()) return;
   if (!r.lastUid || r.lastUid === me.uid || r.lastUid === 'system' || muted.has(id) || blocked.has(r.lastUid)) return;
   const visible = appVisible();
   if (room?.id === id && visible) return;
@@ -1432,6 +1434,7 @@ $('#gameTabBody').addEventListener('click', e => {
 function openProfile(){
   const st = myDoc.stats || {};
   let theme = 'system', sound = 'on'; try { theme = localStorage.getItem('theme') || 'system'; sound = localStorage.getItem('sound') || 'on'; } catch {}
+  const nOn = notifyOn();
   $('#pfBody').innerHTML = `
     <div class="pf-top">${avatarHtml(me.name, me.avatar, me.color, 'pf-av')}<div><b>${esc(me.name)}</b><button class="mini" data-pf="rename">${ic('edit', 14)} 닉네임 바꾸기</button></div></div>
     <div class="pf-label">아바타</div>
@@ -1440,11 +1443,13 @@ function openProfile(){
     <div class="color-row">${COLORS.map(c => `<button data-pf="color" data-v="${c}" style="background:${c}" class="${me.color === c ? 'on' : ''}"></button>`).join('')}</div>
     <div class="pf-label">화면 모드</div>
     <div class="seg">${[['system','📱 시스템'],['light','☀️ 라이트'],['dark','🌙 다크']].map(([k,l]) => `<button data-pf="theme" data-v="${k}" class="${theme === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="pf-label">새 메시지 알림 (전체)</div>
+    <div class="seg"><button data-pf="notifyset" data-v="on" class="${nOn ? 'on' : ''}">${ic('bell', 16)} 받기</button><button data-pf="notifyset" data-v="off" class="${!nOn ? 'on' : ''}">${ic('belloff', 16)} 안 받기</button></div>
     <div class="pf-label">새 메시지 소리·진동</div>
     <div class="seg"><button data-pf="sound" data-v="on" class="${sound !== 'off' ? 'on' : ''}">🔔 켜기</button><button data-pf="sound" data-v="off" class="${sound === 'off' ? 'on' : ''}">🔕 끄기</button></div>
     <div class="pf-label">내 전적 · 🏆 ${myDoc.wins || 0}승 / ${myDoc.played || 0}판</div>
     <div class="stat-grid">${Object.entries(GAMES).filter(([k]) => k !== 'ladder').map(([k,g]) => { const x = st[k] || {}; return `<div>${g.icon} ${g.name}<b>${x.w || 0}승 · ${x.p || 0}판</b></div>`; }).join('')}</div>
-    <div class="menu-list" style="margin-top:14px"><button data-pf="rank">${ic('trophy')} 전체 랭킹 보기</button><button data-pf="notify">${ic('bell')} 앱 알림 허용하기</button>
+    <div class="menu-list" style="margin-top:14px"><button data-pf="rank">${ic('trophy')} 전체 랭킹 보기</button>${nOn ? `<button data-pf="notify">${ic('bell')} 휴대폰 알림 권한 허용하기</button>` : ''}
       ${auth.currentUser?.isAnonymous ? `<button data-pf="link">${ic('lock')} 구글 계정 연결 (계정 지키기)</button>` : ''}</div>`;
 }
 $('#pfBody').addEventListener('click', async e => {
@@ -1455,6 +1460,7 @@ $('#pfBody').addEventListener('click', async e => {
   if (act === 'link') return $('#linkBtn').click();
   if (act === 'notify') return requestNotify();
   if (act === 'theme') { try { localStorage.setItem('theme', v); } catch {} applyTheme(); return openProfile(); }
+  if (act === 'notifyset') { try { localStorage.setItem('notify', v); } catch {} toast(v === 'off' ? '🔕 새 메시지 알림을 껐어요 (방마다 끄려면 방 메뉴에서)' : '🔔 새 메시지 알림을 켰어요'); return openProfile(); }
   if (act === 'sound') { try { localStorage.setItem('sound', v); } catch {} if (v === 'on') beep(); return openProfile(); }
   if (act === 'emoji' || act === 'color') {
     const key = act === 'emoji' ? 'avatar' : 'color';
