@@ -247,7 +247,9 @@ input{font:inherit}
 .px-stacks{display:grid;grid-template-columns:repeat(4,66px);gap:8px;flex-shrink:0}
 .px-col{display:flex;flex-direction:column;gap:6px}
 .px-tile{height:48px;border-radius:12px;font-weight:900;font-size:18px;box-shadow:0 4px 0 rgba(0,0,0,.3)}
-.px-tile.back{opacity:.4;transform:scale(.9);pointer-events:none}
+.px-tile.back{background:repeating-linear-gradient(45deg,#3a3352 0 6px,#332d49 6px 12px);color:rgba(255,255,255,.35);transform:scale(.9);pointer-events:none;display:flex;align-items:center;justify-content:center}
+.px-tile.empty{background:rgba(255,255,255,.05);box-shadow:none}
+.px-more{text-align:center;color:rgba(255,255,255,.45);font-size:12px;font-weight:700}
 .px-tile:active{transform:translateY(2px)}
 .sd-wrap,.qn-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;height:100%;padding:8px;overflow-y:auto}
 .sd-grid{display:grid;grid-template-columns:repeat(9,1fr);background:#8e83b0;gap:1px;border:3px solid #3b2f63;border-radius:8px;overflow:hidden;flex-shrink:0}
@@ -2419,6 +2421,33 @@ function genPixelArt(level){
   }));
   return { name:`몬스터 #${(level - 1) / 2 + 1}`, rows: rows.map(r => r.join('')) };
 }
+// 32×32 판 만들기 + 변형(좌우 반전 · 배경 비움 · 줄무늬 · 체크 · 테두리)
+const PX_MODES = { empty:'배경 없음', solid:'꽉 찬 배경', stripe:'줄무늬', checker:'체크무늬', frame:'테두리 성벽' };
+function pixelBoard(level){
+  const art = pixelArt(level), rng = mulberry32(Math.abs(level | 0) * 131 + 7), S = 32;
+  let rows = art.rows.map(r => [...(r + '................').slice(0, 16)].map(ch => PCOL[ch] ? ch : '.'));
+  while (rows.length < 16) rows.push([...'................']);
+  if (rng() < .5) rows = rows.map(r => [...r].reverse());
+  const grid = Array.from({ length:S }, (_, y) => Array.from({ length:S }, (_, x) => rows[y >> 1][x >> 1]));
+  // 배경 = 테두리에서 가장 많은 색, 테두리와 이어진 칸만 배경으로 봄
+  const cnt = {}; for (let i = 0; i < S; i++) [grid[0][i], grid[S - 1][i], grid[i][0], grid[i][S - 1]].forEach(c => cnt[c] = (cnt[c] || 0) + 1);
+  const bg = Object.entries(cnt).sort((a,b) => b[1] - a[1])[0][0];
+  const isBg = Array.from({ length:S }, () => Array(S).fill(false)), q = [];
+  for (let i = 0; i < S; i++) for (const [y, x] of [[0,i],[S - 1,i],[i,0],[i,S - 1]]) if (grid[y][x] === bg && !isBg[y][x]) { isBg[y][x] = true; q.push([y, x]); }
+  for (let h = 0; h < q.length; h++) { const [y, x] = q[h]; for (const [dy, dx] of [[0,1],[1,0],[0,-1],[-1,0]]) { const ny = y + dy, nx = x + dx;
+    if (ny >= 0 && ny < S && nx >= 0 && nx < S && !isBg[ny][nx] && grid[ny][nx] === bg) { isBg[ny][nx] = true; q.push([ny, nx]); } } }
+  const used = new Set(grid.flat()), spare = Object.keys(PCOL).filter(c => !used.has(c));
+  const alt = spare.length ? spare[Math.floor(rng() * spare.length)] : bg;
+  const mode = ['empty','solid','stripe','checker','frame','solid','checker'][Math.floor(rng() * 7)];
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    if (!isBg[y][x]) continue;
+    if (mode === 'empty') grid[y][x] = null;
+    else if (mode === 'stripe') grid[y][x] = Math.floor(y / 3) % 2 ? alt : bg;
+    else if (mode === 'checker') grid[y][x] = ((x >> 2) + (y >> 2)) % 2 ? alt : bg;
+    else if (mode === 'frame') grid[y][x] = (x < 2 || y < 2 || x >= S - 2 || y >= S - 2) ? alt : null;
+  }
+  return { S, grid, name: art.name, mode };
+}
 // 혼자 할 때는 최근에 나온 그림은 피해서 골라요
 function soloLevel(type){
   let lv = Math.floor(Math.random() * 1000);
@@ -2434,12 +2463,12 @@ function arcadeView(g){
   const rows = arcadeSort(g.type, g.results), mine = rows.findIndex(([u]) => u === me.uid);
   const rule = { blocks:'블록을 돌리고 쌓아서 가로줄을 꽉 채우면 사라져요. 4줄을 한 번에 지우면 대박!',
     jewel:'떨어지는 보석 3개의 순서를 바꿔서, 같은 색 3개 이상을 가로·세로·대각선으로 맞추세요. 연쇄되면 점수가 껑충!',
-    pixel:'색깔 블록을 눌러 아래 칸(4칸)에 올리면 개미들이 나와 테두리와 뚫린 길을 따라 같은 색 픽셀을 먹어요. 안쪽 색을 먼저 올리면 개미가 헛돌아요! 40초 안에 다 먹이세요.',
+    pixel:'색깔 블록을 눌러 위 칸(4칸)에 올리면 개미들이 나와 테두리와 뚫린 길을 따라 같은 색 픽셀을 먹어요. 아래 블록은 뒤집혀 있어서 맨 윗줄만 보여요! 70초 안에 다 먹이세요.',
     sudoku:'가로줄·세로줄·3×3 칸마다 1~9가 한 번씩만 들어가게 채우세요. 3번 틀리면 실패, 힌트는 +30초!',
     freecell:'카드를 눌러 고르고 옮길 곳을 누르세요. 8줄의 카드를 같은 무늬 A→K 순서로 오른쪽 위 4칸에 모두 올리면 완성! 빈 칸 4개를 잘 활용하세요.',
     blockpuz:'아래 블록 3개를 끌어서 판에 놓으세요. 가로나 세로 한 줄을 꽉 채우면 사라져요. 더 놓을 곳이 없으면 끝!',
     queens:'가로줄·세로줄·같은 색 구역마다 🐱 1마리씩! 고양이끼리는 대각선 포함 붙으면 안 돼요. 맞는 자리면 주변이 자동으로 ✕, 틀리면 🐟를 잃어요 (3번까지)' }[g.type];
-  const lv = g.type === 'pixel' ? `<p class="hint">🖼️ 오늘의 그림: <b>${esc(pixelArt(g.level || 0).name)}</b></p>`
+  const lv = g.type === 'pixel' ? `<p class="hint">🖼️ 오늘의 그림: <b>${esc(pixelArt(g.level || 0).name)}</b> · ${PX_MODES[pixelBoard(g.level || 0).mode]}</p>`
     : g.type === 'queens' ? `<p class="hint">🐱 이번 판 크기: <b>${queensSize(g.seed)}×${queensSize(g.seed)}</b></p>` : '';
   return `<p class="hint">${rule}</p>${lv}
     <button class="btn" data-act="arcadePlay">▶ ${mine >= 0 ? '같은 판 다시 도전하기' : '도전하기'}</button>
@@ -2694,17 +2723,16 @@ function JewelGame(stage, ctrl, seed, _lv, onEnd, setInfo){
 
 /* 🖼️ 픽셀 퍼즐: 블록을 올리면 개미들이 구멍에서 나와 테두리를 돌며 같은 색 픽셀을 먹어요 */
 function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
-  const art = pixelArt(level), rng = mulberry32(seed), S = 16, P = S * 4;
-  const grid = art.rows.map(r => [...(r + '................').slice(0, S)].map(ch => PCOL[ch] ? ch : '.'));
-  while (grid.length < S) grid.push([...'................']);
-  const total = {}, avg = {};
-  grid.forEach((r,y) => r.forEach((ch,x) => { total[ch] = (total[ch] || 0) + 1; avg[ch] = (avg[ch] || 0) + Math.min(y, S - 1 - y, x, S - 1 - x); }));
-  Object.keys(avg).forEach(ch => avg[ch] /= total[ch]);
+  const board = pixelBoard(level), rng = mulberry32(seed), S = board.S, P = S * 4;
+  const grid = board.grid;
+  const total = {};
+  grid.forEach(r => r.forEach(ch => { if (ch) total[ch] = (total[ch] || 0) + 1; }));
+  const ALL = Object.values(total).reduce((a,b) => a + b, 0);
   const tiles = [];
-  Object.entries(total).forEach(([ch, n]) => { while (n > 0) { let k = n <= 40 ? n : 14 + Math.floor(rng() * 27); if (n - k > 0 && n - k < 8) k = n; tiles.push({ ch, n:k, fly:0, cool:0 }); tiles[tiles.length - 1].key = rng(); n -= k; } });
+  Object.entries(total).forEach(([ch, n]) => { while (n > 0) { let k = n <= 60 ? n : 20 + Math.floor(rng() * 41); if (n - k > 0 && n - k < 12) k = n; tiles.push({ ch, n:k, fly:0, cool:0 }); tiles[tiles.length - 1].key = rng(); n -= k; } });
   tiles.sort((a,b) => a.key - b.key); // 순서를 완전히 섞음: 안쪽 색을 먼저 올리면 칸이 막혀요
   let stacks = [[],[],[],[]]; tiles.forEach((t,i) => stacks[i % 4].push(t));
-  let slots = 4, queue = [], ants = [], remaining = S * S, alive = true, t0 = Date.now(), items = { slot:1, shuffle:1 }, used = 0, clock = null, raf = 0, warned = false, dirty = true, last = 0;
+  let slots = 4, queue = [], ants = [], remaining = ALL, alive = true, t0 = Date.now(), items = { slot:1, shuffle:1 }, used = 0, clock = null, raf = 0, warned = false, dirty = true, last = 0;
   const pops = [];
   stage.innerHTML = `<div class="px-wrap"><canvas class="px-pic"></canvas><div class="px-queue"></div><div class="px-stacks"></div></div>`;
   const cv = stage.querySelector('canvas'), ctx = cv.getContext('2d'), qEl = stage.querySelector('.px-queue'), sEl = stage.querySelector('.px-stacks');
@@ -2743,7 +2771,18 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
     const t = findFrom(i, ch); if (!t) return false;
     const [y, x] = t; grid[y][x] = null; remaining--; pops.push({ x, y, c: PCOL[ch], t: 0 }); return true;
   }
-  const canEat = ch => { for (let i = 0; i < P; i++) if (findFrom(i, ch)) return true; return false; };
+  const canEat = ch => {   // 테두리 전체에서 한 번에 탐색
+    const seen = new Uint8Array(S * S), q = [];
+    for (let i = 0; i < S; i++) for (const [y, x] of [[0,i],[S - 1,i],[i,0],[i,S - 1]]) {
+      if (seen[y * S + x]) continue; seen[y * S + x] = 1;
+      if (grid[y][x]) { if (grid[y][x] === ch) return true; } else q.push([y, x]);
+    }
+    for (let h = 0; h < q.length; h++) { const [y, x] = q[h];
+      for (const [dy, dx] of [[0,1],[1,0],[0,-1],[-1,0]]) { const ny = y + dy, nx = x + dx;
+        if (ny < 0 || ny >= S || nx < 0 || nx >= S || seen[ny * S + nx]) continue; seen[ny * S + nx] = 1;
+        if (grid[ny][nx]) { if (grid[ny][nx] === ch) return true; } else q.push([ny, nx]); } }
+    return false;
+  };
   function sizePic(){
     cell = Math.max(8, Math.floor(Math.min(stage.clientWidth - 24, stage.clientHeight * .46) / (S + 2)));
     const dpr = window.devicePixelRatio || 1, W = (S + 2) * cell;
@@ -2767,7 +2806,7 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
     // 개미
     ants.forEach(a => {
       const f = a.i - Math.floor(a.i), s1 = spot(Math.floor(a.i)), s2 = spot(Math.floor(a.i) + 1);
-      const x = cx(s1.x + (s2.x - s1.x) * f) + cell / 2, y = cy(s1.y + (s2.y - s1.y) * f) + cell / 2, r = cell * .3;
+      const x = cx(s1.x + (s2.x - s1.x) * f) + cell / 2, y = cy(s1.y + (s2.y - s1.y) * f) + cell / 2, r = Math.max(3.5, cell * .45);
       ctx.fillStyle = PCOL[a.t.ch]; ctx.strokeStyle = '#120e22'; ctx.lineWidth = Math.max(1, cell * .08);
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#120e22'; ctx.beginPath(); ctx.arc(x + (s2.x - s1.x) * r * .9, y + (s2.y - s1.y) * r * .9, r * .45, 0, Math.PI * 2); ctx.fill();
@@ -2775,10 +2814,11 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
   }
   function renderTiles(){
     qEl.innerHTML = Array.from({ length:slots }, (_,i) => queue[i] ? `<div class="px-slot" style="${tileStyle(queue[i].ch)}">${queue[i].n}</div>` : '<div class="px-slot"></div>').join('');
-    sEl.innerHTML = stacks.map((st,c) => `<div class="px-col">${st.slice(0,3).map((t,i) => `<button class="px-tile ${i ? 'back' : ''}" data-c="${c}" style="${tileStyle(t.ch)}">${t.n}</button>`).join('')}</div>`).join('');
+    // 맨 윗줄만 색·숫자가 보이고, 아래는 뒤집힌 블록(?)으로 남은 개수만 보여요
+    sEl.innerHTML = stacks.map((st,c) => `<div class="px-col">${st.length ? `<button class="px-tile" data-c="${c}" style="${tileStyle(st[0].ch)}">${st[0].n}</button>` : '<div class="px-tile empty"></div>'}${st.slice(1,3).map(() => '<div class="px-tile back">?</div>').join('')}${st.length > 3 ? `<small class="px-more">+${st.length - 3}</small>` : ''}</div>`).join('');
     ctrl.innerHTML = `<button class="wide" data-it="slot" ${items.slot ? '' : 'disabled'}>➕ 칸 추가 (${items.slot})</button><button class="wide" data-it="shuffle" ${items.shuffle ? '' : 'disabled'}>🔀 섞기 (${items.shuffle})</button>`;
   }
-  const pct = () => Math.round((1 - remaining / (S * S)) * 100);
+  const pct = () => Math.round((1 - remaining / ALL) * 100);
   const secs = () => Math.round((Date.now() - t0) / 1000);
   const left = () => Math.max(0, LIMIT - Math.floor((Date.now() - t0) / 1000));
   const info = () => setInfo(`${pct()}% · ⏱ ${left()}초 남음`);
@@ -2786,12 +2826,12 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
     if (!alive) return; alive = false; cancelAnimationFrame(raf); clearInterval(clock); info(); draw();
     onEnd(cleared ? { cleared:true, time: secs() + used * 10, pct:100 } : { cleared:false, pct: pct(), time: secs() });
   }
-  const SPEED = 12, MAX_ANTS = 10, LIMIT = 40; // 초당 칸 수 · 길 위 개미 최대 수 · 제한 시간(초)
+  const SPEED = 22, MAX_ANTS = 14, LIMIT = 70; // 초당 칸 수 · 길 위 개미 최대 수 · 제한 시간(초)
   function frame(ts){
     if (!alive) return;
     const dt = Math.min(50, ts - (last || ts)); last = ts;
     // 블록마다 개미를 줄지어 내보냄 (남은 개수만큼만)
-    queue.forEach(t => { t.cool -= dt; if (t.cool <= 0 && t.fly < Math.min(t.n, 6) && ants.length < MAX_ANTS) { ants.push({ t, i: START, run: 0 }); t.fly++; t.cool = 120; } });
+    queue.forEach(t => { t.cool -= dt; if (t.cool <= 0 && t.fly < Math.min(t.n, 5) && ants.length < MAX_ANTS) { ants.push({ t, i: START, run: 0 }); t.fly++; t.cool = 110; } });
     const keep = [];
     for (const a of ants) {
       const from = a.i, to = a.i + SPEED * dt / 1000; let ate = false;
