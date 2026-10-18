@@ -3247,9 +3247,18 @@ function queensMake(seed, N){
       reg[r * N + c] = reg[i]; left--;
     }
     last = { pos, reg };
-    if (queensCount(N, reg) === 1) return last;
+    if (queensCount(N, reg) === 1) break;
   }
-  return last;
+  // 모양 다양화: 8가지 회전·뒤집기 중 하나 + 구역 색 순서 섞기 (규칙은 그대로 성립)
+  const t = Math.floor(rng() * 8), perm = shuf([...Array(N).keys()]), reg2 = Array(N * N);
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    let rr = r, cc = c;
+    if (t & 1) [rr, cc] = [cc, rr];
+    if (t & 2) rr = N - 1 - rr;
+    if (t & 4) cc = N - 1 - cc;
+    reg2[rr * N + cc] = perm[last.reg[r * N + c]];
+  }
+  return { reg: reg2 };
 }
 function QueensGame(stage, ctrl, seed, _lv, onEnd, setInfo){
   const N = queensSize(seed), { reg } = queensMake(seed, N);
@@ -3882,7 +3891,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261018i';
+const BUILD = 'b20261018j';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
