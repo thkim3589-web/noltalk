@@ -243,10 +243,10 @@ input{font:inherit}
 .px-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;height:100%;padding:8px 8px 0;overflow:hidden}
 .px-pic{border-radius:10px;background:#120e22;flex-shrink:0}
 .px-queue{display:flex;gap:6px;flex-shrink:0}
-.px-slot{width:48px;height:48px;border-radius:12px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px}
-.px-stacks{display:grid;grid-template-columns:repeat(4,66px);gap:8px;flex:1 1 0;min-height:150px;overflow:hidden;align-items:start;-webkit-mask-image:linear-gradient(#000 85%,transparent);mask-image:linear-gradient(#000 85%,transparent)}
+.px-slot{width:48px;height:48px;border-radius:12px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.22);background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px}
+.px-stacks{display:grid;grid-template-columns:repeat(5,58px);gap:7px;flex:1 1 0;min-height:150px;overflow:hidden;align-items:start;-webkit-mask-image:linear-gradient(#000 85%,transparent);mask-image:linear-gradient(#000 85%,transparent)}
 .px-col{display:flex;flex-direction:column;gap:6px}
-.px-tile{height:48px;border-radius:12px;font-weight:900;font-size:18px;box-shadow:0 4px 0 rgba(0,0,0,.3)}
+.px-tile{height:48px;border-radius:12px;font-weight:900;font-size:18px;box-shadow:0 4px 0 rgba(0,0,0,.3),inset 0 0 0 2px rgba(255,255,255,.28)}
 .px-tile.back{background:repeating-linear-gradient(45deg,#3a3352 0 6px,#332d49 6px 12px);color:rgba(255,255,255,.35);transform:scale(.9);pointer-events:none;display:flex;align-items:center;justify-content:center}
 .px-tile.empty{background:rgba(255,255,255,.05);box-shadow:none}
 .px-more{text-align:center;color:rgba(255,255,255,.45);font-size:12px;font-weight:700}
@@ -2393,11 +2393,6 @@ const PIXEL_ART = [
   { name:'케이크', rows:['................','.......o........','.......y........','.......v........','.......v........','..pppppppppppp..','..pwpwpwpwpwpw..','..cccccccccccc..','..crccrccrccrc..','..cccccccccccc..','..pppppppppppp..','..bbbbbbbbbbbb..','..bbbbbbbbbbbb..','.wwwwwwwwwwwwww.','................','................'] },
 ];
 
-// 짝수 레벨 = 손그림, 홀수 레벨 = 무작위 몬스터(500가지 이상)
-function pixelArt(level){
-  level = Math.abs(level | 0);
-  return level % 2 === 0 ? PIXEL_ART[(level / 2) % PIXEL_ART.length] : genPixelArt(level);
-}
 function genPixelArt(level){
   const rng = mulberry32(level * 7919 + 13), pick = a => a[Math.floor(rng() * a.length)];
   const bg = pick(['.','n','c','.']), body = pick(['g','r','p','y','o','u','v','G','b'].filter(c => c !== bg));
@@ -2421,32 +2416,152 @@ function genPixelArt(level){
   }));
   return { name:`몬스터 #${(level - 1) / 2 + 1}`, rows: rows.map(r => r.join('')) };
 }
-// 32×32 판 만들기 + 변형(좌우 반전 · 배경 비움 · 줄무늬 · 체크 · 테두리)
-const PX_MODES = { empty:'배경 없음', solid:'꽉 찬 배경', stripe:'줄무늬', checker:'체크무늬', frame:'테두리 성벽' };
-function pixelBoard(level){
-  const art = pixelArt(level), rng = mulberry32(Math.abs(level | 0) * 131 + 7), S = 32;
-  let rows = art.rows.map(r => [...(r + '................').slice(0, 16)].map(ch => PCOL[ch] ? ch : '.'));
-  while (rows.length < 16) rows.push([...'................']);
-  if (rng() < .5) rows = rows.map(r => [...r].reverse());
-  const grid = Array.from({ length:S }, (_, y) => Array.from({ length:S }, (_, x) => rows[y >> 1][x >> 1]));
-  // 배경 = 테두리에서 가장 많은 색, 테두리와 이어진 칸만 배경으로 봄
-  const cnt = {}; for (let i = 0; i < S; i++) [grid[0][i], grid[S - 1][i], grid[i][0], grid[i][S - 1]].forEach(c => cnt[c] = (cnt[c] || 0) + 1);
-  const bg = Object.entries(cnt).sort((a,b) => b[1] - a[1])[0][0];
-  const isBg = Array.from({ length:S }, () => Array(S).fill(false)), q = [];
-  for (let i = 0; i < S; i++) for (const [y, x] of [[0,i],[S - 1,i],[i,0],[i,S - 1]]) if (grid[y][x] === bg && !isBg[y][x]) { isBg[y][x] = true; q.push([y, x]); }
-  for (let h = 0; h < q.length; h++) { const [y, x] = q[h]; for (const [dy, dx] of [[0,1],[1,0],[0,-1],[-1,0]]) { const ny = y + dy, nx = x + dx;
-    if (ny >= 0 && ny < S && nx >= 0 && nx < S && !isBg[ny][nx] && grid[ny][nx] === bg) { isBg[ny][nx] = true; q.push([ny, nx]); } } }
-  const used = new Set(grid.flat()), spare = Object.keys(PCOL).filter(c => !used.has(c));
-  const alt = spare.length ? spare[Math.floor(rng() * spare.length)] : bg;
-  const mode = ['empty','solid','stripe','checker','frame','solid','checker'][Math.floor(rng() * 7)];
+
+/* ---- 50×50 판: 6가지 그림 종류 + 명암 + 변형 ---- */
+const PX_S = 50;
+const hex2rgb = h => [1,3,5].map(i => parseInt(h.slice(i, i + 2), 16));
+const rgb2hex = c => '#' + c.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+const shade = (h, t) => { const c = hex2rgb(h); return rgb2hex(c.map(v => t > 0 ? v + (255 - v) * t : v * (1 + t))); };   // t>0 밝게, t<0 어둡게
+const lum = h => { const [r,g,b] = hex2rgb(h); return .299 * r + .587 * g + .114 * b; };
+const cdist = (a, b) => { const x = hex2rgb(a), y = hex2rgb(b); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]); };
+const PX_PAL = ['#ff4d5e','#ff9f1c','#ffd23f','#4caf50','#2e7d32','#3d7bff','#8fd3ff','#9b5de5','#ff9ecb','#8d5a3b','#1d3557','#ffe7b3','#00b894','#e84393','#fd79a8','#6c5ce7','#00cec9','#fab1a0','#e17055','#2d3436'];
+function pxUpscale(rows, S){   // 16×16 → 48×48 가운데 놓기
+  const k = 3, off = Math.floor((S - 48) / 2), bgc = PCOL[rows[0][0]] || PCOL['.'];
+  return Array.from({ length:S }, (_, y) => Array.from({ length:S }, (_, x) => {
+    const yy = Math.floor((y - off) / k), xx = Math.floor((x - off) / k);
+    if (yy < 0 || yy > 15 || xx < 0 || xx > 15) return bgc;
+    const ch = (rows[yy] || '')[xx] || '.'; return PCOL[ch] || PCOL['.']; }));
+}
+function pxShadeRegions(g, bg){   // 같은 색 덩어리 가장자리에 하이라이트·그림자
+  const S = g.length, out = g.map(r => [...r]);
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
-    if (!isBg[y][x]) continue;
-    if (mode === 'empty') grid[y][x] = null;
-    else if (mode === 'stripe') grid[y][x] = Math.floor(y / 3) % 2 ? alt : bg;
-    else if (mode === 'checker') grid[y][x] = ((x >> 2) + (y >> 2)) % 2 ? alt : bg;
-    else if (mode === 'frame') grid[y][x] = (x < 2 || y < 2 || x >= S - 2 || y >= S - 2) ? alt : null;
+    const c = g[y][x]; if (c === bg) continue;
+    const up = g[y - 1]?.[x] !== c || g[y]?.[x - 1] !== c, dn = g[y + 1]?.[x] !== c || g[y]?.[x + 1] !== c;
+    if (up && !dn) out[y][x] = shade(c, .35); else if (dn && !up) out[y][x] = shade(c, -.28);
   }
-  return { S, grid, name: art.name, mode };
+  return out;
+}
+function pxLandscape(rng, S){
+  const skies = [['#1d3557','#457b9d','#a8dadc'],['#ff7e67','#ffb38a','#ffe0c2'],['#4aa8ff','#8fd3ff','#d6f1ff'],['#2b1a4a','#5b3a8a','#9b6fd0']];
+  const sky = skies[Math.floor(rng() * skies.length)], night = sky[0] === '#2b1a4a' || sky[0] === '#1d3557';
+  const g = Array.from({ length:S }, (_, y) => Array(S).fill(sky[Math.min(2, Math.floor(y / (S * .22)))]));
+  const sx = 8 + Math.floor(rng() * (S - 16)), sy = 6 + Math.floor(rng() * 8), sr = 4 + Math.floor(rng() * 3), sc = night ? '#fff6d5' : '#ffd23f';
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) { const d = Math.hypot(x - sx, y - sy); if (d <= sr) g[y][x] = d < sr - 1.5 ? sc : shade(sc, -.15); }
+  if (night) for (let i = 0; i < 18; i++) { const x = Math.floor(rng() * S), y = Math.floor(rng() * S * .5); if (g[y][x] !== sc) g[y][x] = '#ffffff'; }
+  const hues = [['#6c5ce7','#a29bfe'],['#2e7d32','#4caf50'],['#8d5a3b','#b07a54'],['#3d7bff','#74a3ff']];
+  [[.42, .55],[.58, .7]].forEach(([lo, hi], li) => {
+    const col = hues[Math.floor(rng() * hues.length)], base = shade(col[0], li ? -.2 : .1);
+    let h = S * (lo + rng() * (hi - lo)), v = 0;
+    for (let x = 0; x < S; x++) {
+      v += (rng() - .5) * 1.6; v *= .92; h = Math.max(S * lo * .8, Math.min(S * hi, h + v));
+      for (let y = Math.floor(h); y < S; y++) g[y][x] = y < h + 2 && h < S * .5 ? '#ffffff' : (x + y) % 7 === 0 ? shade(base, .2) : base;
+    }
+  });
+  const gy = Math.floor(S * (.76 + rng() * .08)), gc = ['#4caf50','#ffe7b3','#00b894'][Math.floor(rng() * 3)];
+  for (let y = gy; y < S; y++) for (let x = 0; x < S; x++) g[y][x] = y === gy ? shade(gc, .3) : (y - gy) % 6 === 3 && x % 5 === 0 ? shade(gc, -.25) : gc;
+  for (let t = 0; t < 2 + Math.floor(rng() * 4); t++) {   // 나무
+    const tx = 3 + Math.floor(rng() * (S - 6)), th = 6 + Math.floor(rng() * 6), tc = ['#2e7d32','#00b894','#ff9ecb'][Math.floor(rng() * 3)];
+    for (let k = 0; k < th; k++) for (let dx = -Math.floor(k / 2); dx <= Math.floor(k / 2); dx++) { const y = gy - th - 2 + k, x = tx + dx; if (g[y]?.[x]) g[y][x] = dx < 0 ? shade(tc, .2) : tc; }
+    for (let k = 0; k < 3; k++) if (g[gy - 2 + k]) g[gy - 2 + k][tx] = '#8d5a3b';
+  }
+  return { g, bg: sky[0], name: '풍경' };
+}
+function pxMandala(rng, S){
+  const pal = [...PX_PAL].sort(() => rng() - .5).slice(0, 5), bg = ['#1d3557','#ffe7b3','#2d3436','#8fd3ff'][Math.floor(rng() * 4)];
+  const k = 4 + 2 * Math.floor(rng() * 3), amp = 2 + rng() * 4, ring = 4 + rng() * 3, c0 = (S - 1) / 2;
+  const g = Array.from({ length:S }, (_, y) => Array.from({ length:S }, (_, x) => {
+    const dx = x - c0, dy = y - c0, r = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
+    if (r > S / 2 - 1.5) return bg;
+    const v = r + amp * Math.cos(k * a) + (r > S * .3 ? 1.5 * Math.cos(2 * k * a) : 0);
+    const band = Math.floor(v / ring);
+    if (band < 0) return pal[0];
+    const c = pal[band % pal.length];
+    return (v % ring) < 1 ? shade(c, -.3) : (v % ring) > ring - 1.2 ? shade(c, .3) : c;
+  }));
+  return { g, bg, name: '만다라' };
+}
+function pxFlower(rng, S){
+  const bg = ['#8fd3ff','#ffe7b3','#dff9fb','#2d3436'][Math.floor(rng() * 4)];
+  const g = Array.from({ length:S }, () => Array(S).fill(bg)), c0 = S / 2 - .5, cy0 = S * .4;
+  for (let y = Math.floor(cy0); y < S; y++) for (let dx = -1; dx <= 1; dx++) g[y][Math.round(c0) + dx] = dx < 0 ? '#4caf50' : '#2e7d32';
+  [[-1, .68],[1, .8]].forEach(([sd, ly]) => { for (let t = 0; t < 9; t++) for (let w = -2; w <= 2; w++) { const y = Math.round(S * ly - t * .6 + w * .3), x = Math.round(c0 + sd * (2 + t)); if (Math.abs(w) <= 2 - t / 5 && g[y]?.[x]) g[y][x] = w > 0 ? '#2e7d32' : '#4caf50'; } });
+  const n = 5 + Math.floor(rng() * 4), pc = ['#ff4d5e','#ff9ecb','#ffd23f','#9b5de5','#e84393','#ffffff','#ff9f1c'][Math.floor(rng() * 7)], L = S * (.2 + rng() * .06), W = L * (.38 + rng() * .15);
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const dx = x - c0, dy = y - cy0;
+    for (let i = 0; i < n; i++) {
+      const a = i / n * Math.PI * 2 + .3, u = dx * Math.cos(a) + dy * Math.sin(a), v = -dx * Math.sin(a) + dy * Math.cos(a);
+      const e = ((u - L) / L) ** 2 + (v / W) ** 2;
+      if (e < 1) { g[y][x] = e > .7 ? shade(pc, -.3) : u < L * .6 ? shade(pc, -.15) : u > L * 1.35 ? shade(pc, .35) : pc; break; }
+    }
+    const r = Math.hypot(dx, dy); if (r < S * .09) g[y][x] = r < S * .05 ? '#ff9f1c' : '#ffd23f';
+  }
+  return { g, bg, name: '꽃' };
+}
+function pxPlanet(rng, S){
+  const bg = '#2b2470', g = Array.from({ length:S }, () => Array(S).fill(bg));
+  for (let i = 0; i < 40; i++) g[Math.floor(rng() * S)][Math.floor(rng() * S)] = rng() < .5 ? '#ffffff' : '#ffd23f';
+  const base = ['#ff9f1c','#3d7bff','#e17055','#00b894','#9b5de5','#fd79a8'][Math.floor(rng() * 6)], c0 = (S - 1) / 2, R = S * (.24 + rng() * .06);
+  const ringC = ['#ffe7b3','#a29bfe','#fab1a0','#dfe6e9'][Math.floor(rng() * 4)], ringed = rng() < .7, tilt = (rng() - .5) * .7;
+  const inRing = (x, y) => { const dx = x - c0, dy = y - c0, u = dx * Math.cos(tilt) + dy * Math.sin(tilt), v = -dx * Math.sin(tilt) + dy * Math.cos(tilt), e = (u / (R * 1.9)) ** 2 + (v / (R * .45)) ** 2; return e < 1 && e > .55 ? v : null; };
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const dx = x - c0, dy = y - c0, d = Math.hypot(dx, dy), rv = ringed ? inRing(x, y) : null;
+    if (rv !== null && rv < 0) { g[y][x] = shade(ringC, -.15); continue; }   // 뒤쪽 고리는 행성이 가림 → 아래에서 덮음
+    if (d <= R) {
+      const l = (-dx - dy) / (R * 1.6) + .1, band = Math.floor((dy + R) / (R / 3.2)) % 2;
+      let c = band ? shade(base, -.12) : base; c = l > .35 ? shade(c, .35) : l < -.35 ? shade(c, -.4) : l < 0 ? shade(c, -.18) : c;
+      g[y][x] = c;
+    }
+    if (rv !== null && rv >= 0) g[y][x] = shade(ringC, rv > R * .2 ? .2 : 0);
+  }
+  return { g, bg, name: '행성' };
+}
+function pxQuantize(g, bg, maxColors){   // 너무 적은 색은 비슷한 색으로 합침
+  const cnt = {}; g.forEach(r => r.forEach(c => cnt[c] = (cnt[c] || 0) + 1));
+  let cols = Object.keys(cnt);
+  const map = {};
+  while (cols.length > maxColors || cols.some(c => cnt[c] < 10 && c !== bg)) {
+    const small = cols.filter(c => c !== bg).sort((a,b) => cnt[a] - cnt[b])[0]; if (!small) break;
+    const others = cols.filter(c => c !== small); if (!others.length) break;
+    const to = others.sort((a,b) => cdist(small, a) - cdist(small, b))[0];
+    cnt[to] += cnt[small]; delete cnt[small]; map[small] = to;
+    Object.keys(map).forEach(k => { if (map[k] === small) map[k] = to; });
+    cols = Object.keys(cnt);
+  }
+  return g.map(r => r.map(c => map[c] || c));
+}
+const PX_KINDS = ['손그림','몬스터','풍경','만다라','꽃','행성'];
+const pxCache = new Map();
+function pixelBoard(level){
+  level = Math.abs(level | 0);
+  if (pxCache.has(level)) return pxCache.get(level);
+  const S = PX_S, kind = level % 6, n = Math.floor(level / 6), rng = mulberry32(level * 131 + 7);
+  let res;
+  if (kind === 0 || kind === 1) {
+    const art = kind === 0 ? PIXEL_ART[n % PIXEL_ART.length] : genPixelArt(n * 2 + 1);
+    let gg = pxUpscale(art.rows, S); const bg = gg[0][0];
+    res = { g: pxShadeRegions(gg, bg), bg, name: kind === 0 ? art.name : `몬스터 #${n + 1}` };
+  } else res = [pxLandscape, pxMandala, pxFlower, pxPlanet][kind - 2](rng, S);
+  if (kind >= 2) res.name += ` #${n + 1}`;
+  let g = res.g;
+  if (rng() < .5) g = g.map(r => [...r].reverse());
+  // 변형: 배경(테두리와 이어진 배경색)만 바꿈
+  const bg = res.bg, isBg = Array.from({ length:S }, () => Array(S).fill(false)), q = [];
+  for (let i = 0; i < S; i++) for (const [y, x] of [[0,i],[S - 1,i],[i,0],[i,S - 1]]) if (g[y][x] === bg && !isBg[y][x]) { isBg[y][x] = true; q.push([y, x]); }
+  for (let h = 0; h < q.length; h++) { const [y, x] = q[h]; for (const [dy, dx] of [[0,1],[1,0],[0,-1],[-1,0]]) { const ny = y + dy, nx = x + dx;
+    if (ny >= 0 && ny < S && nx >= 0 && nx < S && !isBg[ny][nx] && g[ny][nx] === bg) { isBg[ny][nx] = true; q.push([ny, nx]); } } }
+  const alt = PX_PAL.filter(c => cdist(c, bg) > 120)[Math.floor(rng() * 10)] || '#ffd23f';
+  const mode = ['solid','stripe','checker','checker','frame','stripe'][Math.floor(rng() * 6)];
+  g = g.map((r,y) => r.map((c,x) => {
+    if (!isBg[y][x]) return c;
+    if (mode === 'stripe') return Math.floor(y / 4) % 2 ? alt : bg;
+    if (mode === 'checker') return ((x / 5 | 0) + (y / 5 | 0)) % 2 ? alt : bg;
+    if (mode === 'frame') return (x < 3 || y < 3 || x >= S - 3 || y >= S - 3) ? alt : null;
+    return c;
+  }));
+  const qz = pxQuantize(g.map(r => r.map(c => c || '#000001')), bg, 14).map(r => r.map(c => c === '#000001' ? null : c));
+  const out = { S, grid: qz, name: res.name, mode, kind: PX_KINDS[kind] };
+  pxCache.set(level, out);
+  return out;
 }
 // 혼자 할 때는 최근에 나온 그림은 피해서 골라요
 function soloLevel(type){
@@ -2454,8 +2569,8 @@ function soloLevel(type){
   if (type !== 'pixel') return lv;
   try {
     const recent = JSON.parse(localStorage.getItem('pxRecent') || '[]');
-    for (let k = 0; k < 30 && recent.includes(pixelArt(lv).name); k++) lv = Math.floor(Math.random() * 1000);
-    localStorage.setItem('pxRecent', JSON.stringify([pixelArt(lv).name, ...recent].slice(0, 10)));
+    for (let k = 0; k < 30 && recent.includes(pixelBoard(lv).name); k++) lv = Math.floor(Math.random() * 1000);
+    localStorage.setItem('pxRecent', JSON.stringify([pixelBoard(lv).name, ...recent].slice(0, 10)));
   } catch {}
   return lv;
 }
@@ -2463,12 +2578,12 @@ function arcadeView(g){
   const rows = arcadeSort(g.type, g.results), mine = rows.findIndex(([u]) => u === me.uid);
   const rule = { blocks:'블록을 돌리고 쌓아서 가로줄을 꽉 채우면 사라져요. 4줄을 한 번에 지우면 대박!',
     jewel:'떨어지는 보석 3개의 순서를 바꿔서, 같은 색 3개 이상을 가로·세로·대각선으로 맞추세요. 연쇄되면 점수가 껑충!',
-    pixel:'색깔 블록을 눌러 위 칸(4칸)에 올리면 개미들이 나와 테두리와 뚫린 길을 따라 같은 색 픽셀을 먹어요. 아래 블록은 뒤집혀 있어서 맨 윗줄만 보여요! 70초 안에 다 먹이세요.',
+    pixel:'색깔 블록을 눌러 위 칸(5칸)에 올리면 개미들이 나와 테두리와 뚫린 길을 따라 같은 색 픽셀을 먹어요. 아래 블록은 뒤집혀 있어서 맨 윗줄만 보여요! 90초 안에 다 먹이세요. (50×50 · 난이도 ★★★★★)',
     sudoku:'가로줄·세로줄·3×3 칸마다 1~9가 한 번씩만 들어가게 채우세요. 3번 틀리면 실패, 힌트는 +30초!',
     freecell:'카드를 눌러 고르고 옮길 곳을 누르세요. 8줄의 카드를 같은 무늬 A→K 순서로 오른쪽 위 4칸에 모두 올리면 완성! 빈 칸 4개를 잘 활용하세요.',
     blockpuz:'아래 블록 3개를 끌어서 판에 놓으세요. 가로나 세로 한 줄을 꽉 채우면 사라져요. 더 놓을 곳이 없으면 끝!',
     queens:'가로줄·세로줄·같은 색 구역마다 🐱 1마리씩! 고양이끼리는 대각선 포함 붙으면 안 돼요. 맞는 자리면 주변이 자동으로 ✕, 틀리면 🐟를 잃어요 (3번까지)' }[g.type];
-  const lv = g.type === 'pixel' ? `<p class="hint">🖼️ 오늘의 그림: <b>${esc(pixelArt(g.level || 0).name)}</b> · ${PX_MODES[pixelBoard(g.level || 0).mode]}</p>`
+  const lv = g.type === 'pixel' ? `<p class="hint">🖼️ 오늘의 그림: <b>${esc(pixelBoard(g.level || 0).name)}</b> · ${PX_MODES[pixelBoard(g.level || 0).mode]}</p>`
     : g.type === 'queens' ? `<p class="hint">🐱 이번 판 크기: <b>${queensSize(g.seed)}×${queensSize(g.seed)}</b></p>` : '';
   return `<p class="hint">${rule}</p>${lv}
     <button class="btn" data-act="arcadePlay">▶ ${mine >= 0 ? '같은 판 다시 도전하기' : '도전하기'}</button>
@@ -2483,9 +2598,9 @@ ACT.arcadeNew = async () => {
   if (Object.keys(g.results || {}).length && !await uiConfirm('새 판으로 바꾸면 이 방 순위가 초기화돼요. 바꿀까요?', { ok:'바꾸기' })) return;
   const info = GAMES[g.type];
   let lv = Math.floor(Math.random() * 1000);
-  if (g.type === 'pixel') for (let k = 0; k < 20 && pixelArt(lv).name === pixelArt(g.level || 0).name; k++) lv = Math.floor(Math.random() * 1000);
+  if (g.type === 'pixel') for (let k = 0; k < 20 && pixelBoard(lv).name === pixelBoard(g.level || 0).name; k++) lv = Math.floor(Math.random() * 1000);
   tx(() => ({ seed: Math.floor(Math.random() * 2147483647), level: lv, results: {} }),
-    () => sys(`${info.icon} ${info.name} 새 판으로 바꿨어요!${g.type === 'pixel' ? ` 🖼️ ${pixelArt(lv).name}` : ''}`));
+    () => sys(`${info.icon} ${info.name} 새 판으로 바꿨어요!${g.type === 'pixel' ? ` 🖼️ ${pixelBoard(lv).name}` : ''}`));
 };
 ACT.arcadePlay = () => { const g = curGame?.data; if (g) openArcade(g.type, curGame.id, g.seed, g.level || 0); };
 
@@ -2724,21 +2839,26 @@ function JewelGame(stage, ctrl, seed, _lv, onEnd, setInfo){
 /* 🖼️ 픽셀 퍼즐: 블록을 올리면 개미들이 구멍에서 나와 테두리를 돌며 같은 색 픽셀을 먹어요 */
 function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
   const board = pixelBoard(level), rng = mulberry32(seed), S = board.S, P = S * 4;
-  const grid = board.grid;
+  const grid = board.grid.map(r => [...r]);
   const total = {};
   grid.forEach(r => r.forEach(ch => { if (ch) total[ch] = (total[ch] || 0) + 1; }));
   const ALL = Object.values(total).reduce((a,b) => a + b, 0);
   const tiles = [];
-  Object.entries(total).forEach(([ch, n]) => { while (n > 0) { let k = n <= 60 ? n : 20 + Math.floor(rng() * 41); if (n - k > 0 && n - k < 12) k = n; tiles.push({ ch, n:k, fly:0, cool:0 }); tiles[tiles.length - 1].key = rng(); n -= k; } });
-  tiles.sort((a,b) => a.key - b.key); // 순서를 완전히 섞음: 안쪽 색을 먼저 올리면 칸이 막혀요
-  let stacks = [[],[],[],[]]; tiles.forEach((t,i) => stacks[i % 4].push(t));
-  let slots = 4, queue = [], ants = [], remaining = ALL, alive = true, t0 = Date.now(), items = { slot:1, shuffle:1 }, used = 0, clock = null, raf = 0, warned = false, dirty = true, last = 0;
+  Object.entries(total).forEach(([ch, n]) => { while (n > 0) { let k = n <= 50 ? n : 20 + Math.floor(rng() * 41); if (n - k > 0 && n - k < 12) k = n; tiles.push({ ch, n:k, fly:0, cool:0 }); tiles[tiles.length - 1].key = rng(); n -= k; } });
+  // 색마다 테두리에서 평균 깊이 → 대체로 바깥 색이 먼저지만 섞여 있어서 순서를 잘 골라야 해요
+  const depth = {}, dcnt = {};
+  grid.forEach((r,y) => r.forEach((ch,x) => { if (!ch) return; const d = Math.min(y, S - 1 - y, x, S - 1 - x); depth[ch] = (depth[ch] || 0) + d; dcnt[ch] = (dcnt[ch] || 0) + 1; }));
+  tiles.forEach(t => t.key = depth[t.ch] / dcnt[t.ch] / (S / 2) * .55 + t.key * .45);
+  tiles.sort((a,b) => a.key - b.key);
+  const COLS = 5;
+  let stacks = Array.from({ length:COLS }, () => []); tiles.forEach((t,i) => stacks[i % COLS].push(t));
+  let slots = 5, queue = [], ants = [], remaining = ALL, alive = true, t0 = Date.now(), items = { slot:1, shuffle:1 }, used = 0, clock = null, raf = 0, warned = false, dirty = true, last = 0;
   const pops = [];
   stage.innerHTML = `<div class="px-wrap"><canvas class="px-pic"></canvas><div class="px-queue"></div><div class="px-stacks"></div></div>`;
   const cv = stage.querySelector('canvas'), ctx = cv.getContext('2d'), qEl = stage.querySelector('.px-queue'), sEl = stage.querySelector('.px-stacks');
   let cell = 12;
-  const dark = ch => ['k','n','G','b','u','v'].includes(ch);
-  const tileStyle = ch => `background:${PCOL[ch]};color:${dark(ch) ? '#fff' : '#222'}`;
+  const dark = ch => lum(ch) < 140;
+  const tileStyle = ch => `background:${ch};color:${dark(ch) ? '#fff' : '#222'}`;
   // 테두리 길: 위(→) · 오른쪽(↓) · 아래(←) · 왼쪽(↑). 개미는 아래 가운데 구멍에서 출발
   const START = S * 2 + Math.floor(S / 2);
   function spot(i){ // 테두리 위치 → 그림 밖 칸 좌표, 안쪽으로 훑을 방향
@@ -2769,7 +2889,7 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
   }
   function eatFrom(i, ch){
     const t = findFrom(i, ch); if (!t) return false;
-    const [y, x] = t; grid[y][x] = null; remaining--; pops.push({ x, y, c: PCOL[ch], t: 0 }); return true;
+    const [y, x] = t; grid[y][x] = null; remaining--; pops.push({ x, y, c: ch, t: 0 }); return true;
   }
   const canEat = ch => {   // 테두리 전체에서 한 번에 탐색
     const seen = new Uint8Array(S * S), q = [];
@@ -2797,7 +2917,7 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
     ctx.fillStyle = '#120e22'; ctx.fillRect(cell, cell, S * cell, S * cell);
     grid.forEach((r,y) => r.forEach((ch,x) => {
       if (!ch) { ctx.fillStyle = 'rgba(255,255,255,.04)'; ctx.fillRect(cx(x) + 1, cy(y) + 1, cell - 2, cell - 2); return; }
-      ctx.fillStyle = PCOL[ch]; ctx.fillRect(cx(x) + .5, cy(y) + .5, cell - 1, cell - 1);
+      ctx.fillStyle = ch; ctx.fillRect(cx(x) + .5, cy(y) + .5, cell - 1, cell - 1);
       ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(cx(x) + .5, cy(y) + .5, cell - 1, Math.max(1, cell * .2));
     }));
     pops.forEach(p => { const k = p.t / 250; ctx.globalAlpha = 1 - k; ctx.fillStyle = p.c; const g = cell * (1 + k); ctx.fillRect(cx(p.x) + cell / 2 - g / 2, cy(p.y) + cell / 2 - g / 2, g, g); ctx.globalAlpha = 1; });
@@ -2807,7 +2927,7 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
     ants.forEach(a => {
       const f = a.i - Math.floor(a.i), s1 = spot(Math.floor(a.i)), s2 = spot(Math.floor(a.i) + 1);
       const x = cx(s1.x + (s2.x - s1.x) * f) + cell / 2, y = cy(s1.y + (s2.y - s1.y) * f) + cell / 2, r = Math.max(3.5, cell * .45);
-      ctx.fillStyle = PCOL[a.t.ch]; ctx.strokeStyle = '#120e22'; ctx.lineWidth = Math.max(1, cell * .08);
+      ctx.fillStyle = a.t.ch; ctx.strokeStyle = '#120e22'; ctx.lineWidth = Math.max(1, cell * .08);
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#120e22'; ctx.beginPath(); ctx.arc(x + (s2.x - s1.x) * r * .9, y + (s2.y - s1.y) * r * .9, r * .45, 0, Math.PI * 2); ctx.fill();
     });
@@ -2826,12 +2946,12 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
     if (!alive) return; alive = false; cancelAnimationFrame(raf); clearInterval(clock); info(); draw();
     onEnd(cleared ? { cleared:true, time: secs() + used * 10, pct:100 } : { cleared:false, pct: pct(), time: secs() });
   }
-  const SPEED = 22, MAX_ANTS = 14, LIMIT = 70; // 초당 칸 수 · 길 위 개미 최대 수 · 제한 시간(초)
+  const SPEED = 34, MAX_ANTS = 30, LIMIT = 90; // 초당 칸 수 · 길 위 개미 최대 수 · 제한 시간(초)
   function frame(ts){
     if (!alive) return;
     const dt = Math.min(50, ts - (last || ts)); last = ts;
     // 블록마다 개미를 줄지어 내보냄 (남은 개수만큼만)
-    queue.forEach(t => { t.cool -= dt; if (t.cool <= 0 && t.fly < Math.min(t.n, 5) && ants.length < MAX_ANTS) { ants.push({ t, i: START, run: 0 }); t.fly++; t.cool = 110; } });
+    queue.forEach(t => { t.cool -= dt; if (t.cool <= 0 && t.fly < Math.min(t.n, 8) && ants.length < MAX_ANTS) { ants.push({ t, i: START, run: 0 }); t.fly++; t.cool = 60; } });
     const keep = [];
     for (const a of ants) {
       const from = a.i, to = a.i + SPEED * dt / 1000; let ate = false;
@@ -2870,10 +2990,11 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
     if (b.dataset.it === 'shuffle' && items.shuffle) {
       items.shuffle--; used++; warned = false;
       const all = stacks.flat(); for (let i = all.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [all[i], all[j]] = [all[j], all[i]]; }
-      stacks = [[],[],[],[]]; all.forEach((t,i) => stacks[i % 4].push(t));
+      stacks = Array.from({ length:COLS }, () => []); all.forEach((t,i) => stacks[i % COLS].push(t));
     }
     renderTiles();
   });
+  stage._canEat = canEat;
   const resize = () => { sizePic(); draw(); };
   window.addEventListener('resize', resize);
   sizePic(); renderTiles(); info(); draw();
@@ -3615,6 +3736,21 @@ window.noltalkBack = () => {
   return false;
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
+// 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
+const BUILD = 'b20261018d';
+async function checkWebUpdate(){
+  try {
+    const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
+    const m = t.match(/const BUILD = '([^']+)'/);
+    if (!m || m[1] === BUILD) return;
+    if (sessionStorage.getItem('upd') === m[1]) return;      // 같은 버전으로 두 번 새로고침하지 않기
+    if (arcadeGame || (curGame && curGame.data?.status === 'playing')) return;   // 게임 중엔 미룸
+    sessionStorage.setItem('upd', m[1]);
+    const u = new URL(location.href); u.searchParams.set('v', m[1]); location.replace(u.toString());
+  } catch {}
+}
+setTimeout(checkWebUpdate, 3000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkWebUpdate(); });
 </script>
 </body>
 </html>
