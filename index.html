@@ -382,6 +382,36 @@ input{font:inherit}
 .tz-c{border-radius:8px;background:rgba(238,228,218,.35);display:flex;align-items:center;justify-content:center;font-weight:900}
 .tz-c.new{animation:tzPop .18s}.tz-c.mg{animation:tzPop .2s}
 @keyframes tzPop{0%{transform:scale(.6)}100%{transform:scale(1)}}
+.bal{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.bal-opt{position:relative;overflow:hidden;padding:18px 14px;border-radius:16px;font-size:17px;text-align:center;display:flex;flex-direction:column;gap:4px;color:#fff}
+.bal-opt.a{background:linear-gradient(135deg,#ff7a8a,#ff4d6d)}.bal-opt.b{background:linear-gradient(135deg,#5b9dff,#3d6bff)}
+.bal-opt.on{box-shadow:0 0 0 4px var(--acc)}
+.bal-opt:disabled{opacity:1}
+.bal-opt i{position:absolute;left:0;bottom:0;height:5px;background:rgba(255,255,255,.75)}
+.bal-pct{font-size:26px;font-weight:900}
+.bal-opt small{opacity:.9}
+.bal-vs{text-align:center;font-weight:900;color:var(--sub)}
+.ud-range{display:flex;align-items:center;gap:8px;margin:10px 0;font-weight:800}
+.ud-bar{flex:1;height:12px;border-radius:6px;background:var(--bg);position:relative;overflow:hidden}
+.ud-bar i{position:absolute;top:0;bottom:0;background:linear-gradient(90deg,#7c4dff,#ff6fb5);border-radius:6px}
+.ud-log{display:flex;flex-direction:column;gap:3px;margin-top:10px;font-size:14px;max-height:160px;overflow-y:auto}
+.rl-wrap{position:relative;width:260px;height:260px;margin:6px auto 10px}
+.rl-pin{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:26px;color:#ff4d6d;z-index:2;text-shadow:0 2px 3px rgba(0,0,0,.3)}
+.rl-wheel{width:100%;height:100%;border-radius:50%;position:relative;box-shadow:0 0 0 6px #fff,0 8px 24px rgba(0,0,0,.25)}
+.rl-wheel em{position:absolute;transform:translate(-50%,-50%);max-width:84px;text-align:center;font-style:normal;font-weight:900;font-size:13px;color:#222;line-height:1.15;word-break:keep-all;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+.rl-wrap + .status + .btn + .row .btn{white-space:nowrap}
+.chip.out{background:#ffd6dc;color:#c0123c;text-decoration:line-through}
+.nc-log{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0}
+.nc-log span{background:var(--bg);border-radius:10px;padding:6px 10px;font-weight:900;font-size:18px}
+.nc-log small{font-size:11px;font-weight:600;color:var(--sub)}
+.nc-big{font-size:64px;font-weight:900;text-align:center;color:var(--p)}
+.nc-btn{display:block;margin:10px auto;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff8fa3,#ff3d6e);color:#fff;font-size:44px;font-weight:900;box-shadow:0 8px 0 #c21f4a}
+.nc-btn:active{transform:translateY(6px);box-shadow:0 2px 0 #c21f4a}
+.bomb-box{display:flex;align-items:center;justify-content:center;gap:18px;margin:12px 0}
+.bomb-ic{font-size:64px;animation:bombTick 1s infinite}
+.bomb-ic.hot{animation:bombTick .25s infinite;filter:drop-shadow(0 0 10px #ff3d3d)}
+@keyframes bombTick{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg) scale(1.06)}}
+.bomb-syl{font-size:54px;font-weight:900;background:var(--bg);border-radius:18px;padding:4px 22px;color:var(--p)}
 </style>
 </head>
 <body>
@@ -536,12 +566,17 @@ const GAMES = {
   blockpuz:  { icon:'🟦', name:'블록 퍼즐',  desc:'각자 플레이 · 점수 대결', max:99 },
   chess:     { icon:'♟️', name:'체스',       desc:'1:1 정통 체스', max:2 },
   freecell:  { icon:'🃏', name:'프리셀',     desc:'각자 플레이 · 기록 대결', max:99 },
+  balance:   { icon:'⚖️', name:'밸런스 게임', desc:'둘 중 하나! 취향 대결', max:12 },
+  updown:    { icon:'🔼', name:'업다운',     desc:'숫자 맞히기', max:8 },
+  roulette:  { icon:'🎯', name:'벌칙 룰렛',  desc:'돌려서 정하기', max:20 },
+  nunchi:    { icon:'👀', name:'눈치 게임',  desc:'동시에 외치면 탈락', max:10 },
+  bomb:      { icon:'💣', name:'폭탄 돌리기', desc:'낱말로 폭탄 넘기기', max:8 },
   kordle:    { icon:'🟩', name:'꼬들',       desc:'각자 플레이 · 기록 대결', max:99 },
   mines:     { icon:'💣', name:'지뢰찾기',   desc:'각자 플레이 · 기록 대결', max:99 },
   g2048:     { icon:'🔢', name:'2048',       desc:'각자 플레이 · 점수 대결', max:99 },
 };
 const TURN_GAMES = ['wordchain','bingo']; // 턴 타이머가 있는 게임
-const HOST_START = { wordchain:2, bingo:2, ladder:2, liar:3, mafia:4, chosung:2 }; // 방장이 시작 버튼을 누르는 게임 (최소 인원)
+const HOST_START = { wordchain:2, bingo:2, ladder:2, liar:3, mafia:4, chosung:2, balance:2, updown:2, roulette:1, nunchi:3, bomb:2 }; // 방장이 시작 버튼을 누르는 게임 (최소 인원)
 
 /* ---------- 공통 ---------- */
 function show(id){
@@ -1578,6 +1613,8 @@ const GAME_META = {
   sudoku:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, queens:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
   blockpuz:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, freecell:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
   chess:{ cat:'duel', min:2, ppl:'2명 · 🤖AI' },
+  balance:{ cat:'group', min:2, ppl:'2~12명' }, updown:{ cat:'group', min:2, ppl:'2~8명' }, roulette:{ cat:'group', min:1, ppl:'1명~' },
+  nunchi:{ cat:'mind', min:3, ppl:'3~10명' }, bomb:{ cat:'quiz', min:2, ppl:'2~8명' },
   kordle:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, mines:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, g2048:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
 };
 let gameCat = 'all';
@@ -1625,6 +1662,7 @@ async function startGame(type){
     queens:    { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
     blockpuz:  { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
     freecell:  { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
+    balance:{}, updown:{}, roulette:{}, nunchi:{}, bomb:{},
     kordle:    { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
     mines:     { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
     g2048:     { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
@@ -1873,7 +1911,7 @@ function gameOutcome(g){
     case 'chosung': { const sc = g.scores || {}, mx = Math.max(0, ...Object.values(sc)); return { P, W: mx > 0 ? P.filter(u => (sc[u] || 0) === mx) : [] }; }
     case 'baseball': return { P, W: g.winner ? [g.winner] : [] };
     case 'chess': return g.status === 'done' ? { P, W: g.winner ? [g.winner] : [] } : null;
-    default: return null;
+    default: return GAME_HOOK[g.type]?.outcome ? GAME_HOOK[g.type].outcome(g, P) : null;
   }
 }
 function recordStats(g, gid){
@@ -2140,7 +2178,7 @@ function renderGame(){
   const g = gd(); if (!g) return;
   const info = GAMES[g.type];
   $('#gvTitle').textContent = `${info.icon} ${info.name}`;
-  const ids = ['wcInput','ladderOut','liarGuess','choInput','bbSecret','bbGuess'], keep = {};
+  const ids = ['wcInput','ladderOut','liarGuess','choInput','bbSecret','bbGuess', ...GAME_INPUTS.map(x => x[0])], keep = {};
   ids.forEach(id => { const el = document.getElementById(id); if (el) keep[id] = { v: el.value, f: document.activeElement === el }; });
   const banner = curGame.pr && isLocal() ? `<div class="pr-banner">👀 상대를 기다리는 동안 🤖 AI와 연습 중<small>친구가 참가하면 바로 진짜 게임으로 바뀌어요 (${curGame.data.players.length}/${curGame.data.maxPlayers})</small></div>` : '';
   $('#gvBody').innerHTML = banner + R[g.type](g, g.players.some(p => p.uid === me.uid));
@@ -2182,6 +2220,7 @@ const ACT = {
       if (g.type === 'liar') { msg = `🤥 라이어게임 시작! 카드를 확인하고 채팅으로 제시어를 설명하세요`; return liarRound(g); }
       if (g.type === 'chosung') { msg = '🔡 초성퀴즈 시작! 게임창에서 정답을 입력하세요'; return { status:'playing', round:1, scores:{}, lastWord:null, lastWinner:null, ...choRound() }; }
       if (g.type === 'mafia') { msg = `🔪 마피아 시작! ${n}명 중 마피아가 숨어 있어요. 🌙 첫날 밤이 되었습니다`; return mafiaRound(g); }
+      if (GAME_HOOK[g.type]?.start) { const r = GAME_HOOK[g.type].start(g); msg = r.msg; return r.u; }
       return { status:'playing', turn:0, turnStartedAt: Date.now() };
     }, () => msg && sys(msg));
   },
@@ -2351,6 +2390,7 @@ const ACT = {
     let msg = null;
     tx(g => { const u = (() => {
       if (g.status !== 'done') return null;
+      if (GAME_HOOK[g.type]?.rematch) { const r = GAME_HOOK[g.type].rematch(g); msg = r.msg; return r.u; }
       if (g.type === 'chosung') { msg = '🔡 초성퀴즈 새 판 시작!'; return { status:'playing', round:1, scores:{}, lastWord:null, lastWinner:null, ...choRound() }; }
       if (g.type === 'baseball') return { players:[g.players[1], g.players[0]], phase:'setup', secrets:{}, guesses:[], turn:0, winner:null, status:'playing' };
       if (g.type === 'chess') { msg = `♟️ 체스 새 판! 이번엔 ${g.players[1].name}님이 백(선공)이에요`; chSel = null; chPromo = null;
@@ -2410,7 +2450,7 @@ $('#gvBody').addEventListener('click', e => {
   ACT[b.dataset.act]?.(b.dataset.v);
 });
 $('#gvBody').addEventListener('keydown', e => {
-  const map = { wcInput:'submit', liarGuess:'liarGuess', choInput:'choSubmit', bbSecret:'bbSecret', bbGuess:'bbGuess' };
+  const map = { wcInput:'submit', liarGuess:'liarGuess', choInput:'choSubmit', bbSecret:'bbSecret', bbGuess:'bbGuess', ...Object.fromEntries(GAME_INPUTS) };
   if (map[e.target.id] && isEnter(e)) { e.preventDefault(); ACT[map[e.target.id]](); }
 });
 // 턴 타이머 (끝말잇기·빙고)
@@ -3471,6 +3511,11 @@ function BlockPuzzleGame(stage, ctrl, seed, _lv, onEnd, setInfo){
   return { stop(){ alive = false; window.removeEventListener('resize', resize); } };
 }
 
+/* ================= 새 게임 공통: 시작·다시하기·승패 훅, 입력칸, 1초 타이머 ================= */
+const GAME_HOOK = {};      // type → { start(g), rematch(g), outcome(g, P), tick(g) }
+const GAME_INPUTS = [];    // [입력칸 id, Enter 때 실행할 ACT 이름]
+setInterval(() => { const g = gd(); if (g && GAME_HOOK[g.type]?.tick && document.getElementById('gameView').classList.contains('show')) GAME_HOOK[g.type].tick(g); }, 1000);
+
 /* ================= 🟩 꼬들 (한글 워들) ================= */
 const KD_CHO = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
 const KD_JUNG = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
@@ -3655,6 +3700,194 @@ function G2048Game(stage, ctrl, seed, _lv, onEnd, setInfo){
   render();
   return { stop(){ alive = false; stage.style.touchAction = ''; document.removeEventListener('keydown', kd); window.removeEventListener('resize', resize); } };
 }
+
+/* ================= ⚖️ 밸런스 게임 ================= */
+const BAL_Q = [['평생 라면만 먹기','평생 치킨만 먹기'],['여름에 패딩','겨울에 반팔'],['투명인간 되기','하늘 날기'],['과거로 가기','미래로 가기'],['10억 받고 무인도 1년','그냥 지금처럼 살기'],
+  ['평생 휴대폰 없이','평생 TV 없이'],['짜장면','짬뽕'],['부먹','찍먹'],['산','바다'],['아침형 인간','저녁형 인간'],['고양이','강아지'],['민트초코 매일 먹기','평생 초콜릿 금지'],
+  ['말할 때마다 노래하기','걸을 때마다 춤추기'],['모든 사람 속마음 듣기','모든 동물과 대화하기'],['월급 2배 + 주 6일','지금 월급 + 주 4일'],['혼자 해외여행','친구들과 국내여행'],
+  ['10년 젊어지기','10억 받기'],['매운맛 끝판왕','단맛 끝판왕'],['영화관 맨 앞줄','공연장 맨 뒷줄'],['평생 비 오는 날','평생 더운 날'],['집에서 쉬기','밖에서 놀기'],
+  ['첫눈에 반하기','오래 보며 정들기'],['탕수육 부먹 친구','탕수육 찍먹 친구'],['좋아하는 노래 하나만 평생','처음 듣는 노래만 평생'],['순간이동','시간 멈추기'],
+  ['치약 맛 초콜릿','초콜릿 맛 치약'],['연락 너무 자주 하는 애인','연락 거의 안 하는 애인'],['머리 감기 없이 1주일','양치 없이 3일'],['방탈출 1등','노래방 100점'],
+  ['평생 반말 듣기','평생 존댓말만 하기'],['겨울 바다','여름 계곡'],['공포영화','로맨스영화'],['게임 고수','공부 고수'],['수박','참외'],['떡볶이','순대'],
+  ['냉면 물','냉면 비빔'],['눈치 백단','운빨 백단'],['콘서트 1열','팬사인회'],['자동차','오토바이'],['읽는 책','듣는 팟캐스트']];
+function balRound(g, round){
+  const used = round === 1 ? [] : (g.used || []); let i, guard = 0;
+  do { i = Math.floor(Math.random() * BAL_Q.length); } while (used.includes(i) && guard++ < 50);
+  return { status:'playing', round, rounds: g.rounds || 5, q: BAL_Q[i], used: [...used, i], votes:{}, reveal:false };
+}
+GAME_HOOK.balance = {
+  start: g => ({ u: balRound(g, 1), msg: '⚖️ 밸런스 게임 시작! 게임창에서 골라주세요' }),
+  rematch: g => ({ u: balRound(g, 1), msg: '⚖️ 밸런스 게임 새 판!' }),
+};
+R.balance = (g, meIn) => {
+  if (g.status === 'waiting') return waitingHTML(g, meIn);
+  if (g.status === 'done') return `<div class="card"><div class="big2">⚖️ 밸런스 게임 끝!</div><small>${g.rounds}문제 모두 골랐어요</small></div>${meIn && g.createdBy === me.uid ? '<button class="btn" data-act="rematch">한판 더!</button>' : ''}`;
+  const v = g.votes || {}, n = Object.keys(v).length, mine = v[me.uid], total = g.players.length;
+  const side = k => { const who = g.players.filter(p => v[p.uid] === k), pct = n ? Math.round(who.length / n * 100) : 0;
+    return `<button class="bal-opt ${k} ${mine === k ? 'on' : ''}" data-act="balVote" data-v="${k}" ${g.reveal ? 'disabled' : ''}>
+      <b>${esc(g.q[k === 'a' ? 0 : 1])}</b>${g.reveal ? `<span class="bal-pct">${pct}%</span><small>${who.map(p => esc(p.name)).join(', ') || '아무도 없음'}</small><i style="width:${pct}%"></i>` : ''}</button>`; };
+  let h = `<div class="status">질문 ${g.round} / ${g.rounds}</div><div class="bal">${side('a')}<div class="bal-vs">VS</div>${side('b')}</div>`;
+  h += g.reveal ? '' : `<p class="hint" style="text-align:center">${mine ? '골랐어요! 다른 사람을 기다리는 중' : '하나를 골라주세요'} (${n}/${total})</p>`;
+  if (g.createdBy === me.uid) h += g.reveal ? `<button class="btn" data-act="balNext">${g.round >= g.rounds ? '끝내기' : '다음 질문 ▶'}</button>` : (n ? `<button class="btn ghost" data-act="balReveal">지금 결과 공개</button>` : '');
+  return h;
+};
+ACT.balVote = v => tx(g => {
+  if (g.status !== 'playing' || g.reveal) return null;
+  if (!g.players.some(p => p.uid === me.uid)) return '참가자가 아니에요';
+  const votes = { ...g.votes, [me.uid]: v };
+  return { votes, reveal: Object.keys(votes).length >= g.players.length };
+});
+ACT.balReveal = () => tx(g => g.createdBy === me.uid && g.status === 'playing' ? { reveal:true } : null);
+ACT.balNext = () => { let msg = null; tx(g => {
+  if (g.createdBy !== me.uid || !g.reveal) return null;
+  if (g.round >= g.rounds) { msg = '⚖️ 밸런스 게임 끝! 다들 취향이 확실하네요 😆'; return { status:'done' }; }
+  return balRound(g, g.round + 1);
+}, () => msg && sys(msg)); };
+
+/* ================= 🔢 업다운 ================= */
+const UD_MS = 25000;
+GAME_HOOK.updown = {
+  start: g => ({ u: { status:'playing', secret: 1 + Math.floor(Math.random() * 100), lo:1, hi:100, turn:0, turnStartedAt: Date.now(), guesses:[], winner:null }, msg: '🔢 업다운 시작! 1~100 사이 숫자를 맞혀보세요' }),
+  rematch: g => ({ u: { status:'playing', secret: 1 + Math.floor(Math.random() * 100), lo:1, hi:100, turn:(g.turn + 1) % g.players.length, turnStartedAt: Date.now(), guesses:[], winner:null }, msg: '🔢 업다운 새 판!' }),
+  outcome: (g, P) => g.status === 'done' ? { P, W: g.winner ? [g.winner] : [] } : null,
+  tick: g => { if (g.status === 'playing' && Date.now() - g.turnStartedAt > UD_MS + 1500) tx(x => x.status === 'playing' && x.turnStartedAt === g.turnStartedAt ? { turn:(x.turn + 1) % x.players.length, turnStartedAt: Date.now() } : null); else { const bar = document.getElementById('udTimer'); if (bar) bar.style.width = Math.max(0, 100 - (Date.now() - g.turnStartedAt) / UD_MS * 100) + '%'; } },
+};
+R.updown = (g, meIn) => {
+  if (g.status === 'waiting') return waitingHTML(g, meIn);
+  const cur = g.players[g.turn], myTurn = g.status === 'playing' && cur?.uid === me.uid;
+  let h = playersHTML(g, g.status === 'playing' ? g.turn : -1);
+  h += `<div class="ud-range"><span>${g.lo}</span><div class="ud-bar"><i style="left:${(g.lo - 1)}%;width:${g.hi - g.lo + 1}%"></i></div><span>${g.hi}</span></div>`;
+  if (g.status === 'done') h += `<div class="card"><div class="big2">🎯 정답 ${g.secret}!</div><small>${esc(nameOf(g, g.winner))}님이 맞혔어요</small></div>${meIn ? '<button class="btn" data-act="rematch">한판 더!</button>' : ''}`;
+  else {
+    h += `<div class="timer"><i id="udTimer"></i></div><div class="status">${myTurn ? '🔥 내 차례! 숫자를 말해요' : `${esc(cur.name)}님 차례`}</div>`;
+    if (myTurn) h += `<div class="row"><input id="udInput" class="field" type="number" inputmode="numeric" min="${g.lo}" max="${g.hi}" placeholder="${g.lo}~${g.hi}" autocomplete="off" enterkeyhint="send"><button class="btn" style="width:auto;padding:0 18px" data-act="udGuess">말하기</button></div>`;
+  }
+  h += `<div class="ud-log">${(g.guesses || []).slice().reverse().map(x => `<div><b>${esc(nameOf(g, x.uid))}</b> ${x.n} → ${x.r === 'up' ? '⬆️ 업!' : x.r === 'down' ? '⬇️ 다운!' : '🎯 정답!'}</div>`).join('')}</div>`;
+  return h;
+};
+ACT.udGuess = () => {
+  const n = parseInt(document.getElementById('udInput')?.value, 10); if (!n) return;
+  let msg = null;
+  tx(g => {
+    if (g.status !== 'playing' || g.players[g.turn]?.uid !== me.uid) return '내 차례가 아니에요';
+    if (n < g.lo || n > g.hi) return `${g.lo}~${g.hi} 사이로 말해주세요`;
+    const r = n === g.secret ? 'hit' : n < g.secret ? 'up' : 'down', guesses = [...(g.guesses || []), { uid: me.uid, n, r }];
+    if (r === 'hit') { msg = `🔢 업다운: ${me.name}님이 ${n} 정답! 🎯`; return { guesses, status:'done', winner: me.uid }; }
+    return { guesses, lo: r === 'up' ? n + 1 : g.lo, hi: r === 'down' ? n - 1 : g.hi, turn: (g.turn + 1) % g.players.length, turnStartedAt: Date.now() };
+  }, () => { const el = document.getElementById('udInput'); if (el) el.value = ''; if (msg) sys(msg); });
+};
+GAME_INPUTS.push(['udInput','udGuess']);
+
+/* ================= 🎯 벌칙 룰렛 ================= */
+const RL_COLS = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c77dff','#ff9f43','#00c2a8','#ff7eb6'];
+let rlShown = 0;
+GAME_HOOK.roulette = {
+  start: g => ({ u: { status:'playing', items: g.players.length > 1 ? g.players.map(p => p.name) : ['커피 쏘기','노래 한 곡','설거지','통과!'], spinAt:0, result:-1 }, msg: '🎯 벌칙 룰렛 준비 완료! 게임창에서 돌려보세요' }),
+};
+R.roulette = (g, meIn) => {
+  if (g.status === 'waiting') return waitingHTML(g, meIn);
+  const it = g.items || [], n = it.length, seg = 360 / n;
+  const grad = it.map((_, i) => `${RL_COLS[i % RL_COLS.length]} ${i * seg}deg ${(i + 1) * seg}deg`).join(',');
+  const labels = it.map((t, i) => { const a = (i + .5) * seg * Math.PI / 180; return `<em style="left:${50 + 31 * Math.sin(a)}%;top:${50 - 31 * Math.cos(a)}%">${esc(t)}</em>`; }).join('');
+  const fresh = g.spinAt && g.spinAt !== rlShown && Date.now() - g.spinAt < 6000;
+  const final = g.result >= 0 ? 360 * 6 - (g.result + .5) * seg : 0;
+  let h = `<div class="rl-wrap"><div class="rl-pin">▼</div><div class="rl-wheel" id="rlWheel" style="background:conic-gradient(${grad});transform:rotate(${fresh ? 0 : final}deg)">${labels}</div></div>`;
+  h += `<div class="status" id="rlRes">${g.result >= 0 && !fresh ? `🎯 결과: <b>${esc(it[g.result])}</b>` : g.result >= 0 ? '두구두구… 🥁' : '돌려서 정해봐요!'}</div>`;
+  if (meIn) h += `<button class="btn" data-act="rlSpin">🎡 룰렛 돌리기</button>`;
+  if (g.createdBy === me.uid) h += `<div class="row" style="margin-top:8px"><input id="rlItems" class="field" maxlength="200" placeholder="항목을 쉼표로 (최대 8개)" value="${esc(it.join(', '))}" autocomplete="off"><button class="btn ghost" style="width:auto;padding:0 14px" data-act="rlSet">바꾸기</button></div>`;
+  if (fresh) { rlShown = g.spinAt; requestAnimationFrame(() => requestAnimationFrame(() => { const w = document.getElementById('rlWheel'); if (w) { w.style.transition = 'transform 4s cubic-bezier(.12,.75,.15,1)'; w.style.transform = `rotate(${final}deg)`; } }));
+    setTimeout(() => { const r = document.getElementById('rlRes'); if (r && curGame?.data?.spinAt === g.spinAt) r.innerHTML = `🎯 결과: <b>${esc(it[g.result])}</b>`; try { navigator.vibrate?.([40,40,80]); } catch {} }, 4100); }
+  return h;
+};
+ACT.rlSpin = () => { let res = null, items = null; tx(g => {
+  if (g.status !== 'playing' || Date.now() - (g.spinAt || 0) < 4500) return null;
+  res = Math.floor(Math.random() * g.items.length); items = g.items; return { spinAt: Date.now(), result: res };
+}, () => { if (res !== null) setTimeout(() => sys(`🎯 벌칙 룰렛 결과: ${items[res]}!`), 4200); }); };
+ACT.rlSet = () => {
+  const items = clean(document.getElementById('rlItems')?.value || '').split(/[,，\n]/).map(t => t.trim()).filter(Boolean).slice(0, 8);
+  if (items.length < 2) return toast('항목을 2개 이상 적어주세요');
+  tx(g => g.createdBy === me.uid ? { items, result:-1, spinAt:0 } : null, () => toast('룰렛을 바꿨어요'));
+};
+
+/* ================= 👀 눈치 게임 ================= */
+GAME_HOOK.nunchi = {
+  start: g => ({ u: { status:'playing', count:0, calls:[], losers:[], goAt: Date.now() + 3500 }, msg: '👀 눈치 게임 시작! 1부터 순서대로 외치세요. 동시에 외치면 탈락!' }),
+  rematch: g => ({ u: { status:'playing', count:0, calls:[], losers:[], goAt: Date.now() + 3500 }, msg: '👀 눈치 게임 새 판!' }),
+  outcome: (g, P) => g.status === 'done' ? { P, W: P.filter(u => !(g.losers || []).includes(u)) } : null,
+  tick: g => { if (g.status === 'playing' && Date.now() < g.goAt + 1000) renderGame(); },
+};
+R.nunchi = (g, meIn) => {
+  if (g.status === 'waiting') return waitingHTML(g, meIn);
+  const called = new Set((g.calls || []).map(c => c.uid)), wait = g.goAt - Date.now();
+  let h = `<div class="players">${g.players.map(p => `<span class="chip ${(g.losers || []).includes(p.uid) ? 'out' : called.has(p.uid) ? 'turn' : ''}">${esc(p.name)}${p.uid === me.uid ? ' (나)' : ''} ${called.has(p.uid) ? '✔' : ''}</span>`).join('')}</div>`;
+  h += `<div class="nc-log">${(g.calls || []).map(c => `<span>${c.n}! <small>${esc(nameOf(g, c.uid))}</small></span>`).join('') || '<span class="hint">아직 아무도 안 외쳤어요</span>'}</div>`;
+  if (g.status === 'done') {
+    h += `<div class="card"><div class="big2">💥 ${(g.losers || []).map(u => esc(nameOf(g, u))).join(', ')} 탈락!</div><small>${esc(g.reason || '')}</small></div>`;
+    if (meIn) h += '<button class="btn" data-act="rematch">한판 더!</button>';
+  } else if (wait > 0) { h += `<div class="nc-big">${Math.ceil(wait / 1000)}</div><p class="hint" style="text-align:center">준비…</p>`; clearTimeout(window.__ncT); window.__ncT = setTimeout(renderGame, wait % 1000 + 30); }
+  else if (meIn && !called.has(me.uid)) h += `<button class="nc-btn" data-act="ncCall" data-v="${(g.count || 0) + 1}">${(g.count || 0) + 1}!</button><p class="hint" style="text-align:center">눈치껏 누르세요! 동시에 누르면 둘 다 탈락, 끝까지 못 누르면 탈락</p>`;
+  else h += `<div class="nc-big">${g.count || 0}</div><p class="hint" style="text-align:center">${called.has(me.uid) ? '외쳤어요! 결과를 기다리는 중…' : '관전 중'}</p>`;
+  return h;
+};
+ACT.ncCall = v => { const n = +v; let msg = null; tx(g => {
+  if (g.status !== 'playing' || Date.now() < g.goAt) return null;
+  if (!g.players.some(p => p.uid === me.uid)) return '참가자가 아니에요';
+  if ((g.calls || []).some(c => c.uid === me.uid)) return null;
+  const hit = (g.calls || []).find(c => c.n === n);
+  if (hit) { msg = `👀 눈치 게임: ${nameOf(g, hit.uid)}님과 ${me.name}님이 동시에 ${n}! 💥 둘 다 탈락`; return { status:'done', losers:[hit.uid, me.uid], reason:`${n}을(를) 동시에 외쳤어요` }; }
+  if (n !== (g.count || 0) + 1) return null;
+  const calls = [...(g.calls || []), { n, uid: me.uid }];
+  if (calls.length >= g.players.length - 1) {
+    const last = g.players.filter(p => !calls.some(c => c.uid === p.uid)).map(p => p.uid);
+    msg = `👀 눈치 게임: 끝까지 못 외친 ${last.map(u => nameOf(g, u)).join(', ')}님 탈락! 😵`;
+    return { calls, count: n, status:'done', losers: last, reason:'마지막까지 못 외쳤어요' };
+  }
+  return { calls, count: n };
+}, () => { try { navigator.vibrate?.(20); } catch {} if (msg) sys(msg); }); };
+
+/* ================= 💣 폭탄 돌리기 ================= */
+const BOMB_SYL = '가 나 다 라 마 바 사 아 자 차 카 타 파 하 고 노 도 로 모 보 소 오 조 수 우 주 구 무 부 기 리 미 시 이 지 전 정 장 상 생 대 동 물 불 일 인 한 국 산 화 학 공 개 선 신 실 음 식 영'.split(' ');
+const bombFuse = () => Date.now() + 25000 + Math.floor(Math.random() * 25000);
+const bombSyl = prev => { let s; do { s = BOMB_SYL[Math.floor(Math.random() * BOMB_SYL.length)]; } while (s === prev); return s; };
+GAME_HOOK.bomb = {
+  start: g => ({ u: { status:'playing', turn: Math.floor(Math.random() * g.players.length), syl: bombSyl(), used:[], log:[], explodeAt: bombFuse(), loser:null }, msg: '💣 폭탄 돌리기 시작! 제시 글자가 들어간 낱말을 말하면 폭탄이 넘어가요' }),
+  rematch: g => ({ u: { status:'playing', turn: Math.max(0, g.players.findIndex(p => p.uid === g.loser)), syl: bombSyl(), used:[], log:[], explodeAt: bombFuse(), loser:null }, msg: '💣 폭탄 돌리기 새 판! 지난 판에 터진 사람부터 시작' }),
+  outcome: (g, P) => g.status === 'done' ? { P, W: P.filter(u => u !== g.loser) } : null,
+  tick: g => {
+    if (g.status !== 'playing') return;
+    if (Date.now() >= g.explodeAt) { let msg = null; tx(x => { if (x.status !== 'playing' || Date.now() < x.explodeAt) return null; const l = x.players[x.turn]; msg = `💥 펑! 폭탄이 ${l.name}님 손에서 터졌어요!`; return { status:'done', loser: l.uid }; }, () => msg && sys(msg)); }
+    else { const el = document.querySelector('.bomb-ic'); if (el) el.classList.toggle('hot', g.explodeAt - Date.now() < 6000); }
+  },
+};
+R.bomb = (g, meIn) => {
+  if (g.status === 'waiting') return waitingHTML(g, meIn);
+  const cur = g.players[g.turn], myTurn = g.status === 'playing' && cur?.uid === me.uid;
+  let h = playersHTML(g, g.status === 'playing' ? g.turn : -1);
+  if (g.status === 'done') {
+    h += `<div class="card"><div class="big2">💥 ${esc(nameOf(g, g.loser))} 펑!</div><small>낱말 ${(g.used || []).length}개를 주고받았어요</small></div>`;
+    if (meIn) h += '<button class="btn" data-act="rematch">한판 더!</button>';
+  } else {
+    h += `<div class="bomb-box"><div class="bomb-ic ${g.explodeAt - Date.now() < 6000 ? 'hot' : ''}">💣</div><div class="bomb-syl">${esc(g.syl)}</div></div>`;
+    h += `<div class="status">${myTurn ? `🔥 폭탄이 나한테! '${esc(g.syl)}'가 들어간 낱말!` : `${esc(cur.name)}님이 들고 있어요…`}</div>`;
+    if (myTurn) h += `<div class="row"><input id="bombInput" class="field" maxlength="8" placeholder="'${esc(g.syl)}' 들어간 낱말" autocomplete="off" enterkeyhint="send"><button class="btn" style="width:auto;padding:0 18px" data-act="bombSay">넘기기</button></div>`;
+  }
+  h += `<div class="ud-log">${(g.log || []).slice(-8).reverse().map(x => `<div><b>${esc(nameOf(g, x.uid))}</b> ${esc(x.w)} <small>(${esc(x.s)})</small></div>`).join('')}</div>`;
+  return h;
+};
+ACT.bombSay = () => {
+  const w = (document.getElementById('bombInput')?.value || '').trim().replace(/\s/g, '');
+  if (!w) return;
+  tx(g => {
+    if (g.status !== 'playing' || g.players[g.turn]?.uid !== me.uid) return '내 차례가 아니에요';
+    if (Date.now() >= g.explodeAt) return null;
+    if (!/^[가-힣]{2,8}$/.test(w)) return '한글 2글자 이상으로 말해주세요';
+    if (!w.includes(g.syl)) return `'${g.syl}'가 들어가야 해요`;
+    if ((g.used || []).includes(w)) return '이미 나온 낱말이에요';
+    if (BAD.some(b => w.includes(b))) return '그 말은 안 돼요';
+    return { used:[...(g.used || []), w], log:[...(g.log || []), { uid: me.uid, w, s: g.syl }].slice(-30), syl: bombSyl(g.syl), turn: (g.turn + 1) % g.players.length };
+  }, () => { const el = document.getElementById('bombInput'); if (el) el.value = ''; try { navigator.vibrate?.(15); } catch {} });
+};
+GAME_INPUTS.push(['bombInput','bombSay']);
 
 /* ================= ⚫ 오목 AI ================= */
 let omThinking = false;
@@ -4119,7 +4352,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261019a';
+const BUILD = 'b20261019b';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
