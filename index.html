@@ -630,7 +630,7 @@ const GAMES = {
   janggi:    { icon:'🀄', name:'장기',       desc:'1:1 한국 장기', max:2 },
   go:        { icon:'⚪', name:'바둑 9×9',   desc:'1:1 작은 바둑', max:2 },
   catchmind: { icon:'🎨', name:'캐치마인드', desc:'그림 보고 맞히기', max:8 },
-  onecard:   { icon:'🃏', name:'원카드',     desc:'카드 먼저 털기', max:6 },
+  onecard:   { icon:'🎴', name:'원카드',     desc:'카드 먼저 털기', max:6 },
   yacht:     { icon:'🎲', name:'요트 다이스', desc:'주사위 족보 점수 대결', max:4 },
   balance:   { icon:'⚖️', name:'밸런스 게임', desc:'둘 중 하나! 취향 대결', max:12 },
   updown:    { icon:'🔼', name:'업다운',     desc:'숫자 맞히기', max:8 },
@@ -639,7 +639,7 @@ const GAMES = {
   bomb:      { icon:'💣', name:'폭탄 돌리기', desc:'낱말로 폭탄 넘기기', max:8 },
   kordle:    { icon:'🟩', name:'꼬들',       desc:'각자 플레이 · 기록 대결', max:99 },
   mines:     { icon:'💣', name:'지뢰찾기',   desc:'각자 플레이 · 기록 대결', max:99 },
-  g2048:     { icon:'🔢', name:'2048',       desc:'각자 플레이 · 점수 대결', max:99 },
+  g2048:     { icon:'🧮', name:'2048',       desc:'각자 플레이 · 점수 대결', max:99 },
 };
 const TURN_GAMES = ['wordchain','bingo']; // 턴 타이머가 있는 게임
 const HOST_START = { wordchain:2, bingo:2, ladder:2, liar:3, mafia:4, chosung:2, catchmind:2, onecard:2, yacht:1, balance:2, updown:2, roulette:1, nunchi:3, bomb:2 }; // 방장이 시작 버튼을 누르는 게임 (최소 인원)
@@ -3421,12 +3421,12 @@ function QueensGame(stage, ctrl, seed, _lv, onEnd, setInfo){
   const fixedNow = () => { const f = {}; st.forEach((v,k) => { if (v === 2) f[Math.floor(k / N)] = k % N; }); return f; };
   const isSol = i => !!queensSolve(N, reg, { ...fixedNow(), [Math.floor(i / N)]: i % N });
   const st = Array(N * N).fill(0); // 0 빈칸, 1 내가 표시한 ✕, 2 🐱(정답), 3 자동 ✕
-  let lives = 3, hints = 3, used = 0, alive = true, t0 = Date.now(), clock = null, wrong = -1, good = -1;
+  let lives = 3, hints = 3, used = 0, alive = true, t0 = Date.now(), clock = null, wrong = -1, good = -1, gameOver = false;
   stage.innerHTML = `<div class="qn-wrap"><div class="qn-rule">가로줄 · 세로줄 · 색깔 구역마다 🐱 <b>1마리</b><br>고양이끼리는 <b>대각선 포함</b> 붙으면 안 돼요<br><span style="opacity:.8">한 번 ✕ · 두 번 🐱 · 세 번 누르면 빈칸으로 · 틀리면 🐟 하나 잃어요</span></div><div class="qn-grid"></div></div>`;
   const gEl = stage.querySelector('.qn-grid');
   const secs = () => Math.round((Date.now() - t0) / 1000);
   const cats = () => st.filter(v => v === 2).length;
-  const info = () => setInfo(`⏱ ${secs()}초 · ${'🐟'.repeat(lives)}${'·'.repeat(3 - lives)} · 🐱 ${cats()}/${N}`);
+  const info = () => setInfo(`⏱ ${secs()}초 · ${'🐟'.repeat(Math.max(0, lives))}${'·'.repeat(Math.min(3, 3 - lives))} · 🐱 ${cats()}/${N}`);
   // 고양이를 놓으면, 같은 줄·칸·구역·주변 8칸은 자동으로 ✕
   function autoMark(i){
     const r = Math.floor(i / N), c = i % N;
@@ -3462,11 +3462,11 @@ function QueensGame(stage, ctrl, seed, _lv, onEnd, setInfo){
       lives--; wrong = i; st[i] = 1; try { navigator.vibrate?.(120); } catch {}
       render(); toast('여기는 고양이 자리가 아니에요 😿');
       setTimeout(() => { wrong = -1; if (alive) render(); }, 700);
-      if (lives <= 0) setTimeout(() => finish(false), 750);
+      if (lives <= 0) { gameOver = true; setTimeout(() => finish(false), 750); }
     }
   }
   gEl.addEventListener('click', e => {
-    const b = e.target.closest('[data-i]'); if (!b || !alive) return;
+    const b = e.target.closest('[data-i]'); if (!b || !alive || gameOver) return;
     const i = +b.dataset.i;
     if (st[i] === 2) {                      // 세 번째: 고양이 빼고 빈칸으로 되돌리기
       st[i] = 0;
@@ -3993,8 +3993,8 @@ function ocDraw(g, n){
   return { deck, discard, got };
 }
 GAME_HOOK.onecard = {
-  start: g => ({ u: ocDeal(g, 0), msg: '🃏 원카드 시작! 같은 무늬나 숫자를 내세요' }),
-  rematch: g => ({ u: ocDeal(g, Math.max(0, g.players.findIndex(p => p.uid === g.winner)) + 1), msg: '🃏 원카드 새 판!' }),
+  start: g => ({ u: ocDeal(g, 0), msg: '🎴 원카드 시작! 같은 무늬나 숫자를 내세요' }),
+  rematch: g => ({ u: ocDeal(g, Math.max(0, g.players.findIndex(p => p.uid === g.winner)) + 1), msg: '🎴 원카드 새 판!' }),
   outcome: (g, P) => g.status === 'done' ? { P, W: g.winner ? [g.winner] : [] } : null,
   tick: g => {
     if (g.status !== 'playing') return;
@@ -4008,7 +4008,7 @@ function ocTake(uid, stamp){   // 카드 받기 (공격이면 쌓인 만큼)
   tx(g => {
     if (g.status !== 'playing' || g.players[g.turn]?.uid !== uid || (stamp && g.turnStartedAt !== stamp)) return null;
     const n = g.stack > 0 ? g.stack : 1, d = ocDraw(g, n), hands = { ...g.hands, [uid]: [...g.hands[uid], ...d.got] };
-    if (g.stack > 0) msg = `🃏 ${nameOf(g, uid)}님 공격을 받아 ${d.got.length}장 먹었어요 😵`;
+    if (g.stack > 0) msg = `🎴 ${nameOf(g, uid)}님 공격을 받아 ${d.got.length}장 먹었어요 😵`;
     return { deck: d.deck, discard: d.discard, hands, stack:0, turn: ocNext(g), turnStartedAt: Date.now(), log: [...(g.log || []), `${nameOf(g, uid)}: ${d.got.length}장 받음`].slice(-6) };
   }, () => msg && sys(msg));
 }
@@ -4048,8 +4048,8 @@ function ocCommit(c, suit7){
     if (r === 'J') step = 2;
     if (r === 'K') step = 0;
     u.dir = dir; u.turn = ocNext({ ...g, dir }, step);
-    if (!left.length) { u.status = 'done'; u.winner = me.uid; msg = `🃏 원카드: ${me.name}님 카드를 다 털고 승리! 🏆`; }
-    else if (left.length === 1) msg = `🃏 ${me.name}님 원카드! ☝️`;
+    if (!left.length) { u.status = 'done'; u.winner = me.uid; msg = `🎴 원카드: ${me.name}님 카드를 다 털고 승리! 🏆`; }
+    else if (left.length === 1) msg = `🎴 ${me.name}님 원카드! ☝️`;
     return u;
   }, () => { try { navigator.vibrate?.(12); } catch {} if (msg) sys(msg); });
 }
@@ -4955,7 +4955,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261019e';
+const BUILD = 'b20261019f';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
