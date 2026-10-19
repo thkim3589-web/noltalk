@@ -412,6 +412,41 @@ input{font:inherit}
 .bomb-ic.hot{animation:bombTick .25s infinite;filter:drop-shadow(0 0 10px #ff3d3d)}
 @keyframes bombTick{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg) scale(1.06)}}
 .bomb-syl{font-size:54px;font-weight:900;background:var(--bg);border-radius:18px;padding:4px 22px;color:var(--p)}
+.oc-table{display:flex;align-items:center;justify-content:center;gap:16px;margin:12px 0}
+.oc-pile{width:56px;height:80px;border-radius:9px;background:repeating-linear-gradient(45deg,#7c4dff 0 6px,#6a3df0 6px 12px);color:#fff;font-size:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 3px 0 rgba(0,0,0,.2)}
+.oc-pile small{font-size:12px;font-weight:800}
+.oc-suit{font-size:30px;font-weight:900;text-align:center;font-family:"Noto Sans Symbols 2",sans-serif}
+.oc-suit small{display:block;font-size:11px;color:var(--sub);font-family:inherit}
+.oc-suit .red,.oc-suits .red{color:#e5484d}
+.oc-card{width:50px;height:72px;border-radius:9px;background:#fff;border:1.5px solid #ddd;box-shadow:0 2px 4px rgba(0,0,0,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#1d1d1f;padding:0;flex-shrink:0}
+.oc-card b{font-size:17px;line-height:1}.oc-card span{font-size:22px;font-family:"Noto Sans Symbols 2",sans-serif;line-height:1.1}
+.oc-card.red{color:#e5484d}
+.oc-card.joker{background:linear-gradient(160deg,#333,#111);color:#fff}.oc-card.joker.color{background:linear-gradient(160deg,#ff6b6b,#ffd93d,#4d96ff)}
+.oc-card.joker b{font-size:9px;letter-spacing:.5px}
+.oc-card.big{width:62px;height:90px}.oc-card.big b{font-size:21px}
+.oc-card:disabled{opacity:1}
+.oc-hand{display:flex;gap:4px;overflow-x:auto;padding:10px 2px 6px;margin:6px 0}
+.oc-hand .oc-card.ok{transform:translateY(-6px);border-color:var(--p);box-shadow:0 4px 10px rgba(124,77,255,.35)}
+.oc-hand .oc-card.no{opacity:.55}
+.oc-atk{background:#ffe3e6;color:#c0123c;font-weight:900;text-align:center;border-radius:10px;padding:8px;margin-bottom:6px}
+.oc-suits{display:flex;gap:8px;justify-content:center;margin:6px 0}
+.oc-suits button{width:56px;height:56px;border-radius:14px;background:var(--bg);font-size:30px;font-family:"Noto Sans Symbols 2",sans-serif}
+.yt-dice{display:flex;gap:8px;justify-content:center;margin:12px 0}
+.yt-die{width:52px;height:52px;border-radius:12px;background:#fff;border:2px solid #ddd;display:grid;grid-template-columns:repeat(3,1fr);padding:7px;gap:2px;box-shadow:0 3px 0 rgba(0,0,0,.15)}
+.yt-die i{border-radius:50%}.yt-die i.on{background:#222}
+.yt-die.held{border-color:var(--p);background:#efe9ff;transform:translateY(-5px)}
+.yt-die:disabled{opacity:1}
+.yt-die.roll{animation:ytRoll .45s}
+@keyframes ytRoll{0%{transform:rotate(0) scale(.8)}50%{transform:rotate(200deg) scale(1.1)}100%{transform:rotate(360deg)}}
+.yt-sheet{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.yt-sheet th,.yt-sheet td{border-bottom:1px solid var(--line);padding:5px 4px;text-align:center}
+.yt-sheet td:first-child{text-align:left;color:var(--sub);white-space:nowrap}
+.yt-sheet th.cur{color:var(--p)}
+.yt-sheet td.done{font-weight:800}
+.yt-sheet tr.sep td{border-top:2px solid var(--line)}
+.yt-sheet tr.bonus td{font-size:11px;color:var(--sub)}
+.yt-sheet tr.tot td{font-weight:900;font-size:15px}
+.yt-pick{background:#efe9ff;color:var(--p);font-weight:900;border-radius:8px;padding:4px 10px}
 </style>
 </head>
 <body>
@@ -566,6 +601,8 @@ const GAMES = {
   blockpuz:  { icon:'🟦', name:'블록 퍼즐',  desc:'각자 플레이 · 점수 대결', max:99 },
   chess:     { icon:'♟️', name:'체스',       desc:'1:1 정통 체스', max:2 },
   freecell:  { icon:'🃏', name:'프리셀',     desc:'각자 플레이 · 기록 대결', max:99 },
+  onecard:   { icon:'🃏', name:'원카드',     desc:'카드 먼저 털기', max:6 },
+  yacht:     { icon:'🎲', name:'요트 다이스', desc:'주사위 족보 점수 대결', max:4 },
   balance:   { icon:'⚖️', name:'밸런스 게임', desc:'둘 중 하나! 취향 대결', max:12 },
   updown:    { icon:'🔼', name:'업다운',     desc:'숫자 맞히기', max:8 },
   roulette:  { icon:'🎯', name:'벌칙 룰렛',  desc:'돌려서 정하기', max:20 },
@@ -576,7 +613,7 @@ const GAMES = {
   g2048:     { icon:'🔢', name:'2048',       desc:'각자 플레이 · 점수 대결', max:99 },
 };
 const TURN_GAMES = ['wordchain','bingo']; // 턴 타이머가 있는 게임
-const HOST_START = { wordchain:2, bingo:2, ladder:2, liar:3, mafia:4, chosung:2, balance:2, updown:2, roulette:1, nunchi:3, bomb:2 }; // 방장이 시작 버튼을 누르는 게임 (최소 인원)
+const HOST_START = { wordchain:2, bingo:2, ladder:2, liar:3, mafia:4, chosung:2, onecard:2, yacht:1, balance:2, updown:2, roulette:1, nunchi:3, bomb:2 }; // 방장이 시작 버튼을 누르는 게임 (최소 인원)
 
 /* ---------- 공통 ---------- */
 function show(id){
@@ -1534,13 +1571,14 @@ function renderGameTab(){
   const party = Object.keys(GAMES).filter(t => GAME_META[t]?.cat !== 'arcade');
   $('#gameTabBody').innerHTML = `
     <div class="sec-title">🕹️ 혼자 연습하기</div><div class="sec-sub">바로 시작해요 · 기록은 내 최고 기록에만 남아요</div>
-    <div class="ggrid">${arcade.map(tile).join('')}<button class="gtile" data-aichess="1"><span class="gi">♟️</span><b>체스</b><small>🤖 AI 대결</small></button><button class="gtile" data-photopx="1"><span class="gi">📷</span><b>사진 퍼즐</b><small>내 사진을 픽셀로</small></button></div>
+    <div class="ggrid">${arcade.map(tile).join('')}<button class="gtile" data-aichess="1"><span class="gi">♟️</span><b>체스</b><small>🤖 AI 대결</small></button><button class="gtile" data-photopx="1"><span class="gi">📷</span><b>사진 퍼즐</b><small>내 사진을 픽셀로</small></button><button class="gtile" data-soloyacht="1"><span class="gi">🎲</span><b>요트 다이스</b><small>혼자 점수 도전</small></button></div>
     <div class="sec-title" style="margin-top:18px">👥 친구랑 대결하기</div><div class="sec-sub">채팅방에서 ${ic('game', 16)} 버튼을 눌러 시작해요</div>
     <div class="ggrid">${party.map(t => { const g = GAMES[t], m = GAME_META[t] || {}; return `<button class="gtile" data-party="${t}"><span class="gi">${g.icon}</span><b>${g.name}</b><small>${m.ppl || ''}</small></button>`; }).join('')}</div>
     <div class="howto"><b>방에서 대결하는 법</b><br>채팅방 입력창 왼쪽 게임 버튼 → 게임 고르기 → 채팅에 뜬 카드의 <b>참가</b>를 누르면 친구도 함께해요. 아케이드 게임은 방에서 열면 모두 같은 판으로 순위를 겨뤄요.</div>`;
 }
 $('#gameTabBody').addEventListener('click', e => {
   if (e.target.closest('[data-aichess]')) return openAiChess();
+  if (e.target.closest('[data-soloyacht]')) return openSoloYacht();
   if (e.target.closest('[data-photopx]')) return photoBoard().then(c => c && openArcade('pixel', null, Math.floor(Math.random() * 2147483647), { custom: c }));
   const s1 = e.target.closest('[data-solo]'); if (s1) return openArcade(s1.dataset.solo, null, Math.floor(Math.random() * 2147483647), soloLevel(s1.dataset.solo));
   const p1 = e.target.closest('[data-party]'); if (p1) { showHomeTab('chat'); toast('채팅방에 들어가서 게임 버튼을 눌러주세요 🎮'); }
@@ -1613,6 +1651,7 @@ const GAME_META = {
   sudoku:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, queens:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
   blockpuz:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, freecell:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
   chess:{ cat:'duel', min:2, ppl:'2명 · 🤖AI' },
+  onecard:{ cat:'group', min:2, ppl:'2~6명' }, yacht:{ cat:'group', min:1, ppl:'1~4명' },
   balance:{ cat:'group', min:2, ppl:'2~12명' }, updown:{ cat:'group', min:2, ppl:'2~8명' }, roulette:{ cat:'group', min:1, ppl:'1명~' },
   nunchi:{ cat:'mind', min:3, ppl:'3~10명' }, bomb:{ cat:'quiz', min:2, ppl:'2~8명' },
   kordle:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, mines:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, g2048:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
@@ -1662,6 +1701,7 @@ async function startGame(type){
     queens:    { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
     blockpuz:  { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
     freecell:  { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
+    onecard:{}, yacht:{},
     balance:{}, updown:{}, roulette:{}, nunchi:{}, bomb:{},
     kordle:    { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
     mines:     { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
@@ -3889,6 +3929,194 @@ ACT.bombSay = () => {
 };
 GAME_INPUTS.push(['bombInput','bombSay']);
 
+/* ================= 🃏 원카드 ================= */
+const OC_SUITS = { S:'♠', H:'♥', D:'♦', C:'♣' }, OC_RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const OC_MS = 30000;
+const ocRank = c => c[0] === 'X' ? 'X' : c.slice(1), ocSuit = c => c[0];
+const ocAtk = c => c === 'XB' ? 5 : c === 'XC' ? 7 : ocRank(c) === 'A' ? 3 : ocRank(c) === '2' ? 2 : 0;
+function ocDeck(){ const d = []; for (const s of 'SHDC') for (const r of OC_RANKS) d.push(s + r); d.push('XB', 'XC'); return shuffle(d); }
+function ocDeal(g, firstTurn){
+  const deck = ocDeck(), n = g.players.length, per = n >= 4 ? 5 : 7, hands = {};
+  g.players.forEach(p => hands[p.uid] = deck.splice(0, per));
+  let ti = deck.findIndex(c => /^[SHDC]([3-689]|10)$/.test(c)); const top = deck.splice(ti, 1)[0];
+  return { status:'playing', deck, discard:[top], hands, top, suit: ocSuit(top), stack:0, dir:1, turn: firstTurn % n, turnStartedAt: Date.now(), winner:null, log:[], pending7:null };
+}
+function ocCan(c, g){
+  const tr = ocRank(g.top), joker = c[0] === 'X';
+  if (g.stack > 0) return joker || ((ocRank(c) === 'A' || ocRank(c) === '2') && (ocSuit(c) === g.suit || ocRank(c) === tr || g.suit === 'any'));
+  return joker || g.suit === 'any' || ocSuit(c) === g.suit || (tr !== 'X' && ocRank(c) === tr);
+}
+const ocNext = (g, step = 1) => ((g.turn + step * g.dir) % g.players.length + g.players.length) % g.players.length;
+function ocDraw(g, n){
+  let deck = [...g.deck], discard = [...g.discard]; const got = [];
+  for (let i = 0; i < n; i++) {
+    if (!deck.length) { if (discard.length <= 1) break; deck = shuffle(discard.slice(0, -1)); discard = discard.slice(-1); }
+    got.push(deck.pop());
+  }
+  return { deck, discard, got };
+}
+GAME_HOOK.onecard = {
+  start: g => ({ u: ocDeal(g, 0), msg: '🃏 원카드 시작! 같은 무늬나 숫자를 내세요' }),
+  rematch: g => ({ u: ocDeal(g, Math.max(0, g.players.findIndex(p => p.uid === g.winner)) + 1), msg: '🃏 원카드 새 판!' }),
+  outcome: (g, P) => g.status === 'done' ? { P, W: g.winner ? [g.winner] : [] } : null,
+  tick: g => {
+    if (g.status !== 'playing') return;
+    const left = OC_MS - (Date.now() - g.turnStartedAt), bar = document.getElementById('ocTimer');
+    if (bar) bar.style.width = Math.max(0, left / OC_MS * 100) + '%';
+    if (left < -1500) ocTake(g.players[g.turn].uid, g.turnStartedAt);
+  },
+};
+function ocTake(uid, stamp){   // 카드 받기 (공격이면 쌓인 만큼)
+  let msg = null;
+  tx(g => {
+    if (g.status !== 'playing' || g.players[g.turn]?.uid !== uid || (stamp && g.turnStartedAt !== stamp)) return null;
+    const n = g.stack > 0 ? g.stack : 1, d = ocDraw(g, n), hands = { ...g.hands, [uid]: [...g.hands[uid], ...d.got] };
+    if (g.stack > 0) msg = `🃏 ${nameOf(g, uid)}님 공격을 받아 ${d.got.length}장 먹었어요 😵`;
+    return { deck: d.deck, discard: d.discard, hands, stack:0, turn: ocNext(g), turnStartedAt: Date.now(), log: [...(g.log || []), `${nameOf(g, uid)}: ${d.got.length}장 받음`].slice(-6) };
+  }, () => msg && sys(msg));
+}
+let ocSeven = null;
+R.onecard = (g, meIn) => {
+  if (g.status === 'waiting') return waitingHTML(g, meIn);
+  const cur = g.players[g.turn], myTurn = g.status === 'playing' && cur?.uid === me.uid, hand = g.hands?.[me.uid] || [];
+  const card = (c, attrs = '', cls = '') => c[0] === 'X'
+    ? `<button class="oc-card joker ${c === 'XC' ? 'color' : ''} ${cls}" ${attrs}><b>JOKER</b><span>${c === 'XC' ? '🃏' : '🂿'}</span></button>`
+    : `<button class="oc-card ${'HD'.includes(c[0]) ? 'red' : ''} ${cls}" ${attrs}><b>${ocRank(c)}</b><span>${OC_SUITS[c[0]]}︎</span></button>`;
+  let h = `<div class="players">${g.players.map((p,i) => `<span class="chip ${i === g.turn && g.status === 'playing' ? 'turn' : ''}">${esc(p.name)}${p.uid === me.uid ? ' (나)' : ''} 🂠${(g.hands?.[p.uid] || []).length}${(g.hands?.[p.uid] || []).length === 1 ? ' <b style="color:#e5484d">원카드!</b>' : ''}</span>`).join('')}</div>`;
+  if (g.status === 'done') {
+    h += `<div class="card"><div class="big2">🏆 ${esc(nameOf(g, g.winner))} 승리!</div><small>카드를 모두 털었어요</small></div>`;
+    if (meIn) h += '<button class="btn" data-act="rematch">한판 더!</button>';
+    return h;
+  }
+  h += `<div class="oc-table"><div class="oc-pile">🂠<small>${(g.deck || []).length}</small></div>${card(g.top, 'disabled', 'big')}<div class="oc-suit">${g.suit === 'any' ? '아무거나' : `<span class="${'HD'.includes(g.suit) ? 'red' : ''}">${OC_SUITS[g.suit]}︎</span>`}${g.dir < 0 ? '<small>↺ 반대 방향</small>' : ''}</div></div>`;
+  if (g.stack > 0) h += `<div class="oc-atk">⚔️ 공격 +${g.stack}장! 막거나 받아야 해요</div>`;
+  h += `<div class="timer"><i id="ocTimer"></i></div><div class="status">${myTurn ? '🔥 내 차례!' : `${esc(cur.name)}님 차례`}</div>`;
+  if (ocSeven && myTurn) h += `<p class="hint" style="text-align:center">7! 바꿀 무늬를 고르세요</p><div class="oc-suits">${'SHDC'.split('').map(s => `<button data-act="ocSuit" data-v="${s}" class="${'HD'.includes(s) ? 'red' : ''}">${OC_SUITS[s]}︎</button>`).join('')}</div>`;
+  if (meIn) h += `<div class="oc-hand">${hand.map(c => card(c, `data-act="ocPlay" data-v="${c}"`, myTurn && ocCan(c, g) ? 'ok' : 'no')).join('')}</div>`;
+  if (myTurn) h += `<button class="btn ghost" data-act="ocDrawMe">${g.stack > 0 ? `💥 ${g.stack}장 받기` : '🂠 카드 1장 받기'}</button>`;
+  if ((g.log || []).length) h += `<p class="hint">${g.log.slice(-3).map(esc).join(' · ')}</p>`;
+  return h;
+};
+function ocCommit(c, suit7){
+  let msg = null; ocSeven = null;
+  tx(g => {
+    if (g.status !== 'playing' || g.players[g.turn]?.uid !== me.uid) return '내 차례가 아니에요';
+    const hand = g.hands[me.uid]; if (!hand.includes(c)) return null;
+    if (!ocCan(c, g)) return '낼 수 없는 카드예요';
+    const left = hand.filter(x => x !== c), r = ocRank(c);
+    const u = { hands: { ...g.hands, [me.uid]: left }, top: c, discard: [...g.discard, c], suit: c[0] === 'X' ? 'any' : r === '7' && suit7 ? suit7 : ocSuit(c), stack: g.stack + ocAtk(c), turnStartedAt: Date.now(),
+      log: [...(g.log || []), `${me.name}: ${c[0] === 'X' ? '조커' : OC_SUITS[c[0]] + r}`].slice(-6) };
+    let dir = g.dir, step = 1;
+    if (r === 'Q') dir = -dir;
+    if (r === 'J') step = 2;
+    if (r === 'K') step = 0;
+    u.dir = dir; u.turn = ocNext({ ...g, dir }, step);
+    if (!left.length) { u.status = 'done'; u.winner = me.uid; msg = `🃏 원카드: ${me.name}님 카드를 다 털고 승리! 🏆`; }
+    else if (left.length === 1) msg = `🃏 ${me.name}님 원카드! ☝️`;
+    return u;
+  }, () => { try { navigator.vibrate?.(12); } catch {} if (msg) sys(msg); });
+}
+ACT.ocPlay = c => {
+  const g = gd(); if (!g || g.players[g.turn]?.uid !== me.uid) return toast('내 차례가 아니에요');
+  if (!ocCan(c, g)) return toast(g.stack > 0 ? '공격 카드(A·2·조커)로만 막을 수 있어요' : '같은 무늬나 숫자를 내야 해요');
+  if (ocRank(c) === '7' && c[0] !== 'X') { ocSeven = c; return renderGame(); }
+  ocCommit(c);
+};
+ACT.ocSuit = s => { if (ocSeven) ocCommit(ocSeven, s); };
+ACT.ocDrawMe = () => { ocSeven = null; ocTake(me.uid); };
+
+/* ================= 🎲 요트 다이스 ================= */
+const YT_CATS = [['ones','1 (에이스)'],['twos','2'],['threes','3'],['fours','4'],['fives','5'],['sixes','6'],['choice','초이스'],['four','포카드'],['full','풀하우스'],['ss','스몰 스트레이트'],['ls','라지 스트레이트'],['yacht','요트']];
+const YT_MS = 60000;
+function ytScore(cat, d){
+  const cnt = [0,0,0,0,0,0,0]; d.forEach(v => cnt[v]++); const sum = d.reduce((a,b) => a + b, 0), has = n => cnt.some(c => c >= n);
+  const set = new Set(d), run = k => [[1,2,3,4],[2,3,4,5],[3,4,5,6],[1,2,3,4,5],[2,3,4,5,6]].filter(r => r.length === k).some(r => r.every(v => set.has(v)));
+  const up = { ones:1, twos:2, threes:3, fours:4, fives:5, sixes:6 }[cat];
+  if (up) return cnt[up] * up;
+  if (cat === 'choice') return sum;
+  if (cat === 'four') return has(4) ? sum : 0;
+  if (cat === 'full') return (cnt.includes(3) && cnt.includes(2)) || has(5) ? sum : 0;
+  if (cat === 'ss') return run(4) ? 15 : 0;
+  if (cat === 'ls') return run(5) ? 30 : 0;
+  if (cat === 'yacht') return has(5) ? 50 : 0;
+  return 0;
+}
+const ytUpper = sc => ['ones','twos','threes','fours','fives','sixes'].reduce((a,k) => a + (sc?.[k] ?? 0), 0);
+const ytTotal = sc => Object.values(sc || {}).reduce((a,b) => a + b, 0) + (ytUpper(sc) >= 63 ? 35 : 0);
+const ytFresh = g => ({ status:'playing', scores: Object.fromEntries(g.players.map(p => [p.uid, {}])), turn:0, dice:[1,1,1,1,1], held:[false,false,false,false,false], rolls:0, rollId:0, turnStartedAt: Date.now() });
+GAME_HOOK.yacht = {
+  start: g => ({ u: ytFresh(g), msg: '🎲 요트 다이스 시작! 주사위를 굴려 족보를 노려보세요' }),
+  rematch: g => ({ u: ytFresh(g), msg: '🎲 요트 다이스 새 판!' }),
+  outcome: (g, P) => { if (g.status !== 'done' || P.length < 2) return null; const t = P.map(u => ytTotal(g.scores[u])), mx = Math.max(...t); return { P, W: P.filter((u,i) => t[i] === mx) }; },
+  tick: g => {
+    if (g.status !== 'playing' || g.local) return;
+    const left = YT_MS - (Date.now() - g.turnStartedAt), bar = document.getElementById('ytTimer');
+    if (bar) bar.style.width = Math.max(0, left / YT_MS * 100) + '%';
+    if (left < -1500) { const uid = g.players[g.turn].uid, cat = YT_CATS.find(([k]) => g.scores[uid][k] === undefined)?.[0]; if (cat) ytPick(cat, uid, g.turnStartedAt); }
+  },
+};
+let ytAnim = 0;
+const DIE_PIPS = { 1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8] };
+R.yacht = (g, meIn) => {
+  if (g.status === 'waiting') return waitingHTML(g, meIn);
+  const cur = g.players[g.turn], myTurn = g.status === 'playing' && cur?.uid === me.uid;
+  const roll = g.rollId !== ytAnim; ytAnim = g.rollId;
+  const die = (v, i) => `<button class="yt-die ${g.held[i] ? 'held' : ''} ${roll && !g.held[i] && g.rolls ? 'roll' : ''}" data-act="ytHold" data-v="${i}" ${myTurn && g.rolls ? '' : 'disabled'}>${Array.from({ length:9 }, (_, k) => `<i class="${DIE_PIPS[v].includes(k) ? 'on' : ''}"></i>`).join('')}</button>`;
+  let h = '';
+  if (g.status === 'playing') {
+    h += `<div class="yt-dice">${g.dice.map(die).join('')}</div>`;
+    if (!g.local) h += `<div class="timer"><i id="ytTimer"></i></div>`;
+    h += `<div class="status">${myTurn ? (g.rolls ? `주사위를 눌러 고정하고 다시 굴리거나, 아래 표에서 점수를 고르세요 (남은 굴림 ${3 - g.rolls})` : '🔥 내 차례! 주사위를 굴려요') : `${esc(cur.name)}님 차례`}</div>`;
+    if (myTurn) h += `<button class="btn" data-act="ytRoll" ${g.rolls >= 3 ? 'disabled' : ''}>🎲 굴리기 (${3 - g.rolls}번 남음)</button>`;
+  } else {
+    const t = g.players.map(p => ytTotal(g.scores[p.uid])), mx = Math.max(...t);
+    h += `<div class="card"><div class="big2">🏆 ${g.players.filter((p,i) => t[i] === mx).map(p => esc(p.name)).join(', ')} ${mx}점!</div></div>`;
+    if (meIn) h += `<button class="btn" data-act="${g.local ? 'ytAgain' : 'rematch'}">한판 더!</button>`;
+  }
+  h += `<table class="yt-sheet"><tr><th></th>${g.players.map((p,i) => `<th class="${i === g.turn && g.status === 'playing' ? 'cur' : ''}">${esc(p.name.slice(0, 4))}</th>`).join('')}</tr>`;
+  YT_CATS.forEach(([k, label], ci) => {
+    h += `<tr class="${ci === 6 ? 'sep' : ''}"><td>${label}</td>${g.players.map((p,i) => {
+      const v = g.scores[p.uid]?.[k];
+      if (v !== undefined) return `<td class="done">${v}</td>`;
+      if (myTurn && i === g.turn && g.rolls) return `<td><button class="yt-pick" data-act="ytPick" data-v="${k}">${ytScore(k, g.dice)}</button></td>`;
+      return '<td></td>';
+    }).join('')}</tr>`;
+    if (ci === 5) h += `<tr class="bonus"><td>보너스 (63↑ +35)</td>${g.players.map(p => `<td>${ytUpper(g.scores[p.uid])}/63${ytUpper(g.scores[p.uid]) >= 63 ? ' ✅' : ''}</td>`).join('')}</tr>`;
+  });
+  h += `<tr class="tot"><td>합계</td>${g.players.map(p => `<td>${ytTotal(g.scores[p.uid])}</td>`).join('')}</tr></table>`;
+  return h;
+};
+ACT.ytRoll = () => tx(g => {
+  if (g.status !== 'playing' || g.players[g.turn]?.uid !== me.uid || g.rolls >= 3) return null;
+  return { dice: g.dice.map((v,i) => g.held[i] && g.rolls ? v : 1 + Math.floor(Math.random() * 6)), rolls: g.rolls + 1, rollId: (g.rollId || 0) + 1 };
+}, () => { try { navigator.vibrate?.([10,30,10]); } catch {} });
+ACT.ytHold = v => tx(g => {
+  if (g.status !== 'playing' || g.players[g.turn]?.uid !== me.uid || !g.rolls) return null;
+  const held = [...g.held]; held[+v] = !held[+v]; return { held };
+});
+function ytPick(k, uid = me.uid, stamp){
+  let msg = null;
+  tx(g => {
+    if (g.status !== 'playing' || g.players[g.turn]?.uid !== uid || (stamp && g.turnStartedAt !== stamp)) return null;
+    if (g.scores[uid][k] !== undefined) return null;
+    const v = stamp ? 0 : ytScore(k, g.dice), scores = { ...g.scores, [uid]: { ...g.scores[uid], [k]: v } };
+    if (k === 'yacht' && v === 50) msg = `🎲 ${nameOf(g, uid)}님 요트!!! 🎉 (+50)`;
+    const done = g.players.every(p => Object.keys(scores[p.uid]).length >= 12);
+    const u = { scores, turn: (g.turn + 1) % g.players.length, dice:[1,1,1,1,1], held:[false,false,false,false,false], rolls:0, turnStartedAt: Date.now() };
+    if (done) { u.status = 'done'; const t = g.players.map(p => ytTotal(scores[p.uid])), mx = Math.max(...t); msg = `🎲 요트 다이스 끝! 🏆 ${g.players.filter((p,i) => t[i] === mx).map(p => p.name).join(', ')} ${mx}점`; }
+    return u;
+  }, () => msg && chSay(msg));
+}
+ACT.ytPick = k => ytPick(k);
+// 혼자 하기 (서버 없이)
+function openSoloYacht(){
+  closeGame();
+  const g = { type:'yacht', local:true, players:[{ uid: me.uid, name: me.name }] };
+  curGame = { id:'local', local:true, data: { ...g, ...ytFresh(g) } };
+  openDlg('gameView'); renderGame();
+}
+ACT.ytAgain = () => openSoloYacht();
+
 /* ================= ⚫ 오목 AI ================= */
 let omThinking = false;
 function omScore(b, i, s){   // i에 s를 놓았을 때 4방향 모양 점수
@@ -4352,7 +4580,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261019b';
+const BUILD = 'b20261019c';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
