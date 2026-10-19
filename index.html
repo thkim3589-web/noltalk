@@ -447,6 +447,14 @@ input{font:inherit}
 .yt-sheet tr.bonus td{font-size:11px;color:var(--sub)}
 .yt-sheet tr.tot td{font-weight:900;font-size:15px}
 .yt-pick{background:#efe9ff;color:var(--p);font-weight:900;border-radius:8px;padding:4px 10px}
+.cm-slot{width:100%;aspect-ratio:1;max-width:420px;margin:6px auto;border-radius:14px;overflow:hidden;box-shadow:0 0 0 2px var(--line)}
+.cm-canvas{width:100%;height:100%;display:block;background:#fff}
+.cm-word{text-align:center;font-size:15px;margin:4px 0}.cm-word b{font-size:20px;letter-spacing:2px;color:var(--p)}
+.cm-reveal{text-align:center;background:#efe9ff;border-radius:12px;padding:8px;font-weight:800}.cm-reveal b{color:var(--p);font-size:20px;margin-left:6px}
+.cm-tools{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0}
+.cm-tools button{width:32px;height:32px;border-radius:50%;border:2px solid var(--line);padding:0;font-size:14px}
+.cm-tools button.on{box-shadow:0 0 0 3px var(--p)}
+.cm-tools button.w{width:auto;border-radius:10px;padding:0 10px;background:var(--bg);font-size:13px;font-weight:700}
 </style>
 </head>
 <body>
@@ -601,6 +609,7 @@ const GAMES = {
   blockpuz:  { icon:'🟦', name:'블록 퍼즐',  desc:'각자 플레이 · 점수 대결', max:99 },
   chess:     { icon:'♟️', name:'체스',       desc:'1:1 정통 체스', max:2 },
   freecell:  { icon:'🃏', name:'프리셀',     desc:'각자 플레이 · 기록 대결', max:99 },
+  catchmind: { icon:'🎨', name:'캐치마인드', desc:'그림 보고 맞히기', max:8 },
   onecard:   { icon:'🃏', name:'원카드',     desc:'카드 먼저 털기', max:6 },
   yacht:     { icon:'🎲', name:'요트 다이스', desc:'주사위 족보 점수 대결', max:4 },
   balance:   { icon:'⚖️', name:'밸런스 게임', desc:'둘 중 하나! 취향 대결', max:12 },
@@ -613,7 +622,7 @@ const GAMES = {
   g2048:     { icon:'🔢', name:'2048',       desc:'각자 플레이 · 점수 대결', max:99 },
 };
 const TURN_GAMES = ['wordchain','bingo']; // 턴 타이머가 있는 게임
-const HOST_START = { wordchain:2, bingo:2, ladder:2, liar:3, mafia:4, chosung:2, onecard:2, yacht:1, balance:2, updown:2, roulette:1, nunchi:3, bomb:2 }; // 방장이 시작 버튼을 누르는 게임 (최소 인원)
+const HOST_START = { wordchain:2, bingo:2, ladder:2, liar:3, mafia:4, chosung:2, catchmind:2, onecard:2, yacht:1, balance:2, updown:2, roulette:1, nunchi:3, bomb:2 }; // 방장이 시작 버튼을 누르는 게임 (최소 인원)
 
 /* ---------- 공통 ---------- */
 function show(id){
@@ -1651,6 +1660,7 @@ const GAME_META = {
   sudoku:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, queens:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
   blockpuz:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, freecell:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
   chess:{ cat:'duel', min:2, ppl:'2명 · 🤖AI' },
+  catchmind:{ cat:'quiz', min:2, ppl:'2~8명' },
   onecard:{ cat:'group', min:2, ppl:'2~6명' }, yacht:{ cat:'group', min:1, ppl:'1~4명' },
   balance:{ cat:'group', min:2, ppl:'2~12명' }, updown:{ cat:'group', min:2, ppl:'2~8명' }, roulette:{ cat:'group', min:1, ppl:'1명~' },
   nunchi:{ cat:'mind', min:3, ppl:'3~10명' }, bomb:{ cat:'quiz', min:2, ppl:'2~8명' },
@@ -1701,6 +1711,7 @@ async function startGame(type){
     queens:    { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
     blockpuz:  { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
     freecell:  { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
+    catchmind:{},
     onecard:{}, yacht:{},
     balance:{}, updown:{}, roulette:{}, nunchi:{}, bomb:{},
     kordle:    { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
@@ -4117,6 +4128,95 @@ function openSoloYacht(){
 }
 ACT.ytAgain = () => openSoloYacht();
 
+/* ================= 🎨 캐치마인드 ================= */
+const CM_WORDS = '사과 바나나 수박 포도 딸기 당근 고구마 옥수수 버섯 케이크 피자 햄버거 라면 아이스크림 도넛 우유 커피 컵 숟가락 우산 안경 모자 신발 양말 장갑 가방 시계 열쇠 연필 가위 책 의자 침대 소파 냉장고 텔레비전 컴퓨터 휴대폰 카메라 전구 촛불 선풍기 자전거 자동차 버스 기차 비행기 배 로켓 헬리콥터 집 학교 병원 다리 등대 성 텐트 나무 꽃 해바라기 선인장 산 바다 섬 무지개 구름 비 눈사람 번개 해 달 별 지구 화산 강아지 고양이 토끼 거북이 달팽이 물고기 고래 상어 문어 게 펭귄 오리 닭 부엉이 나비 벌 거미 뱀 개구리 공룡 코끼리 기린 사자 원숭이 돼지 소 말 곰 판다 여우 쥐 생일 축구공 농구 야구 수영 스키 기타 피아노 드럼 마이크 왕관 반지 하트 유령 로봇 외계인 해적 마녀 산타 천사 눈 코 입 귀 손 발 치아 칫솔 거울 빗 망원경 지도 나침반 풍선 연 그네 미끄럼틀 시소 모래성 불꽃놀이 크리스마스트리 허수아비'.split(' ');
+const CM_MS = 80000, CM_COLS = ['#222222','#e5484d','#ff9f1c','#ffd23f','#3aa55d','#3d7bff','#9b5de5','#8d5a3b','#ffffff'];
+const cmCho = w => [...w].map(ch => { const c = ch.charCodeAt(0) - 0xAC00; return c >= 0 && c < 11172 ? KD_CHO[Math.floor(c / 588)] : ch; }).join('');
+function cmRound(g, round, drawer){
+  const used = round === 1 ? [] : (g.used || []); let w, k = 0;
+  do { w = CM_WORDS[Math.floor(Math.random() * CM_WORDS.length)]; } while (used.includes(w) && k++ < 40);
+  return { status:'playing', phase:'draw', round, rounds: Math.min(8, g.players.length * 2), drawer, word: w, used:[...used, w], strokes:[], live:null, endAt: Date.now() + CM_MS, guesses:[], solver:null };
+}
+GAME_HOOK.catchmind = {
+  start: g => ({ u: { ...cmRound(g, 1, 0), scores:{} }, msg: '🎨 캐치마인드 시작! 그림을 보고 게임창에서 정답을 맞혀요' }),
+  rematch: g => ({ u: { ...cmRound(g, 1, 0), scores:{} }, msg: '🎨 캐치마인드 새 판!' }),
+  outcome: (g, P) => { if (g.status !== 'done') return null; const sc = g.scores || {}, mx = Math.max(0, ...Object.values(sc)); return { P, W: mx > 0 ? P.filter(u => (sc[u] || 0) === mx) : [] }; },
+  tick: g => {
+    if (g.status !== 'playing') return;
+    const el = document.getElementById('cmLeft'); if (el && g.phase === 'draw') el.textContent = Math.max(0, Math.ceil((g.endAt - Date.now()) / 1000)) + '초';
+    if (g.phase === 'draw' && Date.now() > g.endAt + 800) { let msg = null; tx(x => { if (x.phase !== 'draw' || x.round !== g.round || Date.now() < x.endAt) return null; msg = `🎨 시간 끝! 정답은 '${x.word}'`; return { phase:'reveal', revealAt: Date.now() }; }, () => msg && sys(msg)); }
+    if (g.phase === 'reveal' && Date.now() > g.revealAt + 3500) cmNext(g.round);
+    const hint = document.getElementById('cmHint'); if (g.phase === 'draw' && hint && !hint.dataset.on && Date.now() - (g.endAt - CM_MS) > 40000) renderGame();
+  },
+};
+function cmNext(round){
+  let msg = null;
+  tx(g => {
+    if (g.phase !== 'reveal' || g.round !== round) return null;
+    if (g.round >= g.rounds) { const sc = g.scores || {}, mx = Math.max(0, ...Object.values(sc)); msg = `🎨 캐치마인드 끝! 🏆 ${g.players.filter(p => (sc[p.uid] || 0) === mx && mx > 0).map(p => p.name).join(', ') || '무승부'}`; return { status:'done', phase:null, live:null }; }
+    return cmRound(g, g.round + 1, (g.drawer + 1) % g.players.length);
+  }, () => msg && sys(msg));
+}
+// 그림판: 다시 그려도 사라지지 않는 하나의 캔버스
+const cmCanvas = document.createElement('canvas'); cmCanvas.className = 'cm-canvas'; cmCanvas.width = cmCanvas.height = 600;
+let cmColor = '#222222', cmWidth = 6, cmCur = null, cmLastSend = 0, cmData = null;
+function cmPaint(){
+  const g = cmData; if (!g) return;
+  const c = cmCanvas.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, 600, 600); c.lineCap = c.lineJoin = 'round';
+  const draw = s => { if (!s) return; const [col, w, pts] = s.split('|'); const p = (pts || '').split(';').filter(Boolean).map(q => q.split(',').map(n => +n * .6));
+    if (!p.length) return; c.strokeStyle = col; c.lineWidth = +w; c.beginPath(); c.moveTo(p[0][0], p[0][1]); if (p.length === 1) c.lineTo(p[0][0] + .1, p[0][1]); p.slice(1).forEach(q => c.lineTo(q[0], q[1])); c.stroke(); };
+  (g.strokes || []).forEach(draw);
+  if (cmCur) draw(cmCur); else if (g.drawer !== undefined && g.players[g.drawer]?.uid !== me.uid) draw(g.live);
+}
+const cmStr = () => cmCur;
+function cmPt(e){ const r = cmCanvas.getBoundingClientRect(); return [Math.round((e.clientX - r.left) / r.width * 1000), Math.round((e.clientY - r.top) / r.height * 1000)].map(v => Math.max(0, Math.min(1000, v))).join(','); }
+const cmIsDrawer = () => { const g = gd(); return g?.type === 'catchmind' && g.phase === 'draw' && g.players[g.drawer]?.uid === me.uid; };
+cmCanvas.addEventListener('pointerdown', e => { if (!cmIsDrawer()) return; e.preventDefault(); cmCur = `${cmColor}|${cmWidth}|${cmPt(e)};`; cmPaint(); });
+window.addEventListener('pointermove', e => {
+  if (!cmCur) return; cmCur += cmPt(e) + ';'; cmPaint();
+  if (Date.now() - cmLastSend > 450 && cmCur.length < 9000) { cmLastSend = Date.now(); const s = cmCur; tx(g => g.phase === 'draw' && g.players[g.drawer]?.uid === me.uid ? { live: s } : null); }
+});
+window.addEventListener('pointerup', () => {
+  if (!cmCur) return; const s = cmCur; cmCur = null;
+  tx(g => g.phase === 'draw' && g.players[g.drawer]?.uid === me.uid ? { strokes: [...(g.strokes || []), s].slice(-300), live:null } : null);
+});
+cmCanvas.style.touchAction = 'none';
+R.catchmind = (g, meIn) => {
+  if (g.status === 'waiting') return waitingHTML(g, meIn);
+  const sc = g.scores || {};
+  const board = `<div class="players">${[...g.players].sort((a,b) => (sc[b.uid] || 0) - (sc[a.uid] || 0)).map(p => `<span class="chip ${g.players[g.drawer]?.uid === p.uid && g.status === 'playing' ? 'turn' : ''}">${g.players[g.drawer]?.uid === p.uid && g.status === 'playing' ? '🖌️ ' : ''}${esc(p.name)} <b>${sc[p.uid] || 0}</b></span>`).join('')}</div>`;
+  if (g.status === 'done') { const mx = Math.max(0, ...Object.values(sc)); return `<div class="card"><div class="big2">🏆 ${g.players.filter(p => (sc[p.uid] || 0) === mx && mx > 0).map(p => esc(p.name)).join(', ') || '무승부'}</div><small>마지막 정답: ${esc(g.word)}</small></div>${board}${meIn ? '<button class="btn" data-act="rematch">한판 더!</button>' : ''}`; }
+  cmData = g; requestAnimationFrame(() => { const slot = document.getElementById('cmSlot'); if (slot && cmCanvas.parentNode !== slot) slot.appendChild(cmCanvas); cmPaint(); });
+  const drawer = g.players[g.drawer], iDraw = drawer?.uid === me.uid, hintOn = Date.now() - (g.endAt - CM_MS) > 40000;
+  let h = `<div class="status">${g.round}/${g.rounds} · 🖌️ ${esc(drawer?.name || '')}${iDraw ? ' (나)' : ''} ${g.phase === 'draw' ? `· ⏱ <span id="cmLeft">${Math.max(0, Math.ceil((g.endAt - Date.now()) / 1000))}초</span>` : ''}</div>`;
+  if (g.phase === 'reveal') h += `<div class="cm-reveal">${g.solver ? `🎉 ${esc(nameOf(g, g.solver))} 정답!` : '⏰ 아무도 못 맞혔어요'} <b>${esc(g.word)}</b></div>`;
+  else if (iDraw) h += `<div class="cm-word">제시어: <b>${esc(g.word)}</b></div>`;
+  else h += `<div class="cm-word" id="cmHint" ${hintOn ? 'data-on="1"' : ''}>${hintOn ? `힌트: <b>${cmCho(g.word)}</b>` : `<b>${'○'.repeat(g.word.length)}</b> (${g.word.length}글자)`}</div>`;
+  h += `<div id="cmSlot" class="cm-slot"></div>`;
+  if (iDraw && g.phase === 'draw') h += `<div class="cm-tools">${CM_COLS.map(c => `<button data-act="cmColor" data-v="${c}" class="${c === cmColor ? 'on' : ''}" style="background:${c}">${c === '#ffffff' ? '🧽' : ''}</button>`).join('')}<button data-act="cmWidth" class="w">${cmWidth <= 4 ? '가늘게' : cmWidth <= 8 ? '보통' : '굵게'}</button><button data-act="cmUndo" class="w">↩️</button><button data-act="cmClear" class="w">🗑️</button></div>`;
+  else if (meIn && g.phase === 'draw') h += `<div class="row"><input id="cmInput" class="field" maxlength="12" placeholder="정답 입력" autocomplete="off" enterkeyhint="send"><button class="btn" style="width:auto;padding:0 18px" data-act="cmGuess">확인</button></div>`;
+  if ((g.guesses || []).length) h += `<p class="hint">오답: ${g.guesses.slice(-8).map(x => `${esc(nameOf(g, x.uid))} '${esc(x.w)}'`).join(' · ')}</p>`;
+  return h + board;
+};
+ACT.cmColor = c => { cmColor = c; if (c === '#ffffff') cmWidth = 18; else if (cmWidth > 12) cmWidth = 6; renderGame(); };
+ACT.cmWidth = () => { cmWidth = cmWidth <= 4 ? 6 : cmWidth <= 8 ? 12 : 3; renderGame(); };
+ACT.cmUndo = () => tx(g => g.phase === 'draw' && g.players[g.drawer]?.uid === me.uid ? { strokes: (g.strokes || []).slice(0, -1) } : null);
+ACT.cmClear = () => tx(g => g.phase === 'draw' && g.players[g.drawer]?.uid === me.uid ? { strokes: [], live:null } : null);
+ACT.cmGuess = () => {
+  const w = (document.getElementById('cmInput')?.value || '').trim().replace(/\s/g, ''); if (!w) return;
+  let msg = null, ok = false;
+  tx(g => {
+    if (g.status !== 'playing' || g.phase !== 'draw') return null;
+    if (g.players[g.drawer]?.uid === me.uid) return null;
+    if (!g.players.some(p => p.uid === me.uid)) return '참가자가 아니에요';
+    if (w !== g.word) return { guesses: [...(g.guesses || []), { uid: me.uid, w: clean(w) }].slice(-20) };
+    ok = true; msg = `🎨 ${me.name}님 정답! '${g.word}' (+2, 그린 사람 +1)`;
+    const d = g.players[g.drawer].uid, scores = { ...g.scores, [me.uid]: (g.scores?.[me.uid] || 0) + 2, [d]: (g.scores?.[d] || 0) + 1 };
+    return { scores, phase:'reveal', revealAt: Date.now(), solver: me.uid, live:null };
+  }, () => { const el = document.getElementById('cmInput'); if (el) el.value = ''; toast(ok ? '⭕ 정답!' : '❌ 땡!'); if (msg) sys(msg); });
+};
+GAME_INPUTS.push(['cmInput','cmGuess']);
+
 /* ================= ⚫ 오목 AI ================= */
 let omThinking = false;
 function omScore(b, i, s){   // i에 s를 놓았을 때 4방향 모양 점수
@@ -4580,7 +4680,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261019c';
+const BUILD = 'b20261019d';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
