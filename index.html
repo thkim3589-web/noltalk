@@ -512,7 +512,9 @@ input{font:inherit}
 .hw-choice{display:flex;gap:12px;justify-content:center;margin:6px 0}
 .hw-res .hw-bd{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0}
 .hw-res .hw-bd span{background:#fff;border-radius:8px;padding:3px 8px;font-size:13px}
-.hw-pay{margin-top:6px;font-size:14px}.hw-pay em{font-style:normal;background:#ffe3e6;color:#c0123c;border-radius:6px;padding:1px 6px;font-size:11px;margin-left:4px}
+.hw-sold{display:flex;justify-content:center;margin-top:4px;padding-right:8px}
+.hw-sit{background:#fff4d6;color:#8a6100;border-radius:10px;padding:6px 10px;font-size:13px;font-weight:800;text-align:center;margin-bottom:6px}
+.hw-pay{margin-top:6px;font-size:14px}.hw-won{color:#c0123c;font-weight:800}.hw-win{color:#1d7a46;font-weight:800;margin-bottom:2px}.hw-money{font-weight:800;color:#b8860b}.hw-pay em{font-style:normal;background:#ffe3e6;color:#c0123c;border-radius:6px;padding:1px 6px;font-size:11px;margin-left:4px}
 </style>
 </head>
 <body>
@@ -667,7 +669,7 @@ const GAMES = {
   blockpuz:  { icon:'🟦', name:'블록 퍼즐',  desc:'각자 플레이 · 점수 대결', max:99 },
   chess:     { icon:'♟️', name:'체스',       desc:'1:1 정통 체스', max:2 },
   freecell:  { icon:'🃏', name:'프리셀',     desc:'각자 플레이 · 기록 대결', max:99 },
-  gostop:    { icon:'🌸', name:'고스톱',     desc:'맞고 · 3인 고스톱', max:3 },
+  gostop:    { icon:'🌸', name:'고스톱',     desc:'맞고 · 3~4인 고스톱', max:4 },
   janggi:    { icon:'🀄', name:'장기',       desc:'1:1 한국 장기', max:2 },
   go:        { icon:'⚪', name:'바둑 9×9',   desc:'1:1 작은 바둑', max:2 },
   catchmind: { icon:'🎨', name:'캐치마인드', desc:'그림 보고 맞히기', max:8 },
@@ -1670,6 +1672,8 @@ function openProfile(){
     <div class="seg"><button data-pf="notifyset" data-v="on" class="${nOn ? 'on' : ''}">${ic('bell', 16)} 받기</button><button data-pf="notifyset" data-v="off" class="${!nOn ? 'on' : ''}">${ic('belloff', 16)} 안 받기</button></div>
     <div class="pf-label">새 메시지 소리·진동</div>
     <div class="seg"><button data-pf="sound" data-v="on" class="${sound !== 'off' ? 'on' : ''}">🔔 켜기</button><button data-pf="sound" data-v="off" class="${sound === 'off' ? 'on' : ''}">🔕 끄기</button></div>
+    <div class="pf-label">🌸 고스톱 지갑 (가상 머니)</div>
+    <div class="stat-grid"><div>💰 잔액<b>${won(gsMoney())}</b></div><div><small style="color:var(--sub)">1점 10원 · 처음 1만원<br>실제 돈 아님 · 환전 불가</small>${gsMoney() < 1000 && myDoc.gsRefill !== gsToday() ? '<button class="mini" data-pf="gsrefill">💸 1만원 다시 받기</button>' : ''}</div></div>
     <div class="pf-label">내 전적 (친구와 대결한 게임)</div>
     <div class="stat-grid"><div>📅 이번 주 <small style="color:var(--sub)">${pk.wLabel}</small><b>${myDoc[pk.w] || 0}승 · ${myDoc[pk.wp] || 0}판</b></div><div>🗓️ 이번 달 <small style="color:var(--sub)">${pk.mLabel}</small><b>${myDoc[pk.m] || 0}승 · ${myDoc[pk.mp] || 0}판</b></div></div>
     <div class="menu-list" style="margin-top:14px"><button data-pf="rank">${ic('trophy')} 주간·월간 랭킹 보기</button>${nOn ? `<button data-pf="notify">${ic('bell')} 휴대폰 알림 권한 허용하기</button>` : ''}
@@ -1679,6 +1683,7 @@ $('#pfBody').addEventListener('click', async e => {
   const b = e.target.closest('[data-pf]'); if (!b) return;
   const act = b.dataset.pf, v = b.dataset.v;
   if (act === 'rename') { await renameMe(); return openProfile(); }
+  if (act === 'gsrefill') { await gsRefill(); return; }
   if (act === 'rank') return showHomeTab('rank');
   if (act === 'link') return $('#linkBtn').click();
   if (act === 'notify') return requestNotify();
@@ -1722,7 +1727,7 @@ const GAME_META = {
   sudoku:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, queens:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
   blockpuz:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, freecell:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
   chess:{ cat:'duel', min:2, ppl:'2명 · 🤖AI' },
-  gostop:{ cat:'group', min:2, ppl:'2~3명 · 🤖AI' },
+  gostop:{ cat:'group', min:2, ppl:'2~4명 · 🤖AI' },
   janggi:{ cat:'duel', min:2, ppl:'2명 · 🤖AI' }, go:{ cat:'duel', min:2, ppl:'2명 · 🤖AI' },
   catchmind:{ cat:'quiz', min:2, ppl:'2~8명' },
   onecard:{ cat:'group', min:2, ppl:'2~6명' }, yacht:{ cat:'group', min:1, ppl:'1~4명' },
@@ -4630,15 +4635,17 @@ function gsScore(caps){
   return best[1].total > best[0].total ? best[1] : best[0];
 }
 function gsShuffle(a, rnd){ a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-function gsDeal(n, first = 0, rnd = Math.random){
+function gsDeal(n, first = 0, rnd = Math.random, aside = 0){
   for (;;) {
     const d = gsShuffle([...Array(48).keys()], rnd), per = n === 2 ? 10 : 7, fl = n === 2 ? 8 : 6;
     const hands = Array.from({ length:n }, (_, i) => d.slice(i * per, (i + 1) * per).sort((a,b) => a - b));
-    const floor = d.slice(n * per, n * per + fl), deck = d.slice(n * per + fl);
+    const floor = d.slice(n * per, n * per + fl), asideC = d.slice(n * per + fl, n * per + fl + aside);
+    const deck = gsShuffle(d.slice(n * per + fl), rnd);   // 광 판 사람 패는 보여주기만 하고 다시 섞어 넣어요
     const cnt = {}; floor.forEach(c => cnt[gsM(c)] = (cnt[gsM(c)] || 0) + 1);
     if (Object.values(cnt).some(v => v >= 4)) continue;   // 바닥에 같은 월 4장이면 다시 섞기
     const S = { n, hands, floor, deck, caps: hands.map(() => []), turn: first, phase:'play', go: hands.map(() => 0), goScore: hands.map(() => 0),
-      shake: hands.map(() => 0), bomb: hands.map(() => 0), dummy: hands.map(() => 0), ppuk: hands.map(() => 0), last:[], ev:[], winner:-1, result:null, th: n === 2 ? 7 : 3 };
+      shake: hands.map(() => 0), bomb: hands.map(() => 0), dummy: hands.map(() => 0), ppuk: hands.map(() => 0), last:[], ev:[], winner:-1, result:null, th: n === 2 ? 7 : 3,
+      aside: [], sold: asideC, sell: aside ? asideC.filter(c => HT[c].t === 'g').length * 3 : 0 };
     // 총통: 손에 같은 월 4장 → 바로 승리
     hands.forEach((h, i) => { if (S.winner < 0) { const c = {}; h.forEach(x => c[gsM(x)] = (c[gsM(x)] || 0) + 1); if (Object.values(c).some(v => v === 4)) gsFinish(S, i, '총통', 10); } });
     return S;
@@ -4779,10 +4786,33 @@ function gsAiGo(S, pi){
   return S.deck.length >= 8 && opp < (S.n === 2 ? 4 : 2) && S.go[pi] < 2 && sc < 12;
 }
 /* ================= 🌸 고스톱 화면 · 연결 ================= */
+// 가상 머니: 점당 10원, 처음 1만원 (현금 아님 · 충전/환전 없음)
+const GS_WON = 10, GS_START = 10000;
+const gsMoney = () => myDoc.gsMoney ?? GS_START;
+const won = n => `${n < 0 ? '-' : ''}${Math.abs(n).toLocaleString()}원`;
+const gsToday = () => new Date().toLocaleDateString('sv-SE');
+function gsSettle(g, gid){   // 방 게임이 끝나면 내 지갑만 한 번 정산
+  const S = gsState(g); if (!S || S.phase !== 'done' || g.local || !room) return;
+  const i = gsIdx(g, me.uid), sitting = g.sitter === me.uid; if (i < 0 && !sitting) return;
+  const key = `gsm_${room.id}_${gid}_${g.rc || 0}_${g.st.length}`;
+  try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1'); } catch { return; }
+  const sum = S.winner >= 0 ? Object.values(S.result.pay).reduce((a, b) => a + b, 0) : 0;
+  let delta = sitting ? S.sell * gsP(g).length * GS_WON : ((S.winner < 0 ? 0 : i === S.winner ? sum : -(S.result.pay[i] || 0)) - (S.sell || 0)) * GS_WON;
+  if (!delta) return;
+  const ref = doc(db,'users',me.uid);
+  runTransaction(db, async t => { const d = (await t.get(ref)).data() || {}; t.update(ref, { gsMoney: (d.gsMoney ?? GS_START) + delta }); }).catch(() => {});
+}
+async function gsRefill(){
+  if (gsMoney() >= 1000) return toast('1,000원 아래로 떨어졌을 때만 받을 수 있어요');
+  if (myDoc.gsRefill === gsToday()) return toast('오늘은 이미 받았어요. 내일 다시 받을 수 있어요');
+  try { await updateDoc(doc(db,'users',me.uid), { gsMoney: GS_START, gsRefill: gsToday() }); toast('💰 1만원을 다시 받았어요!'); } catch { toast('잠시 후 다시 해주세요'); }
+}
+ACT.gsRefill = () => gsRefill();
 const GS_MS = 40000;
 let gsSel = null, gsThinking = false, gsEvSeen = '';
 const gsState = g => { try { return JSON.parse(g.st); } catch { return null; } };
-const gsIdx = (g, uid) => g.players.findIndex(p => p.uid === uid);
+const gsP = g => g.act ? g.act.map(u => g.players.find(p => p.uid === u)).filter(Boolean) : g.players;
+const gsIdx = (g, uid) => gsP(g).findIndex(p => p.uid === uid);
 function hw(c, attrs = '', cls = ''){
   const h = HT[c], sym = h.t === 'g' || h.t === 'y' ? h.e : GS_FLOWER[h.m];
   const tag = h.t === 'g' ? '<b class="hw-g">光</b>' : h.t === 'pp' ? '<b class="hw-pp">쌍</b>' : '';
@@ -4795,35 +4825,39 @@ function gsCapsHTML(caps, small){
   return `<div class="hw-caps ${small ? 'sm' : ''}">${[['g','광'],['y','열끗'],['d','띠'],['p','피']].map(([k, n]) => grp[k].length ? `<div class="hw-cg"><small>${n} ${k === 'p' ? caps.reduce((a, c) => a + gsPiVal(c, gsScore(caps).kjPi), 0) : grp[k].length}</small><div>${grp[k].map(c => hw(c, 'disabled', 'mini')).join('')}</div></div>` : '').join('')}</div>`;
 }
 R.gostop = (g, meIn) => {
-  if (g.status === 'waiting') return waitingHTML(g, meIn) + (meIn ? '<p class="empty" style="padding:4px">2명이면 맞고(7점), 3명이면 고스톱(3점)이에요</p>' : '');
+  if (g.status === 'waiting') return waitingHTML(g, meIn) + (meIn ? `<p class="empty" style="padding:4px">2명이면 맞고(7점), 3명이면 고스톱(3점), 4명이면 한 명씩 돌아가며 광 팔기(쉬기)<br>💰 1점에 10원 · 처음에 1만원 지급 (내 지갑 ${won(gsMoney())})<br><small>가상 머니예요 · 실제 돈이 아니고 충전·환전되지 않아요</small></p>` : '');
   const S = gsState(g); if (!S) return '<p class="empty">판을 불러오는 중…</p>';
   const my = gsIdx(g, me.uid), myTurn = g.status === 'playing' && S.turn === my && !gsThinking;
   const sc = i => gsScore(S.caps[i]).total;
   let h = '';
   // 상대들
-  g.players.forEach((p, i) => { if (i === my) return;
+  gsP(g).forEach((p, i) => { if (i === my) return;
     h += `<div class="hw-opp ${S.turn === i && S.phase !== 'done' ? 'on' : ''}"><div class="hw-oh"><b>${esc(p.name)}</b> <span class="hw-back">🂠 ${S.hands[i].length}</span> <span class="hw-sc">${sc(i)}점${S.go[i] ? ` · ${S.go[i]}고` : ''}${S.shake[i] ? ' · 흔듦' : ''}</span>${g.totals ? `<small>누적 ${(g.totals[p.uid] || 0) > 0 ? '+' : ''}${g.totals[p.uid] || 0}</small>` : ''}</div>${gsCapsHTML(S.caps[i], true)}</div>`; });
   // 바닥
   const groups = {}; S.floor.forEach(c => (groups[gsM(c)] = groups[gsM(c)] || []).push(c));
   const selM = gsSel != null ? gsM(gsSel) : -1;
   h += `<div class="hw-floor"><div class="hw-deck">🂠<small>${S.deck.length}</small></div>${Object.keys(groups).sort((a,b) => a - b).map(m => `<div class="hw-fg ${+m === selM ? 'tg' : ''}">${groups[m].map(c => hw(c, 'disabled', S.last.includes(c) ? 'new' : '')).join('')}</div>`).join('')}</div>`;
+  if (g.sitter) h += `<div class="hw-sit">😴 ${esc(nameOf(g, g.sitter))}${g.sitter === me.uid ? ' (나)' : ''} 광 팔기 · 광 ${S.sell / 3}장${S.sell ? ` → 한 사람당 ${S.sell}점 (${won(S.sell * GS_WON)})` : ' (팔 광이 없어요)'}${(S.sold || []).length ? `<div class="hw-sold">${S.sold.filter(c => HT[c].t === 'g').map(c => hw(c, 'disabled', 'mini')).join('')}</div>` : ''}</div>`;
   const evKey = g.st.length + ':' + (S.ev || []).join();
   if ((S.ev || []).length) h += `<div class="hw-ev ${evKey !== gsEvSeen ? 'pop' : ''}">${S.ev.join(' ')}</div>`;
   gsEvSeen = evKey;
   if (g.status === 'done' || S.phase === 'done') {
     const r = S.result || {};
+    if (!g.local && curGame?.id) gsSettle(g, curGame.id);
     if (r.nagari) h += `<div class="card"><div class="big2">🤝 나가리!</div><small>아무도 점수를 못 냈어요</small></div>`;
     else {
-      const wn = g.players[S.winner]?.name || '';
+      const wn = gsP(g)[S.winner]?.name || '';
       h += `<div class="card hw-res"><div class="big2">🏆 ${esc(wn)} ${r.why === '스톱' ? '스톱!' : r.why + '!'} ${r.total}점</div>
         <div class="hw-bd">${Object.entries(r.b || {}).map(([k, v]) => `<span>${esc(k)} <b>${v}</b></span>`).join('')}</div>
         ${r.tags?.length || r.mul > 1 ? `<small>${r.tags.join(' · ')}${r.mul > 1 ? ` → ×${r.mul}` : ''}</small>` : ''}
-        <div class="hw-pay">${Object.entries(r.pay || {}).map(([j, v]) => `<div>${esc(g.players[j]?.name || '')} <b>-${v}점</b> ${(r.notes?.[j] || []).map(n => `<em>${n}</em>`).join('')}</div>`).join('')}</div></div>`;
+        <div class="hw-pay">${g.local ? '' : `<div class="hw-win">🏆 ${esc(wn)} <b>+${won(Object.values(r.pay || {}).reduce((a, b) => a + b, 0) * GS_WON)}</b></div>`}${Object.entries(r.pay || {}).map(([j, v]) => `<div>${esc(gsP(g)[j]?.name || '')} <b>-${v}점</b>${g.local ? '' : ` <span class="hw-won">-${won(v * GS_WON)}</span>`} ${(r.notes?.[j] || []).map(n => `<em>${n}</em>`).join('')}</div>`).join('')}</div></div>`;
+
     }
+    if (!g.local && gsMoney() < 1000 && myDoc.gsRefill !== gsToday()) h += `<button class="btn ghost" data-act="gsRefill">💸 돈이 다 떨어졌어요 · 1만원 다시 받기 (하루 1번)</button>`;
     if (meIn) h += `<button class="btn" data-act="rematch">한판 더!</button>`;
   } else {
     if (!g.local) h += `<div class="timer"><i id="gsTimer"></i></div>`;
-    const cur = g.players[S.turn];
+    const cur = gsP(g)[S.turn];
     h += `<div class="status">${S.phase === 'gostop' ? (myTurn ? `🎉 ${sc(my)}점! 고? 스톱?` : `${esc(cur.name)}님이 고/스톱 고민 중…`) : gsThinking ? '🤖 AI가 생각 중…' : myTurn ? '🔥 내 차례! 낼 패를 고르세요' : `${esc(cur.name)}님 차례`}</div>`;
     if (myTurn && S.phase === 'gostop') h += `<div class="hw-gs"><button class="btn" data-act="gsGo" data-v="1">🔥 고! <small>(${S.go[my] + 1}고)</small></button><button class="btn ghost" data-act="gsGo" data-v="0">✋ 스톱 <small>${sc(my)}점 받기</small></button></div>`;
     if (myTurn && gsSel != null && S.phase === 'play') {
@@ -4832,7 +4866,7 @@ R.gostop = (g, meIn) => {
     }
   }
   if (my >= 0) {
-    h += `<div class="hw-me"><div class="hw-oh"><b>나</b> <span class="hw-sc">${sc(my)}점${S.go[my] ? ` · ${S.go[my]}고` : ''}${S.shake[my] ? ' · 흔듦' : ''}${S.bomb[my] ? ' · 폭탄' : ''}</span>${g.totals ? `<small>누적 ${(g.totals[me.uid] || 0) > 0 ? '+' : ''}${g.totals[me.uid] || 0}</small>` : ''}</div>${gsCapsHTML(S.caps[my])}</div>`;
+    h += `<div class="hw-me"><div class="hw-oh"><b>나</b>${g.local ? '' : ` <span class="hw-money">💰 ${won(gsMoney())}</span>`} <span class="hw-sc">${sc(my)}점${S.go[my] ? ` · ${S.go[my]}고` : ''}${S.shake[my] ? ' · 흔듦' : ''}${S.bomb[my] ? ' · 폭탄' : ''}</span>${g.totals ? `<small>누적 ${(g.totals[me.uid] || 0) > 0 ? '+' : ''}${g.totals[me.uid] || 0}</small>` : ''}</div>${gsCapsHTML(S.caps[my])}</div>`;
     const fms = new Set(S.floor.map(gsM));
     h += `<div class="hw-hand">${S.hands[my].map(c => hw(c, `data-act="gsCard" data-v="${c}"`, `${fms.has(gsM(c)) ? 'match' : ''} ${c === gsSel ? 'sel' : ''}`)).join('')}${S.dummy[my] ? `<button class="hw dummy" data-act="gsDummy">💣<small>×${S.dummy[my]}</small></button>` : ''}</div>`;
     if (myTurn && S.phase === 'play') h += `<p class="hint" style="text-align:center">반짝이는 패는 바닥과 같은 월이에요 · 기준 ${S.th}점</p>`;
@@ -4852,15 +4886,13 @@ function gsAct(kind, val, who){
     const u = { st: JSON.stringify(N), turnStartedAt: Date.now() };
     if (N.phase === 'done') {
       u.status = 'done';
-      const r = N.result, totals = { ...(g.totals || {}) };
+      const r = N.result; u.totals = gsTotals(g, N, g.totals);
       if (r.nagari) msg = '🌸 고스톱: 나가리! 🤝';
       else {
-        const wuid = g.players[N.winner].uid; let sum = 0;
-        Object.entries(r.pay).forEach(([j, v]) => { const lu = g.players[j].uid; totals[lu] = (totals[lu] || 0) - v; sum += v; });
-        totals[wuid] = (totals[wuid] || 0) + sum; u.totals = totals;
-        msg = g.local ? (wuid === me.uid ? `🎉 ${r.why}! ${sum}점 땄어요` : `😵 ${g.players[N.winner].name} ${r.why}… ${r.pay[gsIdx(g, me.uid)] || 0}점 잃었어요`) : `🌸 고스톱: ${g.players[N.winner].name}님 ${r.why}! ${r.total}점${r.mul > 1 ? ` ×${r.mul}` : ''} → ${Object.entries(r.pay).map(([j, v]) => `${g.players[j].name} -${v}`).join(', ')}`;
+        const wuid = gsP(g)[N.winner].uid, sum = Object.values(r.pay).reduce((a, b) => a + b, 0);
+        msg = g.local ? (wuid === me.uid ? `🎉 ${r.why}! ${sum}점 땄어요` : `😵 ${gsP(g)[N.winner].name} ${r.why}… ${r.pay[gsIdx(g, me.uid)] || 0}점 잃었어요`) : `🌸 고스톱: ${gsP(g)[N.winner].name}님 ${r.why}! ${r.total}점${r.mul > 1 ? ` ×${r.mul}` : ''} → ${Object.entries(r.pay).map(([j, v]) => `${gsP(g)[j].name} -${v}`).join(', ')}`;
       }
-    } else if (kind === 'gs' && val) msg = g.local ? null : `🌸 ${g.players[i].name}님 ${N.go[i]}고! 🔥`;
+    } else if (kind === 'gs' && val) msg = g.local ? null : `🌸 ${gsP(g)[i].name}님 ${N.go[i]}고! 🔥`;
     return u;
   }, () => { try { navigator.vibrate?.(evs.length ? [20,40,20] : 10); } catch {} if (msg) chSay(msg); });
 }
@@ -4879,7 +4911,7 @@ ACT.gsDummy = () => gsAct('play', { dummy:true });
 ACT.gsGo = v => gsAct('gs', v === '1');
 function gsAiMaybe(){
   const g = gd(); if (!isLocal() || !g || g.type !== 'gostop' || g.status !== 'playing' || gsThinking) return;
-  const S = gsState(g); if (!S) return; const cur = g.players[S.turn];
+  const S = gsState(g); if (!S) return; const cur = gsP(g)[S.turn];
   if (!cur?.uid.startsWith('ai')) return;
   gsThinking = true; renderGame(); const cg = curGame;
   setTimeout(() => {
@@ -4889,23 +4921,31 @@ function gsAiMaybe(){
     if (S2.phase === 'gostop') gsAct('gs', gsAiGo(S2, S2.turn), cur.uid); else gsAct('play', gsAiMove(S2, S2.turn), cur.uid);
   }, 650 + Math.random() * 500);
 }
-function gsTotals(g, S, base){   // 판이 끝났으면 누적 점수 반영
-  const totals = { ...(base || {}) }; if (!S || S.phase !== 'done' || S.winner < 0) return totals;
-  let sum = 0; Object.entries(S.result.pay).forEach(([j, v]) => { const u = g.players[j].uid; totals[u] = (totals[u] || 0) - v; sum += v; });
-  const w = g.players[S.winner].uid; totals[w] = (totals[w] || 0) + sum; return totals;
+function gsTotals(g, S, base){   // 판이 끝났으면 누적 점수 반영 (광 팔기 포함)
+  const totals = { ...(base || {}) }; if (!S || S.phase !== 'done') return totals;
+  if (S.sell && g.sitter) gsP(g).forEach(p => { totals[p.uid] = (totals[p.uid] || 0) - S.sell; totals[g.sitter] = (totals[g.sitter] || 0) + S.sell; });
+  if (S.winner < 0) return totals;
+  let sum = 0; Object.entries(S.result.pay).forEach(([j, v]) => { const u = gsP(g)[j].uid; totals[u] = (totals[u] || 0) - v; sum += v; });
+  const w = gsP(g)[S.winner].uid; totals[w] = (totals[w] || 0) + sum; return totals;
 }
-const gsNewRound = (g, first, base) => { const S = gsDeal(g.players.length, first); return { status: S.phase === 'done' ? 'done' : 'playing', st: JSON.stringify(S), turnStartedAt: Date.now(), totals: gsTotals(g, S, base) }; };
+function gsNewRound(g, firstUid, base){
+  let act = null, sitter = null, round = (g.round || 0) + 1;
+  if (g.players.length === 4) { sitter = g.players[(round - 1) % 4].uid; act = g.players.filter(p => p.uid !== sitter).map(p => p.uid); }
+  const G2 = { ...g, act, sitter }, P = gsP(G2), first = Math.max(0, P.findIndex(p => p.uid === firstUid));
+  const S = gsDeal(P.length, first, Math.random, sitter ? 7 : 0);
+  return { status: S.phase === 'done' ? 'done' : 'playing', st: JSON.stringify(S), turnStartedAt: Date.now(), totals: gsTotals(G2, S, base), act, sitter, round };
+}
 GAME_HOOK.gostop = {
-  start: g => ({ u: gsNewRound(g, 0, {}), msg: g.players.length === 2 ? '🌸 맞고 시작! 7점 나면 고·스톱' : '🌸 고스톱 시작! 3점 나면 고·스톱' }),
-  rematch: g => { const S = gsState(g), u = gsNewRound(g, S && S.winner >= 0 ? S.winner : 0, g.totals), N = JSON.parse(u.st); return { u, msg: N.phase === 'done' ? `🌸 새 판부터 ${g.players[N.winner].name}님 총통! 🎉` : '🌸 새 판! 이긴 사람이 먼저' }; },
-  outcome: (g, P) => { if (g.status !== 'done') return null; const S = gsState(g); return S && S.winner >= 0 ? { P, W: [g.players[S.winner].uid] } : null; },
+  start: g => { const u = gsNewRound({ ...g, round:0 }, g.players[0].uid, {}); return { u, msg: g.players.length === 2 ? '🌸 맞고 시작! 7점 나면 고·스톱 (1점 10원)' : g.players.length === 4 ? `🌸 4명 고스톱! 이번 판은 ${nameOf(g, u.sitter)}님이 광 팔기(쉬기) · 1점 10원` : '🌸 고스톱 시작! 3점 나면 고·스톱 (1점 10원)' }; },
+  rematch: g => { const S = gsState(g), wu = S && S.winner >= 0 ? gsP(g)[S.winner].uid : null, u = gsNewRound(g, wu, g.totals), N = JSON.parse(u.st), P2 = gsP({ ...g, ...u }); return { u, msg: N.phase === 'done' ? `🌸 새 판부터 ${P2[N.winner].name}님 총통! 🎉` : u.sitter ? `🌸 새 판! 이번엔 ${nameOf(g, u.sitter)}님이 광 팔기(쉬기)` : '🌸 새 판! 이긴 사람이 먼저' }; },
+  outcome: (g, P) => { if (g.status !== 'done') return null; const S = gsState(g); return S && S.winner >= 0 ? { P: gsP(g).map(p => p.uid), W: [gsP(g)[S.winner].uid] } : null; },
   tick: g => {
     if (g.status !== 'playing' || g.local) return;
     const left = GS_MS - (Date.now() - g.turnStartedAt), bar = document.getElementById('gsTimer');
     if (bar) bar.style.width = Math.max(0, left / GS_MS * 100) + '%';
-    if (left < -2000) { const S = gsState(g); if (!S) return; const uid = g.players[S.turn].uid, stamp = g.turnStartedAt;
-      tx(x => { if (x.turnStartedAt !== stamp || x.status !== 'playing') return null; const S2 = gsState(x), N = S2.phase === 'gostop' ? gsGoStop(S2, S2.turn, false) : gsPlay(S2, S2.turn, gsAiMove(S2, S2.turn)); if (!N) return null;
-        const u = { st: JSON.stringify(N), turnStartedAt: Date.now() }; if (N.phase === 'done') u.status = 'done'; return u; }, () => toast(`⏰ ${nameOf(g, uid)}님 시간 초과 · 자동으로 냈어요`)); }
+    if (left < -2000) { const S = gsState(g); if (!S) return; const uid = gsP(g)[S.turn].uid, stamp = g.turnStartedAt;
+      let msg = null; tx(x => { if (x.turnStartedAt !== stamp || x.status !== 'playing') return null; const S2 = gsState(x), N = S2.phase === 'gostop' ? gsGoStop(S2, S2.turn, false) : gsPlay(S2, S2.turn, gsAiMove(S2, S2.turn)); if (!N) return null;
+        const u = { st: JSON.stringify(N), turnStartedAt: Date.now() }; if (N.phase === 'done') { u.status = 'done'; u.totals = gsTotals(x, N, x.totals); msg = N.result.nagari ? '🌸 고스톱: 나가리! 🤝' : `🌸 고스톱: ${gsP(x)[N.winner].name}님 ${N.result.why}! ${N.result.total}점`; } return u; }, () => { toast(`⏰ ${nameOf(g, uid)}님 시간 초과 · 자동으로 냈어요`); if (msg) sys(msg); }); }
   },
 };
 
@@ -5372,7 +5412,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261020e';
+const BUILD = 'b20261020g';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
