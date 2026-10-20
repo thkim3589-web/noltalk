@@ -4632,13 +4632,16 @@ const HT = (() => {
     [['g',{e:'🦚'}],['pp'],['p'],['p']],
     [['g',{rain:1,e:'☂️'}],['y',{e:'🐦'}],['d',{d:'bi'}],['pp']],
   ];
-  const out = []; T.forEach((row, mi) => row.forEach(([t, x = {}]) => out.push({ m: mi + 1, t, ...x }))); return out;
+  const out = []; T.forEach((row, mi) => row.forEach(([t, x = {}]) => out.push({ m: mi + 1, t, ...x })));
+  out.push({ m:13, t:'pp', jk:2 }, { m:13, t:'pp', jk:2 }, { m:13, t:'pp', jk:3 });   // 🃏 조커(보너스패) 3장: 쌍피 2 · 쓰리피 1
+  return out;
 })();
 const GS_FLOWER = ['','🌲','🌺','🌸','🌿','🌷','🌹','🍂','🌾','🌼','🍁','🍃','🌧️'];
-const GS_MNAME = ['','송학','매조','벚꽃','흑싸리','난초','모란','홍싸리','공산','국진','단풍','오동','비'];
+const GS_MNAME = ['','송학','매조','벚꽃','흑싸리','난초','모란','홍싸리','공산','국진','단풍','오동','비','조커'];
+const gsJk = c => !!HT[c]?.jk;
 const gsM = c => HT[c].m;
-const gsVal = c => { const h = HT[c]; return h.t === 'g' ? (h.rain ? 4 : 6) : h.t === 'y' ? (h.bird ? 4 : 3) : h.t === 'd' ? (h.d === 'bi' ? 2 : 3.2) : h.t === 'pp' ? 3 : 1.5; };
-const gsPiVal = (c, kjAsPi) => { const h = HT[c]; return h.t === 'pp' ? 2 : h.t === 'p' ? 1 : (h.kj && kjAsPi) ? 2 : 0; };
+const gsVal = c => { const h = HT[c]; return h.t === 'g' ? (h.rain ? 4 : 6) : h.t === 'y' ? (h.bird ? 4 : 3) : h.t === 'd' ? (h.d === 'bi' ? 2 : 3.2) : h.jk ? 5 : h.t === 'pp' ? 3 : 1.5; };
+const gsPiVal = (c, kjAsPi) => { const h = HT[c]; return h.jk ? h.jk : h.t === 'pp' ? 2 : h.t === 'p' ? 1 : (h.kj && kjAsPi) ? 2 : 0; };
 function gsScore(caps){
   const best = [false, true].map(kjPi => {
     const H = caps.map(c => HT[c]), b = {};
@@ -4658,13 +4661,16 @@ function gsScore(caps){
 function gsShuffle(a, rnd){ a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function gsDeal(n, first = 0, rnd = Math.random, aside = 0){
   for (;;) {
-    const d = gsShuffle([...Array(48).keys()], rnd), per = n === 2 ? 10 : 7, fl = n === 2 ? 8 : 6;
+    const d = gsShuffle([...Array(HT.length).keys()], rnd), per = n === 2 ? 10 : 7, fl = n === 2 ? 8 : 6;
     const hands = Array.from({ length:n }, (_, i) => d.slice(i * per, (i + 1) * per).sort((a,b) => a - b));
     const floor = d.slice(n * per, n * per + fl), asideC = d.slice(n * per + fl, n * per + fl + aside);
     const deck = gsShuffle(d.slice(n * per + fl), rnd);   // 광 판 사람 패는 보여주기만 하고 다시 섞어 넣어요
     const cnt = {}; floor.forEach(c => cnt[gsM(c)] = (cnt[gsM(c)] || 0) + 1);
     if (Object.values(cnt).some(v => v >= 4)) continue;   // 바닥에 같은 월 4장이면 다시 섞기
-    const S = { n, hands, floor, deck, caps: hands.map(() => []), turn: first, phase:'play', go: hands.map(() => 0), goScore: hands.map(() => 0),
+    const caps = hands.map(() => []);
+    for (let k = 0; k < floor.length; k++) while (gsJk(floor[k]) && deck.length) { caps[first].push(floor[k]); floor[k] = deck.pop(); }   // 바닥에 깔린 조커는 선이 가져가요
+    if (floor.some(gsJk)) continue;
+    const S = { n, hands, floor, deck, caps, turn: first, phase:'play', go: hands.map(() => 0), goScore: hands.map(() => 0),
       shake: hands.map(() => 0), bomb: hands.map(() => 0), dummy: hands.map(() => 0), ppuk: hands.map(() => 0), last:[], ev:[], winner:-1, result:null, th: n === 2 ? 7 : 3,
       aside: [], sold: asideC, sell: aside ? asideC.filter(c => HT[c].t === 'g').length * 3 : 0 };
     // 총통: 손에 같은 월 4장 → 바로 승리
@@ -4687,6 +4693,7 @@ function gsMoves(S, pi){
   const cnt = m => h.filter(c => gsM(c) === m).length, fcnt = m => S.floor.filter(c => gsM(c) === m).length;
   h.forEach(c => {
     const m = gsM(c);
+    if (gsJk(c)) return mv.push({ card:c, joker:true });
     if (cnt(m) === 3 && fcnt(m) === 1) mv.push({ card:c, bomb:true });
     mv.push({ card:c, shake: cnt(m) === 3 && fcnt(m) === 0 });
   });
@@ -4703,6 +4710,14 @@ function gsPlay(S0, pi, opt){
     if (S.dummy[pi] <= 0) return null; S.dummy[pi]--;
   } else {
     const c = opt.card; if (!S.hands[pi].includes(c)) return null;
+    if (gsJk(c)) {   // 🃏 조커: 바로 먹고 더미에서 한 장 가져와 한 번 더
+      S.hands[pi] = S.hands[pi].filter(x => x !== c); S.caps[pi].push(c); S.caps[pi].sort((a, b) => a - b);
+      if (S.deck.length) { S.hands[pi].push(S.deck.pop()); S.hands[pi].sort((a, b) => a - b); }
+      S.ev = [`🃏 조커! ${HT[c].jk}피 먹고 한 장 더`]; S.last = [c];
+      const sc = gsScore(S.caps[pi]).total, more = S.hands[pi].length || S.dummy[pi];
+      if (sc >= S.th && sc > S.goScore[pi]) { if (!more && !S.deck.length) { gsFinish(S, pi, '스톱'); return S; } S.phase = 'gostop'; S.jkMore = !!more; return S; }
+      return more ? S : gsNext(S);
+    }
     const m = gsM(c), fm = S.floor.filter(x => gsM(x) === m);
     if (opt.bomb) {
       const mine = S.hands[pi].filter(x => gsM(x) === m); if (mine.length !== 3 || fm.length !== 1) return null;
@@ -4717,8 +4732,10 @@ function gsPlay(S0, pi, opt){
     }
   }
   // 뒤집기
-  if (S.deck.length) {
-    const f = S.deck.pop(), fmn = gsM(f);
+  let f = S.deck.length ? S.deck.pop() : undefined;
+  while (f !== undefined && gsJk(f)) { S.caps[pi].push(f); taken.push(f); ev.push(`🃏 조커! ${HT[f].jk}피`); f = S.deck.length ? S.deck.pop() : undefined; }
+  if (f !== undefined) {
+    const fmn = gsM(f);
     if (played && played.type === 'none' && fmn === played.m) { take([played.c, f]); steal++; ev.push('💋 쪽!'); }
     else if (played && played.type === 'pair' && fmn === played.m) {
       if (played.n === 1) { S.floor.push(f); S.ppuk[pi]++; ev.push('💥 뻑!'); pend = null; }
@@ -4755,6 +4772,7 @@ function gsGoStop(S0, pi, go){
   if (S.phase !== 'gostop' || S.turn !== pi) return null;
   if (!go) { gsFinish(S, pi, '스톱'); return S; }
   S.go[pi]++; S.goScore[pi] = gsScore(S.caps[pi]).total; S.phase = 'play'; S.ev = [`🔥 ${S.go[pi]}고!`];
+  if (S.jkMore) { S.jkMore = false; return S; }   // 조커로 고 → 이어서 내 패 내기
   return gsNext(S);
 }
 function gsFinish(S, wi, why, fixed){
@@ -4788,7 +4806,8 @@ function gsAiMove(S, pi){
   let best = mv[0], bs = -1e9;
   for (const o of mv) {
     let sc;
-    if (o.dummy) sc = 1.2;
+    if (o.joker) sc = 50;
+    else if (o.dummy) sc = 1.2;
     else if (o.bomb) sc = 30;
     else {
       const m = gsM(o.card), fm = S.floor.filter(x => gsM(x) === m);
@@ -4813,7 +4832,7 @@ const HW_ART = (() => {
   const G = '#3f8f3a', G2 = '#2d6a2b', G3 = '#7cc36b', PU = '#7b4fb5', PU2 = '#4e2d84', PK = '#f4a6bf', PK2 = '#e0618a', B = '#2b5fb8', B2 = '#173a7a', BR = '#7a4a22', BR2 = '#5a3416', OR = '#ef6a1f';
   const OL = `stroke="${K}" stroke-width=".9" stroke-linejoin="round"`;
   // 월별 테두리·밤하늘 색
-  const MC = ['', '#1f5a8c', '#c2185b', '#d81b60', '#6a3fa0', '#4b3aa8', '#c62828', '#2e7d32', '#1a2a6c', '#e07b00', '#d84315', '#5b2a86', '#2c4a8a'];
+  const MC = ['', '#1f5a8c', '#c2185b', '#d81b60', '#6a3fa0', '#4b3aa8', '#c62828', '#2e7d32', '#1a2a6c', '#e07b00', '#d84315', '#5b2a86', '#2c4a8a', '#b8860b'];
   const c = (x, y, r, f, s = '') => `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" ${s}/>`;
   const e = (x, y, rx, ry, f, rot = 0, s = '') => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${f}" transform="rotate(${rot} ${x} ${y})" ${s}/>`;
   const p = (d, f, s = '') => `<path d="${d}" fill="${f}" ${s}/>`;
@@ -4822,9 +4841,9 @@ const HW_ART = (() => {
   const petals = (x, y, r, n, col, mid, s = OL, rot = 0) => [...Array(n)].map((_, k) => { const a = (k * 360 / n + rot) * Math.PI / 180; return e(x + Math.cos(a) * r * .55, y + Math.sin(a) * r * .55, r * .5, r * .38, col, k * 360 / n + rot, s); }).join('') + c(x, y, r * .26, mid);
   // 카드 틀: 월 색 테두리 + 크림 바탕(또는 하늘색) + 월 표시
   // 종류별 테두리 색 (광 빨강 · 열끗 보라 · 띠 파랑 · 피 초록 · 쌍피 진빨강)
-  const TC = { g:'#c0182b', y:'#5b2a9e', d:'#1f56b0', p:'#2e7d32', pp:'#b3122a' }, GOLD = '#f2c94c';
+  const TC = { g:'#c0182b', y:'#5b2a9e', d:'#1f56b0', p:'#2e7d32', pp:'#b3122a', jk:'#b8860b' }, GOLD = '#f2c94c';
   const frame = (m, t, bg = CR) => `<rect width="60" height="90" rx="6" fill="${TC[t]}"/><rect x="1.4" y="1.4" width="57.2" height="87.2" rx="5" fill="none" stroke="${GOLD}" stroke-width=".9"/><rect x="3" y="3" width="54" height="84" rx="3.6" fill="${bg}"/>`;
-  const month = (m) => `<path d="M3 3H23.5V12.5Q23.5 16 20 16H3z" fill="${MC[m]}"/><path d="M23.5 3V12.5Q23.5 16 20 16H3" fill="none" stroke="${GOLD}" stroke-width=".8"/>` + T(13.2, 12.6, 8.6, W, m + '월');
+  const month = (m) => `<path d="M3 3H23.5V12.5Q23.5 16 20 16H3z" fill="${MC[m]}"/><path d="M23.5 3V12.5Q23.5 16 20 16H3" fill="none" stroke="${GOLD}" stroke-width=".8"/>` + T(13.2, 12.6, m > 12 ? 7.4 : 8.6, W, m > 12 ? '조커' : m + '월');
   const label = (t, txt) => `<rect x="3" y="78" width="54" height="9" fill="${TC[t]}"/><path d="M3 78H57" stroke="${GOLD}" stroke-width=".8"/>` + T(30, 85.4, 7, W, txt);
   const gwang = () => c(49, 10, 7.2, R, `stroke="${Y}" stroke-width="1.4"`) + T(49, 13.6, 10, Y, '光', `font-family="serif"`);
   const ssang = () => c(49.5, 10, 7, R, `stroke="${GOLD}" stroke-width="1.3"`) + T(49.5, 13, 8.5, W, '쌍');
@@ -4871,23 +4890,25 @@ const HW_ART = (() => {
   const out = {}, piSeen = {};
   HT.forEach((h, id) => {
     const key = h.m + h.t;
-    let svg = frame(h.m, h.t);
+    const tt = h.jk ? 'jk' : h.t;
+    let svg = frame(h.m, tt);
     if (special[key] && (h.t === 'g')) svg += special[key]();
     else {
-      let bg = plant[h.m](false);
+      let bg = plant[h.m] ? plant[h.m](false) : [...Array(9)].map((_, k) => petals(10 + (k % 3) * 20, 20 + Math.floor(k / 3) * 22, 8, 5, Y, R)).join('');
       if (h.t === 'p') { piSeen[h.m] = (piSeen[h.m] || 0) + 1; if (piSeen[h.m] === 2) bg = `<g transform="translate(60 0) scale(-1 1)">${bg}</g>`; }
       svg += bg;
       if (special[key]) svg += special[key]();
     }
     if (h.t === 'd') { const [col, txt] = RIB[h.d]; svg += ribbon(col, txt); }
     // 그림 카드 이미지(hwatu.webp, 8×6칸) — 못 불러오면 아래 SVG 그림이 그대로 보임
-    svg += `<svg x="3" y="3" width="54" height="75" viewBox="${(id % 8) * 150} ${Math.floor(id / 8) * 208} 150 208" preserveAspectRatio="none"><image href="hwatu.webp" width="1200" height="1248"/></svg>`;
+    svg += `<svg x="3" y="3" width="54" height="75" viewBox="${(id % 8) * 150} ${Math.floor(id / 8) * 208} 150 208" preserveAspectRatio="none"><image href="hwatu.webp" width="1200" height="1456"/></svg>`;
     if (id === 37) svg += ribbon(B, '');      // 10월 청단: 그림에 띠가 없어서 덧그림
     if (id === 46) svg += ribbon(R, '');      // 12월 비띠
-    svg += label(h.t, h.t === 'g' ? '광' : h.t === 'y' ? (h.kj ? '열끗 · 국진' : h.bird ? '열끗 · 고도리' : '열끗') : h.t === 'd' ? (RIB[h.d][1] || '띠') : h.t === 'pp' ? '쌍피' : '피');
+    svg += label(tt, h.jk ? `조커 · ${h.jk === 3 ? '쓰리피' : '쌍피'}` : h.t === 'g' ? '광' : h.t === 'y' ? (h.kj ? '열끗 · 국진' : h.bird ? '열끗 · 고도리' : '열끗') : h.t === 'd' ? (RIB[h.d][1] || '띠') : h.t === 'pp' ? '쌍피' : '피');
     svg += month(h.m);
     if (h.t === 'g') svg += gwang();
-    if (h.t === 'pp') svg += ssang();
+    if (h.jk) svg += c(49.5, 10, 7, '#b8860b', `stroke="${W}" stroke-width="1.3"`) + T(49.5, 13.4, 9, W, h.jk + '피');
+    else if (h.t === 'pp') svg += ssang();
     if (h.bird) svg += godori();
     out[id] = svg;
   });
@@ -4939,7 +4960,7 @@ function gsCapsHTML(caps, small){
   return `<div class="hw-caps ${small ? 'sm' : ''}">${[['g','광'],['y','열끗'],['d','띠'],['p','피']].map(([k, n]) => grp[k].length ? `<div class="hw-cg"><small>${n} ${k === 'p' ? caps.reduce((a, c) => a + gsPiVal(c, gsScore(caps).kjPi), 0) : grp[k].length}</small><div>${grp[k].map(c => hw(c, 'disabled', 'mini')).join('')}</div></div>` : '').join('')}</div>`;
 }
 R.gostop = (g, meIn) => {
-  if (g.status === 'waiting') return waitingHTML(g, meIn) + (meIn ? `<p class="empty" style="padding:4px">2명이면 맞고(7점), 3명이면 고스톱(3점), 4명이면 한 명씩 돌아가며 광 팔기(쉬기)<br>💰 1점에 10원 · 처음에 1만원 지급 (내 지갑 ${won(gsMoney())})<br><small>가상 머니예요 · 실제 돈이 아니고 충전·환전되지 않아요</small></p>` : '');
+  if (g.status === 'waiting') return waitingHTML(g, meIn) + (meIn ? `<p class="empty" style="padding:4px">2명이면 맞고(7점), 3명이면 고스톱(3점), 4명이면 한 명씩 돌아가며 광 팔기(쉬기)<br>🃏 조커 3장: 쌍피 2장 · 쓰리피 1장 — 내면 바로 먹고 한 장 더<br>💰 1점에 10원 · 처음에 1만원 지급 (내 지갑 ${won(gsMoney())})<br><small>가상 머니예요 · 실제 돈이 아니고 충전·환전되지 않아요</small></p>` : '');
   const S = gsState(g); if (!S) return '<p class="empty">판을 불러오는 중…</p>';
   const my = gsIdx(g, me.uid), myTurn = g.status === 'playing' && S.turn === my && !gsThinking;
   const sc = i => gsScore(S.caps[i]).total;
@@ -4982,7 +5003,7 @@ R.gostop = (g, meIn) => {
   if (my >= 0) {
     h += `<div class="hw-me"><div class="hw-oh"><b>나</b>${g.local ? '' : ` <span class="hw-money">💰 ${won(gsMoney())}</span>`} <span class="hw-sc">${sc(my)}점${S.go[my] ? ` · ${S.go[my]}고` : ''}${S.shake[my] ? ' · 흔듦' : ''}${S.bomb[my] ? ' · 폭탄' : ''}</span>${g.totals ? `<small>누적 ${(g.totals[me.uid] || 0) > 0 ? '+' : ''}${g.totals[me.uid] || 0}</small>` : ''}</div>${gsCapsHTML(S.caps[my])}</div>`;
     const fms = new Set(S.floor.map(gsM));
-    h += `<div class="hw-hand">${S.hands[my].map(c => hw(c, `data-act="gsCard" data-v="${c}"`, `${fms.has(gsM(c)) ? 'match' : ''} ${c === gsSel ? 'sel' : ''}`)).join('')}${S.dummy[my] ? `<button class="hw dummy" data-act="gsDummy">💣<small>×${S.dummy[my]}</small></button>` : ''}</div>`;
+    h += `<div class="hw-hand">${S.hands[my].map(c => hw(c, `data-act="gsCard" data-v="${c}"`, `${fms.has(gsM(c)) || gsJk(c) ? 'match' : ''} ${c === gsSel ? 'sel' : ''}`)).join('')}${S.dummy[my] ? `<button class="hw dummy" data-act="gsDummy">💣<small>×${S.dummy[my]}</small></button>` : ''}</div>`;
     if (myTurn && S.phase === 'play') h += `<p class="hint" style="text-align:center">반짝이는 패는 바닥과 같은 월이에요 · 기준 ${S.th}점</p>`;
   }
   return h;
@@ -5014,6 +5035,7 @@ ACT.gsCard = async v => {
   const g = gd(); if (!g || g.status !== 'playing' || gsThinking) return;
   const S = gsState(g), i = gsIdx(g, me.uid), c = +v;
   if (S.turn !== i || S.phase !== 'play') return toast('내 차례가 아니에요');
+  if (gsJk(c)) return gsAct('play', { card:c });
   const m = gsM(c), mineN = S.hands[i].filter(x => gsM(x) === m).length, fm = S.floor.filter(x => gsM(x) === m);
   if (mineN === 3 && fm.length === 1 && await uiConfirm(`💣 폭탄! ${GS_MNAME[m]} 3장을 한꺼번에 낼까요?\n바닥 패까지 4장을 먹고 피를 1장씩 빼앗아요 (점수 ×2)`, { ok:'폭탄!', cancel:'한 장만' })) return gsAct('play', { card:c, bomb:true });
   if (mineN === 3 && fm.length === 0) { const sh = await uiConfirm(`🫨 흔들기? ${GS_MNAME[m]} 3장을 보여주고 점수를 ×2로 걸어요`, { ok:'흔들기!', cancel:'그냥 내기' }); return gsAct('play', { card:c, shake: sh }); }
@@ -5744,7 +5766,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261021c';
+const BUILD = 'b20261021d';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
