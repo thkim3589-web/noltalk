@@ -473,6 +473,46 @@ input{font:inherit}
 .go-board .lastm.b{fill:#fff}.go-board .lastm.w{fill:#222}
 .go-hit{position:absolute;inset:0}
 .go-hit button{position:absolute;width:11.11%;height:11.11%;background:none;padding:0}
+.hw{position:relative;width:36px;height:54px;border-radius:5px;background:linear-gradient(170deg,#fffaf0,#f1e3c6);border:2px solid #b3261e;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,.3);color:#222;overflow:hidden}
+.hw:disabled{opacity:1}
+.hw-m{position:absolute;top:1px;left:3px;font-size:9px;font-weight:900;color:#b3261e}
+.hw-e{font-size:20px;line-height:1}
+.hw-g{position:absolute;top:1px;right:2px;font-size:10px;color:#fff;background:#d32f2f;border-radius:50%;width:15px;height:15px;line-height:15px;text-align:center;font-family:serif}
+.hw-pp{position:absolute;bottom:2px;right:2px;font-size:9px;color:#fff;background:#333;border-radius:3px;padding:0 2px}
+.hw-rib{position:absolute;left:3px;right:3px;bottom:5px;height:12px;border-radius:2px;font-size:8px;font-style:normal;font-weight:900;line-height:12px;color:#fff;background:#d32f2f}
+.hw-rib.chung{background:#1e4fa8}.hw-rib.cho{background:#c62828;opacity:.85}.hw-rib.bi{background:#888}
+.hw.y{background:linear-gradient(170deg,#fffaf0,#e9d7ad)}
+.hw.g{background:linear-gradient(170deg,#fff3d6,#f2cf7a)}
+.hw.mini{width:22px;height:33px;border-width:1.5px;margin-right:-8px}
+.hw.mini .hw-e{font-size:12px}.hw.mini .hw-m,.hw.mini .hw-rib{display:none}.hw.mini .hw-g{width:10px;height:10px;line-height:10px;font-size:7px}.hw.mini .hw-pp{font-size:6px}
+.hw.big{width:52px;height:78px}.hw.big .hw-e{font-size:28px}
+.hw.match{box-shadow:0 0 0 2px #ffd23f,0 0 10px #ffd23f}
+.hw.sel{transform:translateY(-8px);box-shadow:0 0 0 3px #4ecb71}
+.hw.new{animation:hwNew .5s}
+@keyframes hwNew{from{transform:scale(1.3)}to{transform:none}}
+.hw.dummy{background:#333;color:#fff;border-color:#000;font-size:18px}.hw.dummy small{font-size:10px}
+.hw-floor{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,#3c8a52,#245c37);border-radius:14px;padding:10px 6px;margin:8px 0;min-height:76px}
+.hw-fg{display:flex}.hw-fg .hw + .hw{margin-left:-20px}
+.hw-fg.tg .hw{box-shadow:0 0 0 2px #ffd23f}
+.hw-deck{width:36px;height:54px;border-radius:5px;background:repeating-linear-gradient(45deg,#b3261e 0 4px,#8e1c16 4px 8px);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:16px;border:2px solid #fff}
+.hw-deck small{font-size:11px;font-weight:900}
+.hw-opp,.hw-me{background:var(--bg);border-radius:12px;padding:6px 8px;margin-bottom:6px}
+.hw-opp.on{box-shadow:0 0 0 2px var(--acc)}
+.hw-oh{display:flex;gap:8px;align-items:center;font-size:13px;flex-wrap:wrap}
+.hw-oh small{margin-left:auto;color:var(--sub)}
+.hw-sc{color:var(--p);font-weight:900}
+.hw-caps{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.hw-cg small{display:block;font-size:10px;color:var(--sub);font-weight:700}
+.hw-cg>div{display:flex;padding-right:8px}
+.hw-hand{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin:8px 0 2px}
+.hw-ev{text-align:center;font-size:20px;font-weight:900;color:#e5484d}
+.hw-ev.pop{animation:hwEv .7s}
+@keyframes hwEv{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.25)}100%{transform:none;opacity:1}}
+.hw-gs{display:flex;gap:8px;margin:6px 0}.hw-gs .btn small{display:block;font-size:11px;font-weight:600;opacity:.85}
+.hw-choice{display:flex;gap:12px;justify-content:center;margin:6px 0}
+.hw-res .hw-bd{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0}
+.hw-res .hw-bd span{background:#fff;border-radius:8px;padding:3px 8px;font-size:13px}
+.hw-pay{margin-top:6px;font-size:14px}.hw-pay em{font-style:normal;background:#ffe3e6;color:#c0123c;border-radius:6px;padding:1px 6px;font-size:11px;margin-left:4px}
 </style>
 </head>
 <body>
@@ -627,6 +667,7 @@ const GAMES = {
   blockpuz:  { icon:'🟦', name:'블록 퍼즐',  desc:'각자 플레이 · 점수 대결', max:99 },
   chess:     { icon:'♟️', name:'체스',       desc:'1:1 정통 체스', max:2 },
   freecell:  { icon:'🃏', name:'프리셀',     desc:'각자 플레이 · 기록 대결', max:99 },
+  gostop:    { icon:'🌸', name:'고스톱',     desc:'맞고 · 3인 고스톱', max:3 },
   janggi:    { icon:'🀄', name:'장기',       desc:'1:1 한국 장기', max:2 },
   go:        { icon:'⚪', name:'바둑 9×9',   desc:'1:1 작은 바둑', max:2 },
   catchmind: { icon:'🎨', name:'캐치마인드', desc:'그림 보고 맞히기', max:8 },
@@ -642,7 +683,7 @@ const GAMES = {
   g2048:     { icon:'🧮', name:'2048',       desc:'각자 플레이 · 점수 대결', max:99 },
 };
 const TURN_GAMES = ['wordchain','bingo']; // 턴 타이머가 있는 게임
-const HOST_START = { wordchain:2, bingo:2, ladder:2, liar:3, mafia:4, chosung:2, catchmind:2, onecard:2, yacht:1, balance:2, updown:2, roulette:1, nunchi:3, bomb:2 }; // 방장이 시작 버튼을 누르는 게임 (최소 인원)
+const HOST_START = { wordchain:2, bingo:2, ladder:2, liar:3, mafia:4, chosung:2, gostop:2, catchmind:2, onecard:2, yacht:1, balance:2, updown:2, roulette:1, nunchi:3, bomb:2 }; // 방장이 시작 버튼을 누르는 게임 (최소 인원)
 
 /* ---------- 공통 ---------- */
 function show(id){
@@ -1600,7 +1641,7 @@ function renderGameTab(){
   const party = Object.keys(GAMES).filter(t => GAME_META[t]?.cat !== 'arcade');
   $('#gameTabBody').innerHTML = `
     <div class="sec-title">🕹️ 혼자 연습하기</div><div class="sec-sub">바로 시작해요 · 기록은 내 최고 기록에만 남아요</div>
-    <div class="ggrid">${arcade.map(tile).join('')}<button class="gtile" data-aichess="1"><span class="gi">♟️</span><b>체스</b><small>🤖 AI 대결</small></button><button class="gtile" data-photopx="1"><span class="gi">📷</span><b>사진 퍼즐</b><small>내 사진을 픽셀로</small></button><button class="gtile" data-soloyacht="1"><span class="gi">🎲</span><b>요트 다이스</b><small>혼자 점수 도전</small></button><button class="gtile" data-soloboard="janggi"><span class="gi">🀄</span><b>장기</b><small>🤖 AI 대결</small></button><button class="gtile" data-soloboard="go"><span class="gi">⚪</span><b>바둑 9×9</b><small>🤖 AI 대결</small></button><button class="gtile" data-soloboard="omok"><span class="gi">⚫</span><b>오목</b><small>🤖 AI 대결</small></button><button class="gtile" data-soloboard="wordchain"><span class="gi">🔤</span><b>끝말잇기</b><small>🤖 AI 대결</small></button></div>
+    <div class="ggrid">${arcade.map(tile).join('')}<button class="gtile" data-aichess="1"><span class="gi">♟️</span><b>체스</b><small>🤖 AI 대결</small></button><button class="gtile" data-photopx="1"><span class="gi">📷</span><b>사진 퍼즐</b><small>내 사진을 픽셀로</small></button><button class="gtile" data-soloyacht="1"><span class="gi">🎲</span><b>요트 다이스</b><small>혼자 점수 도전</small></button><button class="gtile" data-soloboard="janggi"><span class="gi">🀄</span><b>장기</b><small>🤖 AI 대결</small></button><button class="gtile" data-soloboard="go"><span class="gi">⚪</span><b>바둑 9×9</b><small>🤖 AI 대결</small></button><button class="gtile" data-soloboard="omok"><span class="gi">⚫</span><b>오목</b><small>🤖 AI 대결</small></button><button class="gtile" data-soloboard="wordchain"><span class="gi">🔤</span><b>끝말잇기</b><small>🤖 AI 대결</small></button><button class="gtile" data-soloboard="gostop"><span class="gi">🌸</span><b>맞고</b><small>🤖 AI 1명</small></button><button class="gtile" data-soloboard="gostop3"><span class="gi">🎴</span><b>고스톱 3인</b><small>🤖 AI 2명</small></button></div>
     <div class="sec-title" style="margin-top:18px">👥 친구랑 대결하기</div><div class="sec-sub">채팅방에서 ${ic('game', 16)} 버튼을 눌러 시작해요</div>
     <div class="ggrid">${party.map(t => { const g = GAMES[t], m = GAME_META[t] || {}; return `<button class="gtile" data-party="${t}"><span class="gi">${g.icon}</span><b>${g.name}</b><small>${m.ppl || ''}</small></button>`; }).join('')}</div>
     <div class="howto"><b>방에서 대결하는 법</b><br>채팅방 입력창 왼쪽 게임 버튼 → 게임 고르기 → 채팅에 뜬 카드의 <b>참가</b>를 누르면 친구도 함께해요. 아케이드 게임은 방에서 열면 모두 같은 판으로 순위를 겨뤄요.</div>`;
@@ -1681,6 +1722,7 @@ const GAME_META = {
   sudoku:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, queens:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
   blockpuz:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, freecell:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
   chess:{ cat:'duel', min:2, ppl:'2명 · 🤖AI' },
+  gostop:{ cat:'group', min:2, ppl:'2~3명 · 🤖AI' },
   janggi:{ cat:'duel', min:2, ppl:'2명 · 🤖AI' }, go:{ cat:'duel', min:2, ppl:'2명 · 🤖AI' },
   catchmind:{ cat:'quiz', min:2, ppl:'2~8명' },
   onecard:{ cat:'group', min:2, ppl:'2~6명' }, yacht:{ cat:'group', min:1, ppl:'1~4명' },
@@ -1733,6 +1775,7 @@ async function startGame(type){
     queens:    { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
     blockpuz:  { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
     freecell:  { status:'playing', seed: Math.floor(Math.random() * 2147483647), results:{} },
+    gostop:{},
     janggi:    { board: JG_START, turn:'c', last:null, moves:0, winner:null, reason:null },
     go:        { board:'.'.repeat(81), prev:null, turn:'b', last:-1, passes:0, caps:{ b:0, w:0 }, winner:null, reason:null },
     catchmind:{},
@@ -1787,17 +1830,19 @@ $('#gvClose').onclick = closeGame;
 // 지금 화면에 보이는 게임 데이터: 방 게임이 '모집 중'이고 연습판이 있으면 연습판
 const gd = () => curGame ? (curGame.pr && curGame.data?.status === 'waiting' ? curGame.pr : curGame.data) : null;
 const isLocal = () => !!curGame && (!!curGame.local || (!!curGame.pr && curGame.data?.status === 'waiting'));
-const PRACTICE = ['chess','omok','janggi','go','wordchain'];
+const PRACTICE = ['chess','omok','janggi','go','wordchain','gostop'];
 function practiceData(type){
   const mine = { uid: me.uid, name: me.name };
   if (type === 'chess') return { type:'chess', status:'playing', local:true, lv: aiPick.lv, players:[mine, { uid:'ai', name:`🤖 AI (${AI_LV[aiPick.lv].name})` }],
     board: CH_START, turn:'w', castle:'KQkq', ep:-1, half:0, moves:[], last:null, winner:null, reason:null, drawOffer:null };
+  if (type === 'gostop' || type === 'gostop3') { const ps = type === 'gostop' ? [mine, { uid:'ai', name:'🤖 AI' }] : [mine, { uid:'ai', name:'🤖 AI 하나' }, { uid:'ai2', name:'🤖 AI 둘' }], S = gsDeal(ps.length, 0);
+    return { type:'gostop', status: S.phase === 'done' ? 'done' : 'playing', local:true, players: ps, st: JSON.stringify(S), turnStartedAt: Date.now(), totals: gsTotals({ players: ps }, S, {}) }; }
   if (type === 'wordchain') { wcLoad(); return { type:'wordchain', status:'playing', local:true, players:[mine, { uid:'ai', name:'🤖 AI' }], words:[], turn:0, turnStartedAt: Date.now(), loser:null, reason:null }; }
   if (type === 'janggi') return { type:'janggi', status:'playing', local:true, players:[mine, { uid:'ai', name:'🤖 AI' }], board: JG_START, turn:'c', last:null, moves:0, winner:null, hist:[] };
   if (type === 'go') return { type:'go', status:'playing', local:true, players:[mine, { uid:'ai', name:'🤖 AI' }], board:'.'.repeat(81), prev:null, turn:'b', last:-1, passes:0, caps:{ b:0, w:0 }, winner:null, hist:[] };
   return { type:'omok', status:'playing', local:true, players:[mine, { uid:'ai', name:'🤖 AI' }], board:'.'.repeat(225), turn:0, last:-1, winner:null };
 }
-function aiMaybe(){ const g = gd(); if (!g) return; if (g.type === 'chess') chAiMaybe(); if (g.type === 'omok') omAiMaybe(); if (g.type === 'janggi') jgAiMaybe(); if (g.type === 'go') goAiMaybe(); if (g.type === 'wordchain') wcAiMaybe(); }
+function aiMaybe(){ const g = gd(); if (!g) return; if (g.type === 'chess') chAiMaybe(); if (g.type === 'omok') omAiMaybe(); if (g.type === 'janggi') jgAiMaybe(); if (g.type === 'go') goAiMaybe(); if (g.type === 'wordchain') wcAiMaybe(); if (g.type === 'gostop') gsAiMaybe(); }
 async function tx(fn, after){
   if (isLocal()) {   // 혼자 하는 AI 대결: 서버 없이 바로 적용
     const d = gd(), r = fn(JSON.parse(JSON.stringify(d)));
@@ -4544,6 +4589,326 @@ function wcAiMaybe(){
   }, 700 + Math.random() * 900);
 }
 
+/* ================= 🌸 고스톱 규칙 엔진 (순수 함수: 상태 + 수 → 새 상태) ================= */
+// 카드 id = (월-1)*4 + k. t: g광 y열끗 d띠 p피 pp쌍피 / d: hong·chung·cho·bi / bird: 고도리 / rain: 비광 / kj: 국진
+const HT = (() => {
+  const T = [
+    [['g',{e:'🦢'}],['d',{d:'hong'}],['p'],['p']],
+    [['y',{bird:1,e:'🐤'}],['d',{d:'hong'}],['p'],['p']],
+    [['g',{e:'🎪'}],['d',{d:'hong'}],['p'],['p']],
+    [['y',{bird:1,e:'🕊️'}],['d',{d:'cho'}],['p'],['p']],
+    [['y',{e:'🌉'}],['d',{d:'cho'}],['p'],['p']],
+    [['y',{e:'🦋'}],['d',{d:'chung'}],['p'],['p']],
+    [['y',{e:'🐗'}],['d',{d:'cho'}],['p'],['p']],
+    [['g',{e:'🌕'}],['y',{bird:1,e:'🦆'}],['p'],['p']],
+    [['y',{kj:1,e:'🍶'}],['d',{d:'chung'}],['p'],['p']],
+    [['y',{e:'🦌'}],['d',{d:'chung'}],['p'],['p']],
+    [['g',{e:'🦚'}],['pp'],['p'],['p']],
+    [['g',{rain:1,e:'☂️'}],['y',{e:'🐦'}],['d',{d:'bi'}],['pp']],
+  ];
+  const out = []; T.forEach((row, mi) => row.forEach(([t, x = {}]) => out.push({ m: mi + 1, t, ...x }))); return out;
+})();
+const GS_FLOWER = ['','🌲','🌺','🌸','🌿','🌷','🌹','🍂','🌾','🌼','🍁','🍃','🌧️'];
+const GS_MNAME = ['','송학','매조','벚꽃','흑싸리','난초','모란','홍싸리','공산','국진','단풍','오동','비'];
+const gsM = c => HT[c].m;
+const gsVal = c => { const h = HT[c]; return h.t === 'g' ? (h.rain ? 4 : 6) : h.t === 'y' ? (h.bird ? 4 : 3) : h.t === 'd' ? (h.d === 'bi' ? 2 : 3.2) : h.t === 'pp' ? 3 : 1.5; };
+const gsPiVal = (c, kjAsPi) => { const h = HT[c]; return h.t === 'pp' ? 2 : h.t === 'p' ? 1 : (h.kj && kjAsPi) ? 2 : 0; };
+function gsScore(caps){
+  const best = [false, true].map(kjPi => {
+    const H = caps.map(c => HT[c]), b = {};
+    const g = H.filter(h => h.t === 'g'), y = H.filter(h => h.t === 'y' && !(h.kj && kjPi)), d = H.filter(h => h.t === 'd');
+    const pv = caps.reduce((a, c) => a + gsPiVal(c, kjPi), 0);
+    if (g.length >= 5) b['오광'] = 15; else if (g.length === 4) b['사광'] = 4; else if (g.length === 3) b[g.some(h => h.rain) ? '비삼광' : '삼광'] = g.some(h => h.rain) ? 2 : 3;
+    if (y.filter(h => h.bird).length === 3) b['고도리'] = 5;
+    if (y.length >= 5) b[`열끗 ${y.length}장`] = y.length - 4;
+    for (const [k, n] of [['hong','홍단'],['chung','청단'],['cho','초단']]) if (d.filter(h => h.d === k).length === 3) b[n] = 3;
+    if (d.length >= 5) b[`띠 ${d.length}장`] = d.length - 4;
+    if (pv >= 10) b[`피 ${pv}장`] = pv - 9;
+    const total = Object.values(b).reduce((a, v) => a + v, 0);
+    return { total, b, gw: g.length, yeol: y.length, pi: pv, kjPi };
+  });
+  return best[1].total > best[0].total ? best[1] : best[0];
+}
+function gsShuffle(a, rnd){ a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function gsDeal(n, first = 0, rnd = Math.random){
+  for (;;) {
+    const d = gsShuffle([...Array(48).keys()], rnd), per = n === 2 ? 10 : 7, fl = n === 2 ? 8 : 6;
+    const hands = Array.from({ length:n }, (_, i) => d.slice(i * per, (i + 1) * per).sort((a,b) => a - b));
+    const floor = d.slice(n * per, n * per + fl), deck = d.slice(n * per + fl);
+    const cnt = {}; floor.forEach(c => cnt[gsM(c)] = (cnt[gsM(c)] || 0) + 1);
+    if (Object.values(cnt).some(v => v >= 4)) continue;   // 바닥에 같은 월 4장이면 다시 섞기
+    const S = { n, hands, floor, deck, caps: hands.map(() => []), turn: first, phase:'play', go: hands.map(() => 0), goScore: hands.map(() => 0),
+      shake: hands.map(() => 0), bomb: hands.map(() => 0), dummy: hands.map(() => 0), ppuk: hands.map(() => 0), last:[], ev:[], winner:-1, result:null, th: n === 2 ? 7 : 3 };
+    // 총통: 손에 같은 월 4장 → 바로 승리
+    hands.forEach((h, i) => { if (S.winner < 0) { const c = {}; h.forEach(x => c[gsM(x)] = (c[gsM(x)] || 0) + 1); if (Object.values(c).some(v => v === 4)) gsFinish(S, i, '총통', 10); } });
+    return S;
+  }
+}
+const gsPick = (cards) => [...cards].sort((a, b) => gsVal(b) - gsVal(a))[0];
+function gsStealPi(S, to, evs){
+  for (let j = 0; j < S.n; j++) {
+    if (j === to) continue;
+    const c = S.caps[j], one = c.find(x => HT[x].t === 'p') ?? c.find(x => HT[x].t === 'pp');
+    if (one === undefined) continue;
+    S.caps[j] = c.filter(x => x !== one); S.caps[to].push(one);
+  }
+}
+// 낼 수 있는 수 목록
+function gsMoves(S, pi){
+  const h = S.hands[pi], mv = [];
+  const cnt = m => h.filter(c => gsM(c) === m).length, fcnt = m => S.floor.filter(c => gsM(c) === m).length;
+  h.forEach(c => {
+    const m = gsM(c);
+    if (cnt(m) === 3 && fcnt(m) === 1) mv.push({ card:c, bomb:true });
+    mv.push({ card:c, shake: cnt(m) === 3 && fcnt(m) === 0 });
+  });
+  if (S.dummy[pi] > 0) mv.push({ dummy:true });
+  return mv;
+}
+// 한 수 두기. opt: { card, choice(바닥에서 고를 카드), shake, bomb, dummy }
+function gsPlay(S0, pi, opt){
+  const S = JSON.parse(JSON.stringify(S0)), ev = [];
+  if (S.phase !== 'play' || S.turn !== pi || S.winner >= 0) return null;
+  let steal = 0, played = null, pend = null, taken = [];
+  const take = arr => { arr.forEach(c => { S.floor = S.floor.filter(x => x !== c); }); S.caps[pi].push(...arr); taken.push(...arr); };
+  if (opt.dummy) {
+    if (S.dummy[pi] <= 0) return null; S.dummy[pi]--;
+  } else {
+    const c = opt.card; if (!S.hands[pi].includes(c)) return null;
+    const m = gsM(c), fm = S.floor.filter(x => gsM(x) === m);
+    if (opt.bomb) {
+      const mine = S.hands[pi].filter(x => gsM(x) === m); if (mine.length !== 3 || fm.length !== 1) return null;
+      S.hands[pi] = S.hands[pi].filter(x => gsM(x) !== m); take([...mine, ...fm]); steal++; S.bomb[pi]++; S.dummy[pi] += 2; ev.push('💣 폭탄!');
+      played = { type:'bomb', m };
+    } else {
+      S.hands[pi] = S.hands[pi].filter(x => x !== c);
+      if (opt.shake && S.hands[pi].filter(x => gsM(x) === m).length === 2 && fm.length === 0) { S.shake[pi]++; ev.push('🫨 흔들기!'); }
+      if (fm.length === 0) { S.floor.push(c); played = { type:'none', c, m }; }
+      else if (fm.length === 3) { S.floor.push(c); take([c, ...fm]); steal++; ev.push('😋 뻑 먹기!'); played = { type:'took', m }; }
+      else { const w = fm.length === 2 ? (fm.includes(opt.choice) ? opt.choice : gsPick(fm)) : fm[0]; S.floor.push(c); pend = { c, w, n: fm.length }; played = { type:'pair', c, m, n: fm.length }; }
+    }
+  }
+  // 뒤집기
+  if (S.deck.length) {
+    const f = S.deck.pop(), fmn = gsM(f);
+    if (played && played.type === 'none' && fmn === played.m) { take([played.c, f]); steal++; ev.push('💋 쪽!'); }
+    else if (played && played.type === 'pair' && fmn === played.m) {
+      if (played.n === 1) { S.floor.push(f); S.ppuk[pi]++; ev.push('💥 뻑!'); pend = null; }
+      else { const all = S.floor.filter(x => gsM(x) === played.m); take([...all, f].filter((x, i, a) => a.indexOf(x) === i)); steal++; ev.push('👏 따닥!'); pend = null; }
+    } else {
+      if (pend) { take([pend.c, pend.w]); pend = null; }
+      const ff = S.floor.filter(x => gsM(x) === fmn);
+      if (ff.length === 0) S.floor.push(f);
+      else if (ff.length === 3) { take([f, ...ff]); steal++; ev.push('😋 뻑 먹기!'); }
+      else if (ff.length === 2) take([f, gsPick(ff)]);
+      else take([f, ff[0]]);
+    }
+  } else if (pend) take([pend.c, pend.w]);
+  if (taken.length && S.floor.length === 0 && S.deck.length) { steal++; ev.push('🧹 쓸!'); }
+  for (let i = 0; i < steal; i++) gsStealPi(S, pi, ev);
+  S.caps[pi].sort((a, b) => a - b);
+  S.ev = ev; S.last = taken;
+  if (S.ppuk[pi] >= 3) { gsFinish(S, pi, '삼뻑', 10); return S; }
+  const sc = gsScore(S.caps[pi]).total;
+  if (sc >= S.th && sc > S.goScore[pi]) {
+    if (!S.hands[pi].length && !S.dummy[pi] && !S.deck.length) { gsFinish(S, pi, '스톱'); return S; }   // 마지막 수면 자동 스톱
+    S.phase = 'gostop'; return S;
+  }
+  return gsNext(S);
+}
+function gsNext(S){
+  S.turn = (S.turn + 1) % S.n;
+  if (S.hands.every((h, i) => !h.length && !S.dummy[i])) { S.phase = 'done'; S.winner = -1; S.result = { nagari:true }; }
+  else if (!S.hands[S.turn].length && !S.dummy[S.turn]) return gsNext(S);
+  return S;
+}
+function gsGoStop(S0, pi, go){
+  const S = JSON.parse(JSON.stringify(S0));
+  if (S.phase !== 'gostop' || S.turn !== pi) return null;
+  if (!go) { gsFinish(S, pi, '스톱'); return S; }
+  S.go[pi]++; S.goScore[pi] = gsScore(S.caps[pi]).total; S.phase = 'play'; S.ev = [`🔥 ${S.go[pi]}고!`];
+  return gsNext(S);
+}
+function gsFinish(S, wi, why, fixed){
+  const ws = gsScore(S.caps[wi]), go = S.go[wi];
+  let base = fixed || (ws.total + Math.min(go, 2));
+  let mul = (go >= 3 ? 2 ** (go - 2) : 1) * 2 ** (S.shake[wi] + S.bomb[wi]);
+  const tags = []; if (go) tags.push(`${go}고`); if (S.shake[wi]) tags.push('흔들기'); if (S.bomb[wi]) tags.push('폭탄');
+  const pay = {}, notes = {};
+  for (let j = 0; j < S.n; j++) {
+    if (j === wi) continue;
+    const ls = gsScore(S.caps[j]); let m = mul; const nt = [];
+    if (!fixed) {
+      if (ws.pi >= 10 && ls.pi < 7) { m *= 2; nt.push('피박'); }
+      if (ws.gw >= 3 && ls.gw === 0) { m *= 2; nt.push('광박'); }
+      if (ws.yeol >= 7) { m *= 2; nt.push('멍박'); }
+    }
+    pay[j] = base * m; notes[j] = nt;
+  }
+  // 고박(3인): 고를 불렀다가 진 사람이 혼자 다 냄
+  const gobak = S.n === 3 ? [...Array(S.n).keys()].find(j => j !== wi && S.go[j] > 0) : undefined;
+  if (gobak !== undefined) { const sum = Object.values(pay).reduce((a, b) => a + b, 0); Object.keys(pay).forEach(j => pay[j] = +j === gobak ? sum : 0); notes[gobak] = [...notes[gobak], '고박']; }
+  S.phase = 'done'; S.winner = wi; S.result = { why, base, mul, tags, pay, notes, b: fixed ? { [why]: fixed } : ws.b, total: fixed || ws.total };
+}
+// AI: 이번 수의 가치(바닥에서 바로 먹는 것 + 족보 보너스 - 버리는 위험) 로 고르기
+function gsAiMove(S, pi){
+  const mv = gsMoves(S, pi), mine = S.caps[pi];
+  const combo = c => { const h = HT[c], H = mine.map(x => HT[x]); let b = 0;
+    if (h.bird) b += H.filter(x => x.bird).length * 1.5;
+    if (h.t === 'd' && h.d !== 'bi') b += H.filter(x => x.d === h.d).length * 1.6;
+    if (h.t === 'g') b += H.filter(x => x.t === 'g').length * 1.8; return b; };
+  let best = mv[0], bs = -1e9;
+  for (const o of mv) {
+    let sc;
+    if (o.dummy) sc = 1.2;
+    else if (o.bomb) sc = 30;
+    else {
+      const m = gsM(o.card), fm = S.floor.filter(x => gsM(x) === m);
+      if (fm.length === 0) sc = -gsVal(o.card) * .8 - combo(o.card) * .5 + (o.shake ? 2 : 0);
+      else if (fm.length === 3) sc = 20;
+      else { const w = gsPick(fm); o.choice = w; sc = gsVal(o.card) + gsVal(w) + combo(o.card) + combo(w); }
+    }
+    sc += Math.random() * .6;
+    if (sc > bs) { bs = sc; best = o; }
+  }
+  if (best.shake === undefined) best.shake = false;
+  return best;
+}
+function gsAiGo(S, pi){
+  const sc = gsScore(S.caps[pi]).total, opp = Math.max(...S.caps.map((c, j) => j === pi ? 0 : gsScore(c).total));
+  return S.deck.length >= 8 && opp < (S.n === 2 ? 4 : 2) && S.go[pi] < 2 && sc < 12;
+}
+/* ================= 🌸 고스톱 화면 · 연결 ================= */
+const GS_MS = 40000;
+let gsSel = null, gsThinking = false, gsEvSeen = '';
+const gsState = g => { try { return JSON.parse(g.st); } catch { return null; } };
+const gsIdx = (g, uid) => g.players.findIndex(p => p.uid === uid);
+function hw(c, attrs = '', cls = ''){
+  const h = HT[c], sym = h.t === 'g' || h.t === 'y' ? h.e : GS_FLOWER[h.m];
+  const tag = h.t === 'g' ? '<b class="hw-g">光</b>' : h.t === 'pp' ? '<b class="hw-pp">쌍</b>' : '';
+  const rib = h.t === 'd' ? `<i class="hw-rib ${h.d}">${{ hong:'홍단', chung:'청단', cho:'초단', bi:'' }[h.d]}</i>` : '';
+  return `<button class="hw m${h.m} ${h.t} ${cls}" ${attrs}><span class="hw-m">${h.m}</span><span class="hw-e">${sym}</span>${tag}${rib}</button>`;
+}
+function gsCapsHTML(caps, small){
+  const grp = { g:[], y:[], d:[], p:[] };
+  caps.forEach(c => { const t = HT[c].t; (t === 'pp' ? grp.p : grp[t]).push(c); });
+  return `<div class="hw-caps ${small ? 'sm' : ''}">${[['g','광'],['y','열끗'],['d','띠'],['p','피']].map(([k, n]) => grp[k].length ? `<div class="hw-cg"><small>${n} ${k === 'p' ? caps.reduce((a, c) => a + gsPiVal(c, gsScore(caps).kjPi), 0) : grp[k].length}</small><div>${grp[k].map(c => hw(c, 'disabled', 'mini')).join('')}</div></div>` : '').join('')}</div>`;
+}
+R.gostop = (g, meIn) => {
+  if (g.status === 'waiting') return waitingHTML(g, meIn) + (meIn ? '<p class="empty" style="padding:4px">2명이면 맞고(7점), 3명이면 고스톱(3점)이에요</p>' : '');
+  const S = gsState(g); if (!S) return '<p class="empty">판을 불러오는 중…</p>';
+  const my = gsIdx(g, me.uid), myTurn = g.status === 'playing' && S.turn === my && !gsThinking;
+  const sc = i => gsScore(S.caps[i]).total;
+  let h = '';
+  // 상대들
+  g.players.forEach((p, i) => { if (i === my) return;
+    h += `<div class="hw-opp ${S.turn === i && S.phase !== 'done' ? 'on' : ''}"><div class="hw-oh"><b>${esc(p.name)}</b> <span class="hw-back">🂠 ${S.hands[i].length}</span> <span class="hw-sc">${sc(i)}점${S.go[i] ? ` · ${S.go[i]}고` : ''}${S.shake[i] ? ' · 흔듦' : ''}</span>${g.totals ? `<small>누적 ${(g.totals[p.uid] || 0) > 0 ? '+' : ''}${g.totals[p.uid] || 0}</small>` : ''}</div>${gsCapsHTML(S.caps[i], true)}</div>`; });
+  // 바닥
+  const groups = {}; S.floor.forEach(c => (groups[gsM(c)] = groups[gsM(c)] || []).push(c));
+  const selM = gsSel != null ? gsM(gsSel) : -1;
+  h += `<div class="hw-floor"><div class="hw-deck">🂠<small>${S.deck.length}</small></div>${Object.keys(groups).sort((a,b) => a - b).map(m => `<div class="hw-fg ${+m === selM ? 'tg' : ''}">${groups[m].map(c => hw(c, 'disabled', S.last.includes(c) ? 'new' : '')).join('')}</div>`).join('')}</div>`;
+  const evKey = g.st.length + ':' + (S.ev || []).join();
+  if ((S.ev || []).length) h += `<div class="hw-ev ${evKey !== gsEvSeen ? 'pop' : ''}">${S.ev.join(' ')}</div>`;
+  gsEvSeen = evKey;
+  if (g.status === 'done' || S.phase === 'done') {
+    const r = S.result || {};
+    if (r.nagari) h += `<div class="card"><div class="big2">🤝 나가리!</div><small>아무도 점수를 못 냈어요</small></div>`;
+    else {
+      const wn = g.players[S.winner]?.name || '';
+      h += `<div class="card hw-res"><div class="big2">🏆 ${esc(wn)} ${r.why === '스톱' ? '스톱!' : r.why + '!'} ${r.total}점</div>
+        <div class="hw-bd">${Object.entries(r.b || {}).map(([k, v]) => `<span>${esc(k)} <b>${v}</b></span>`).join('')}</div>
+        ${r.tags?.length || r.mul > 1 ? `<small>${r.tags.join(' · ')}${r.mul > 1 ? ` → ×${r.mul}` : ''}</small>` : ''}
+        <div class="hw-pay">${Object.entries(r.pay || {}).map(([j, v]) => `<div>${esc(g.players[j]?.name || '')} <b>-${v}점</b> ${(r.notes?.[j] || []).map(n => `<em>${n}</em>`).join('')}</div>`).join('')}</div></div>`;
+    }
+    if (meIn) h += `<button class="btn" data-act="rematch">한판 더!</button>`;
+  } else {
+    if (!g.local) h += `<div class="timer"><i id="gsTimer"></i></div>`;
+    const cur = g.players[S.turn];
+    h += `<div class="status">${S.phase === 'gostop' ? (myTurn ? `🎉 ${sc(my)}점! 고? 스톱?` : `${esc(cur.name)}님이 고/스톱 고민 중…`) : gsThinking ? '🤖 AI가 생각 중…' : myTurn ? '🔥 내 차례! 낼 패를 고르세요' : `${esc(cur.name)}님 차례`}</div>`;
+    if (myTurn && S.phase === 'gostop') h += `<div class="hw-gs"><button class="btn" data-act="gsGo" data-v="1">🔥 고! <small>(${S.go[my] + 1}고)</small></button><button class="btn ghost" data-act="gsGo" data-v="0">✋ 스톱 <small>${sc(my)}점 받기</small></button></div>`;
+    if (myTurn && gsSel != null && S.phase === 'play') {
+      const fm = S.floor.filter(c => gsM(c) === gsM(gsSel));
+      if (fm.length === 2 && HT[fm[0]].t !== HT[fm[1]].t) h += `<p class="hint" style="text-align:center">바닥에서 어느 패를 먹을까요?</p><div class="hw-choice">${fm.map(c => hw(c, `data-act="gsChoose" data-v="${c}"`, 'big')).join('')}</div>`;
+    }
+  }
+  if (my >= 0) {
+    h += `<div class="hw-me"><div class="hw-oh"><b>나</b> <span class="hw-sc">${sc(my)}점${S.go[my] ? ` · ${S.go[my]}고` : ''}${S.shake[my] ? ' · 흔듦' : ''}${S.bomb[my] ? ' · 폭탄' : ''}</span>${g.totals ? `<small>누적 ${(g.totals[me.uid] || 0) > 0 ? '+' : ''}${g.totals[me.uid] || 0}</small>` : ''}</div>${gsCapsHTML(S.caps[my])}</div>`;
+    const fms = new Set(S.floor.map(gsM));
+    h += `<div class="hw-hand">${S.hands[my].map(c => hw(c, `data-act="gsCard" data-v="${c}"`, `${fms.has(gsM(c)) ? 'match' : ''} ${c === gsSel ? 'sel' : ''}`)).join('')}${S.dummy[my] ? `<button class="hw dummy" data-act="gsDummy">💣<small>×${S.dummy[my]}</small></button>` : ''}</div>`;
+    if (myTurn && S.phase === 'play') h += `<p class="hint" style="text-align:center">반짝이는 패는 바닥과 같은 월이에요 · 기준 ${S.th}점</p>`;
+  }
+  return h;
+};
+function gsAct(kind, val, who){
+  let msg = null, evs = [];
+  gsSel = null;
+  tx(g => {
+    if (g.status !== 'playing') return null;
+    const S = gsState(g), uid = who || me.uid, i = gsIdx(g, uid);
+    if (!S || i < 0 || S.turn !== i) return '내 차례가 아니에요';
+    const N = kind === 'play' ? gsPlay(S, i, val) : gsGoStop(S, i, val);
+    if (!N) return '낼 수 없어요';
+    evs = N.ev || [];
+    const u = { st: JSON.stringify(N), turnStartedAt: Date.now() };
+    if (N.phase === 'done') {
+      u.status = 'done';
+      const r = N.result, totals = { ...(g.totals || {}) };
+      if (r.nagari) msg = '🌸 고스톱: 나가리! 🤝';
+      else {
+        const wuid = g.players[N.winner].uid; let sum = 0;
+        Object.entries(r.pay).forEach(([j, v]) => { const lu = g.players[j].uid; totals[lu] = (totals[lu] || 0) - v; sum += v; });
+        totals[wuid] = (totals[wuid] || 0) + sum; u.totals = totals;
+        msg = g.local ? (wuid === me.uid ? `🎉 ${r.why}! ${sum}점 땄어요` : `😵 ${g.players[N.winner].name} ${r.why}… ${r.pay[gsIdx(g, me.uid)] || 0}점 잃었어요`) : `🌸 고스톱: ${g.players[N.winner].name}님 ${r.why}! ${r.total}점${r.mul > 1 ? ` ×${r.mul}` : ''} → ${Object.entries(r.pay).map(([j, v]) => `${g.players[j].name} -${v}`).join(', ')}`;
+      }
+    } else if (kind === 'gs' && val) msg = g.local ? null : `🌸 ${g.players[i].name}님 ${N.go[i]}고! 🔥`;
+    return u;
+  }, () => { try { navigator.vibrate?.(evs.length ? [20,40,20] : 10); } catch {} if (msg) chSay(msg); });
+}
+ACT.gsCard = async v => {
+  const g = gd(); if (!g || g.status !== 'playing' || gsThinking) return;
+  const S = gsState(g), i = gsIdx(g, me.uid), c = +v;
+  if (S.turn !== i || S.phase !== 'play') return toast('내 차례가 아니에요');
+  const m = gsM(c), mineN = S.hands[i].filter(x => gsM(x) === m).length, fm = S.floor.filter(x => gsM(x) === m);
+  if (mineN === 3 && fm.length === 1 && await uiConfirm(`💣 폭탄! ${GS_MNAME[m]} 3장을 한꺼번에 낼까요?\n바닥 패까지 4장을 먹고 피를 1장씩 빼앗아요 (점수 ×2)`, { ok:'폭탄!', cancel:'한 장만' })) return gsAct('play', { card:c, bomb:true });
+  if (mineN === 3 && fm.length === 0) { const sh = await uiConfirm(`🫨 흔들기? ${GS_MNAME[m]} 3장을 보여주고 점수를 ×2로 걸어요`, { ok:'흔들기!', cancel:'그냥 내기' }); return gsAct('play', { card:c, shake: sh }); }
+  if (fm.length === 2 && HT[fm[0]].t !== HT[fm[1]].t) { gsSel = gsSel === c ? null : c; return renderGame(); }
+  gsAct('play', { card:c });
+};
+ACT.gsChoose = v => { if (gsSel != null) gsAct('play', { card: gsSel, choice: +v }); };
+ACT.gsDummy = () => gsAct('play', { dummy:true });
+ACT.gsGo = v => gsAct('gs', v === '1');
+function gsAiMaybe(){
+  const g = gd(); if (!isLocal() || !g || g.type !== 'gostop' || g.status !== 'playing' || gsThinking) return;
+  const S = gsState(g); if (!S) return; const cur = g.players[S.turn];
+  if (!cur?.uid.startsWith('ai')) return;
+  gsThinking = true; renderGame(); const cg = curGame;
+  setTimeout(() => {
+    gsThinking = false;
+    if (curGame !== cg || !isLocal() || gd() !== g || g.status !== 'playing') return renderGame();
+    const S2 = gsState(g); if (S2.turn !== S.turn) return renderGame();
+    if (S2.phase === 'gostop') gsAct('gs', gsAiGo(S2, S2.turn), cur.uid); else gsAct('play', gsAiMove(S2, S2.turn), cur.uid);
+  }, 650 + Math.random() * 500);
+}
+function gsTotals(g, S, base){   // 판이 끝났으면 누적 점수 반영
+  const totals = { ...(base || {}) }; if (!S || S.phase !== 'done' || S.winner < 0) return totals;
+  let sum = 0; Object.entries(S.result.pay).forEach(([j, v]) => { const u = g.players[j].uid; totals[u] = (totals[u] || 0) - v; sum += v; });
+  const w = g.players[S.winner].uid; totals[w] = (totals[w] || 0) + sum; return totals;
+}
+const gsNewRound = (g, first, base) => { const S = gsDeal(g.players.length, first); return { status: S.phase === 'done' ? 'done' : 'playing', st: JSON.stringify(S), turnStartedAt: Date.now(), totals: gsTotals(g, S, base) }; };
+GAME_HOOK.gostop = {
+  start: g => ({ u: gsNewRound(g, 0, {}), msg: g.players.length === 2 ? '🌸 맞고 시작! 7점 나면 고·스톱' : '🌸 고스톱 시작! 3점 나면 고·스톱' }),
+  rematch: g => { const S = gsState(g), u = gsNewRound(g, S && S.winner >= 0 ? S.winner : 0, g.totals), N = JSON.parse(u.st); return { u, msg: N.phase === 'done' ? `🌸 새 판부터 ${g.players[N.winner].name}님 총통! 🎉` : '🌸 새 판! 이긴 사람이 먼저' }; },
+  outcome: (g, P) => { if (g.status !== 'done') return null; const S = gsState(g); return S && S.winner >= 0 ? { P, W: [g.players[S.winner].uid] } : null; },
+  tick: g => {
+    if (g.status !== 'playing' || g.local) return;
+    const left = GS_MS - (Date.now() - g.turnStartedAt), bar = document.getElementById('gsTimer');
+    if (bar) bar.style.width = Math.max(0, left / GS_MS * 100) + '%';
+    if (left < -2000) { const S = gsState(g); if (!S) return; const uid = g.players[S.turn].uid, stamp = g.turnStartedAt;
+      tx(x => { if (x.turnStartedAt !== stamp || x.status !== 'playing') return null; const S2 = gsState(x), N = S2.phase === 'gostop' ? gsGoStop(S2, S2.turn, false) : gsPlay(S2, S2.turn, gsAiMove(S2, S2.turn)); if (!N) return null;
+        const u = { st: JSON.stringify(N), turnStartedAt: Date.now() }; if (N.phase === 'done') u.status = 'done'; return u; }, () => toast(`⏰ ${nameOf(g, uid)}님 시간 초과 · 자동으로 냈어요`)); }
+  },
+};
+
 /* ================= ⚫ 오목 AI ================= */
 let omThinking = false;
 function omScore(b, i, s){   // i에 s를 놓았을 때 4방향 모양 점수
@@ -5007,7 +5372,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261020d';
+const BUILD = 'b20261020e';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
