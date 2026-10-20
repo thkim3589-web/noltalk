@@ -515,8 +515,8 @@ input{font:inherit}
 .hw-sold{display:flex;justify-content:center;margin-top:4px;padding-right:8px}
 .hw-sit{background:#fff4d6;color:#8a6100;border-radius:10px;padding:6px 10px;font-size:13px;font-weight:800;text-align:center;margin-bottom:6px}
 .hw{border:0;background:none;box-shadow:none;padding:0;overflow:visible}
-.hw svg{width:100%;height:100%;display:block;border-radius:5px;box-shadow:0 0 0 1.5px #b3261e,0 2px 3px rgba(0,0,0,.35)}
-.hw.mini svg{border-radius:3px;box-shadow:0 0 0 1px #b3261e}
+.hw svg{width:100%;height:100%;display:block;border-radius:5px;box-shadow:0 2px 3px rgba(0,0,0,.4)}
+.hw.mini svg{border-radius:3px;box-shadow:0 1px 2px rgba(0,0,0,.4)}
 .hw.match svg{box-shadow:0 0 0 2.5px #ffd23f,0 0 12px #ffd23f}
 .hw.sel svg{box-shadow:0 0 0 3px #4ecb71}
 .hw-fg.tg .hw svg{box-shadow:0 0 0 2.5px #ffd23f}
@@ -4808,58 +4808,77 @@ function gsAiGo(S, pi){
 }
 /* ================= 🎴 화투 그림 (전통 구도를 직접 그린 SVG) ================= */
 const HW_ART = (() => {
-  const R = '#c8102e', K = '#1b1b1b', G = '#2f6b35', G2 = '#4f9a3c', Y = '#f2b705', PU = '#5d3d91', B = '#1f4fa3', PK = '#ef8fae', W = '#fff', BR = '#7a4a22', SKY = '#d8312f';
+  // 팔레트
+  const R = '#d7263d', R2 = '#9e1b2c', K = '#2b1d14', Y = '#f6b81a', Y2 = '#c8860a', W = '#fffdf6', CR = '#fbf3e1';
+  const G = '#3f8f3a', G2 = '#2d6a2b', G3 = '#7cc36b', PU = '#7b4fb5', PU2 = '#4e2d84', PK = '#f4a6bf', PK2 = '#e0618a', B = '#2b5fb8', B2 = '#173a7a', BR = '#7a4a22', BR2 = '#5a3416', OR = '#ef6a1f';
+  const OL = `stroke="${K}" stroke-width=".9" stroke-linejoin="round"`;
+  // 월별 테두리·밤하늘 색
+  const MC = ['', '#1f5a8c', '#c2185b', '#d81b60', '#6a3fa0', '#4b3aa8', '#c62828', '#2e7d32', '#1a2a6c', '#e07b00', '#d84315', '#5b2a86', '#2c4a8a'];
   const c = (x, y, r, f, s = '') => `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" ${s}/>`;
   const e = (x, y, rx, ry, f, rot = 0, s = '') => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${f}" transform="rotate(${rot} ${x} ${y})" ${s}/>`;
   const p = (d, f, s = '') => `<path d="${d}" fill="${f}" ${s}/>`;
-  const ln = (d, col, w) => `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`;
-  const flower = (x, y, r, col, mid = Y) => [0,1,2,3,4].map(k => { const a = k * 72 * Math.PI / 180; return c(x + Math.cos(a) * r * .55, y + Math.sin(a) * r * .55, r * .5, col); }).join('') + c(x, y, r * .28, mid);
-  const ribbon = (col, txt, x = 30, y = 30, rot = -8) => `<g transform="rotate(${rot} ${x} ${y})"><rect x="${x - 7}" y="${y - 22}" width="14" height="44" rx="2" fill="${col}" stroke="${K}" stroke-width="1"/>${txt ? [...txt].map((ch, i) => `<text x="${x}" y="${y - 10 + i * 12}" font-size="9" font-weight="900" fill="${K}" text-anchor="middle" font-family="sans-serif">${ch}</text>`).join('') : ''}<path d="M${x - 7} ${y + 22}l3 6 4-6 4 6 3-6" fill="${col}" stroke="${K}" stroke-width="1"/></g>`;
-  const gwang = () => `<circle cx="51" cy="9" r="7" fill="${W}" stroke="${R}" stroke-width="1.5"/><text x="51" y="12.5" font-size="10" font-weight="900" fill="${R}" text-anchor="middle" font-family="serif">光</text>`;
-  const ssang = () => `<rect x="2" y="78" width="16" height="10" rx="2" fill="${K}"/><text x="10" y="86" font-size="8" font-weight="900" fill="${Y}" text-anchor="middle" font-family="sans-serif">쌍</text>`;
-  const bird = (x, y, col, s = 1, wing = K) => `<g transform="translate(${x} ${y}) scale(${s})">${e(0, 0, 9, 5, col, -10)}${c(8, -4, 4, col)}${p('M11 -4l5 1-5 2z', Y)}${c(9, -5, 1, K)}${e(-2, -3, 6, 3, wing, -25)}${p('M-8 1l-8 -3 2 6z', wing)}</g>`;
-  // 월별 바탕 식물
+  const ln = (d, col, w, op = 1) => `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round" opacity="${op}"/>`;
+  const T = (x, y, s, f, t, extra = '') => `<text x="${x}" y="${y}" font-size="${s}" font-weight="900" fill="${f}" text-anchor="middle" font-family="'Pretendard','Noto Sans KR',sans-serif" ${extra}>${t}</text>`;
+  const petals = (x, y, r, n, col, mid, s = OL, rot = 0) => [...Array(n)].map((_, k) => { const a = (k * 360 / n + rot) * Math.PI / 180; return e(x + Math.cos(a) * r * .55, y + Math.sin(a) * r * .55, r * .5, r * .38, col, k * 360 / n + rot, s); }).join('') + c(x, y, r * .26, mid);
+  // 카드 틀: 월 색 테두리 + 크림 바탕(또는 하늘색) + 월 표시
+  const frame = (m, bg = CR) => `<rect width="60" height="90" rx="6" fill="${MC[m]}"/><rect x="2.6" y="2.6" width="54.8" height="84.8" rx="4" fill="${bg}"/>`;
+  const month = (m, dark) => `<rect x="4" y="4" width="${m > 9 ? 17 : 13}" height="10" rx="3" fill="${dark ? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.85)'}"/>` + T(m > 9 ? 12.5 : 10.5, 12.2, 8, dark ? W : MC[m], m + '월');
+  const gwang = () => c(49, 10, 7.2, R, `stroke="${Y}" stroke-width="1.4"`) + T(49, 13.6, 10, Y, '光', `font-family="serif"`);
+  const ssang = () => `<rect x="38" y="76" width="18" height="10" rx="3" fill="${K}"/>` + T(47, 84, 7, Y, '쌍피');
+  const ribbon = (col, txt) => `<g transform="rotate(-24 30 50)"><path d="M-2 43h64v13H-2z" fill="${col}" ${OL}/><path d="M-2 45.5h64M-2 53.5h64" stroke="rgba(255,255,255,.35)" stroke-width=".8"/>${txt ? T(30, 53, 8.5, W, txt, `stroke="${K}" stroke-width=".4" paint-order="stroke"`) : ''}</g>`;
+  const bird = (x, y, col, s = 1, wing = K, belly = W) => `<g transform="translate(${x} ${y}) scale(${s})">${p('M-14 2l-8 -4 1 8z', wing, OL)}${e(0, 0, 10, 6, col, -10, OL)}${e(1, 2.5, 6, 2.8, belly, -10)}${c(9, -5, 4.6, col, OL)}${p('M13 -5.5l6 1.5-6 1.5z', Y, OL)}${c(10.2, -6, 1.1, K)}${e(-3, -3, 7, 3.4, wing, -25, OL)}</g>`;
+  const grass = (y, col = G) => p(`M3 ${y} Q15 ${y - 6} 30 ${y - 2} T57 ${y - 4} V87 H3z`, col);
+  // 월별 식물
   const plant = {
-    1: () => ln('M14 90 Q18 60 30 50', BR, 4) + [[20,62,13],[38,52,12],[26,40,10],[44,70,11]].map(([x,y,r]) => e(x, y, r, r * .55, G, 0, `stroke="${K}" stroke-width="1.2"`) + ln(`M${x - r * .7} ${y}h${r * 1.4}`, K, .8)).join(''),
-    2: () => ln('M6 88 Q20 60 34 46 T54 18', K, 3) + [[16,70],[28,54],[40,40],[50,24],[22,40],[44,60]].map(([x,y]) => flower(x, y, 6, R)).join(''),
-    3: () => [[14,30],[30,22],[46,32],[20,48],[38,46],[52,52],[10,62],[28,64],[46,68]].map(([x,y]) => flower(x, y, 7, PK, R)).join('') + ln('M4 40 Q30 34 58 44', K, 1.5),
-    4: () => [10,24,38,50].map((x, i) => ln(`M${x} 0 Q${x + 4} ${30 + i * 4} ${x - 2} ${60 + i * 6}`, K, 1.6) + [0,1,2,3,4].map(k => e(x + 2 + (k % 2 ? 3 : -3), 10 + k * 12 + i * 2, 3.2, 1.6, K, k % 2 ? 30 : -30) + c(x + (k % 2 ? -3 : 3), 14 + k * 12, 1.4, R)).join('')).join(''),
-    5: () => [12,26,40,52].map((x, i) => ln(`M${x} 90 Q${x - 6} 60 ${x + 4} ${30 + i * 5}`, G, 2.2)).join('') + [[18,36],[42,30]].map(([x,y]) => e(x - 4, y, 4, 8, PU, -25) + e(x + 4, y, 4, 8, PU, 25) + e(x, y + 6, 4, 6, B)).join(''),
-    6: () => [[20,46,12],[42,34,10]].map(([x,y,r]) => c(x, y, r, R, `stroke="#8e0b1f" stroke-width="1"`) + c(x - r * .3, y - r * .2, r * .55, '#e2384f') + c(x + r * .2, y + r * .15, r * .3, '#f5a1ad')).join('') + [[12,66],[30,68],[48,58],[54,44]].map(([x,y]) => e(x, y, 7, 3.5, G, -20, `stroke="${K}" stroke-width=".8"`)).join(''),
-    7: () => [8,22,36,50].map((x, i) => ln(`M${x} 90 Q${x + 10} 60 ${x + 2} ${26 + i * 6}`, BR, 1.4) + [0,1,2,3,4,5].map(k => e(x + 5 + (k % 2 ? 4 : -3), 34 + k * 9, 3, 1.6, R, k % 2 ? 35 : -35)).join('')).join(''),
-    8: (gw) => (gw ? `<rect width="60" height="62" fill="${SKY}"/>` : `<rect width="60" height="40" fill="${SKY}" opacity=".85"/>`) + p('M0 90 V52 Q16 40 30 52 T60 46 V90z', K) + [8,18,28,38,48].map(x => ln(`M${x} 90 Q${x + 2} 70 ${x + 6} 58`, '#555', 1)).join(''),
-    9: () => [[16,58],[34,44],[48,62],[24,30]].map(([x,y]) => [...Array(10)].map((_, k) => { const a = k * 36; return e(x + Math.cos(a * Math.PI / 180) * 5, y + Math.sin(a * Math.PI / 180) * 5, 4, 1.8, Y, a, `stroke="#b37a00" stroke-width=".5"`); }).join('') + c(x, y, 3, R)).join('') + [[10,76],[30,78],[50,80]].map(([x,y]) => e(x, y, 6, 3, G, 15)).join(''),
-    10: () => [[16,24],[38,18],[50,40],[26,46],[12,66],[40,64]].map(([x,y]) => `<g transform="translate(${x} ${y})">${[0,1,2,3,4].map(k => e(0, -4, 2.6, 6, R, k * 72 - 144)).join('')}</g>`).join('') + ln('M4 10 Q30 40 56 84', BR, 1.6),
-    11: (gw) => [[16,56],[42,60],[30,74]].map(([x,y]) => e(x, y, 13, 9, gw ? '#2a2a2a' : K, 0) + ln(`M${x - 10} ${y}h20`, '#666', .8)).join('') + [[20,22],[40,18]].map(([x,y]) => [0,1,2,3].map(k => c(x + k * 2 - 3, y + k * 4, 2.6, PU)).join('')).join(''),
-    12: () => [8,20,34,48].map(x => ln(`M${x} 0 Q${x + 8} 40 ${x - 2} 90`, K, 1.4) + [0,1,2,3,4,5].map(k => e(x + 4, 10 + k * 13, 1.6, 4, G2, 20)).join('')).join(''),
+    1: () => p('M12 87 Q14 66 24 56 Q30 50 26 40', BR, `stroke="${BR2}" stroke-width="5" fill="none" stroke-linecap="round"`) + ln('M24 56 Q38 54 46 44', BR2, 3) + [[18,60,14],[40,46,13],[26,36,11],[46,66,12],[12,44,9]].map(([x,y,r]) => e(x, y, r, r * .5, G2, 0, OL) + e(x, y - 1.5, r * .8, r * .32, G) + [...Array(5)].map((_, k) => ln(`M${x - r * .7 + k * r * .35} ${y + r * .3}l${r * .1} ${-r * .55}`, G3, .7)).join('')).join(''),
+    2: () => ln('M6 88 Q16 66 28 52 Q40 38 54 20', BR2, 3.2) + ln('M28 52 Q20 40 12 34', BR2, 2) + [[14,72],[24,58],[36,44],[48,28],[14,36],[44,62],[54,44]].map(([x,y]) => petals(x, y, 7, 5, R, Y)).join(''),
+    3: () => ln('M4 44 Q30 36 58 46', BR2, 2) + [[12,26],[28,20],[44,26],[54,40],[20,40],[38,38],[10,56],[30,58],[48,60]].map(([x,y]) => petals(x, y, 7.5, 5, PK, PK2, `stroke="${PK2}" stroke-width=".6"`)).join(''),
+    4: () => ln('M4 6 Q30 2 58 10', BR2, 2.4) + [10,22,34,46].map((x, i) => [...Array(7)].map((_, k) => e(x + (k % 2 ? 2 : -2), 12 + k * 6.5 + i * 2, 3.6 - k * .25, 2.6, k % 2 ? PU : PU2, 0, `stroke="${PU2}" stroke-width=".4"`)).join('')).join('') + [[16,16],[40,14]].map(([x,y]) => e(x, y, 7, 2.6, G, 20, OL)).join(''),
+    5: () => [8,18,30,42,52].map((x, i) => p(`M${x} 88 Q${x - 4} 66 ${x + 3} ${44 + (i % 2) * 8} Q${x + 1} 66 ${x + 3} 88z`, i % 2 ? G : G2, OL)).join('') + [[16,40],[40,34],[50,52]].map(([x,y]) => e(x - 4, y, 4, 8, PU, -30, OL) + e(x + 4, y, 4, 8, PU, 30, OL) + e(x, y - 4, 3, 7, '#9a73d6', 0, OL) + e(x, y + 5, 2.4, 3, Y)).join(''),
+    6: () => [[12,72],[30,76],[50,70],[54,48],[6,50]].map(([x,y], i) => e(x, y, 8, 4, i % 2 ? G : G2, i * 30 - 30, OL)).join('') + [[22,48,13],[44,34,11]].map(([x,y,r]) => c(x, y, r, R, OL) + petals(x, y, r * 1.1, 6, '#e8475e', '#f9c0c8', `stroke="${R2}" stroke-width=".6"`) + c(x, y, r * .3, Y)).join(''),
+    7: () => [8,20,34,48].map((x, i) => ln(`M${x} 88 Q${x + 12} 60 ${x + 2} ${24 + i * 5}`, BR2, 1.4) + [...Array(6)].map((_, k) => e(x + 5 + (k % 2 ? 4 : -3), 30 + k * 9, 4, 2.4, k % 2 ? G : G2, k % 2 ? 35 : -35, `stroke="${K}" stroke-width=".5"`) + (k % 2 ? c(x + 2, 28 + k * 9, 1.6, R) : '')).join('')).join(''),
+    8: (gw) => (gw ? '' : `<rect x="2.6" y="2.6" width="54.8" height="44" rx="4" fill="#f27b4a"/><rect x="2.6" y="30" width="54.8" height="20" fill="#f9b26b"/>`) + p('M2.6 87 V56 Q18 40 32 52 T57.4 48 V87z', '#3a2e2a') + [8,16,24,32,40,48,54].map((x, i) => ln(`M${x} 87 Q${x + 2} ${70 - i % 3 * 4} ${x + 7} ${56 - i % 2 * 6}`, '#d9d0b5', 1.1)).join(''),
+    9: () => [[10,74],[30,80],[50,76]].map(([x,y]) => e(x, y, 8, 4, G, 15, OL)).join('') + [[18,58,9],[42,52,10],[28,36,8]].map(([x,y,r]) => petals(x, y, r * 1.2, 12, Y, OR, `stroke="${Y2}" stroke-width=".5"`)).join(''),
+    10: () => ln('M4 8 Q30 40 56 86', BR2, 2) + [[14,22],[34,16],[50,32],[26,40],[12,60],[44,58],[50,78]].map(([x,y], i) => `<g transform="translate(${x} ${y}) rotate(${i * 25})">${[0,1,2,3,4].map(k => e(0, -4.5, 2.6, 6.2, i % 2 ? R : OR, k * 72 - 144, `stroke="${R2}" stroke-width=".4"`)).join('')}</g>`).join(''),
+    11: (gw) => [[14,62],[44,58],[30,78]].map(([x,y]) => e(x, y, 14, 10, gw ? '#3a5a2c' : G2, 0, OL) + ln(`M${x - 10} ${y}h20M${x} ${y - 7}v14`, G3, .7)).join('') + [[18,24],[42,20]].map(([x,y]) => [0,1,2,3,4,5].map(k => c(x + (k % 2 ? 3 : -3) + (k > 3 ? 0 : 0), y + k * 3.4, 3, PU, `stroke="${PU2}" stroke-width=".5"`)).join('')).join(''),
+    12: (gw) => (gw ? '' : `<rect x="2.6" y="2.6" width="54.8" height="84.8" rx="4" fill="#cfe0ef"/>`) + [10,22,36,50].map(x => ln(`M${x} 3 Q${x + 9} 40 ${x - 2} 88`, '#5b4a2e', 1.2) + [...Array(6)].map((_, k) => e(x + 4, 12 + k * 13, 1.6, 5, G, 20)).join('')).join('') + [...Array(10)].map((_, k) => ln(`M${(k * 13) % 54 + 4} ${(k * 23) % 70 + 6}l-2 6`, '#5b8fc7', .8, .8)).join(''),
   };
+  // 그림 패 (광/열끗/쌍피)
   const special = {
-    '1g': () => c(18, 22, 13, R) + `<g transform="translate(34 58)">${e(0, 0, 11, 7, W, 0, `stroke="${K}" stroke-width="1"`)}${ln('M2 -5 Q4 -20 -2 -26', K, 2.4)}${c(-2, -27, 3.4, W, `stroke="${K}" stroke-width=".8"`)}${c(-2, -30, 1.6, R)}${p('M-5 -26l-6 1 6 1z', K)}${e(-6, -1, 7, 4, K, -10)}${ln('M-2 7v14M4 7v14', K, 1.2)}</g>`,
-    '2y': () => bird(36, 30, '#7ea83a', 1.1, '#4b6b1e'),
-    '3g': () => `<g>${[0,1,2,3,4,5,6].map(k => `<rect x="${2 + k * 8}" y="58" width="8" height="30" fill="${k % 2 ? W : R}"/>`).join('')}<path d="M0 58 Q15 50 30 58 T60 58 V62H0z" fill="${R}"/></g>`,
-    '4y': () => p('M44 10 a10 10 0 1 0 8 16 a8 8 0 1 1 -8 -16z', Y) + bird(30, 40, K, 1.1, '#333'),
-    '5y': () => [[8,64],[22,72],[36,64],[50,72]].map(([x,y], i) => `<rect x="${x - 2}" y="${y - 4}" width="16" height="8" fill="${BR}" stroke="${K}" stroke-width=".8" transform="rotate(${i % 2 ? -18 : 18} ${x + 6} ${y})"/>`).join(''),
-    '6y': () => [[38,14,Y],[50,26,B]].map(([x,y,col]) => `<g transform="translate(${x} ${y})">${e(-4, -3, 5, 4, col, -30, `stroke="${K}" stroke-width=".6"`)}${e(4, -3, 5, 4, col, 30, `stroke="${K}" stroke-width=".6"`)}${e(-3, 3, 3, 2.4, col, 20)}${e(3, 3, 3, 2.4, col, -20)}${ln('M0 -5v9', K, 1)}</g>`).join(''),
-    '7y': () => `<g transform="translate(30 66)">${e(0, 0, 18, 10, BR, 0, `stroke="${K}" stroke-width="1"`)}${c(15, -3, 7, BR)}${p('M20 -2l6 2-6 2z', W)}${c(16, -5, 1.2, K)}${ln('M-10 8v8M-2 9v7M6 9v7M12 8v8', K, 2)}</g>`,
-    '8g': () => c(30, 26, 14, W, `stroke="#f2d7a0" stroke-width="2"`),
-    '8y': () => [[20,14],[34,22],[48,12]].map(([x,y]) => p(`M${x - 7} ${y}q4 -5 7 0q3 -5 7 0l-7 3z`, K)).join(''),
-    '9y': () => `<g transform="translate(36 38)">${p('M-12 -8h24l-4 14h-16z', R, `stroke="${K}" stroke-width="1"`)}${e(0, -8, 12, 3, '#e8545e')}<text x="0" y="3" font-size="9" fill="${Y}" text-anchor="middle" font-family="serif" font-weight="900">壽</text>${p('M-4 6h8v6h-8z', R)}</g>`,
-    '10y': () => `<g transform="translate(30 54)">${e(0, 0, 14, 8, BR, 0, `stroke="${K}" stroke-width="1"`)}${c(-4, -2, 1.4, W)}${c(4, 2, 1.4, W)}${p('M10 -4 l6 -12 4 2 -6 12z', BR)}${c(17, -16, 4, BR)}${ln('M16 -20 l-3 -6 M19 -20 l3 -6', BR, 1.4)}${ln('M-9 7v12M-3 8v11M5 8v11M10 7v12', K, 1.6)}</g>`,
-    '11g': () => `<g transform="translate(30 30)">${[R, Y, G2, B, R].map((col, k) => e(-6 + k * 4, 12 + k * 2, 3, 13, col, -30 + k * 15)).join('')}${e(0, 0, 10, 7, R, 0, `stroke="${K}" stroke-width="1"`)}${c(9, -6, 5, Y)}${p('M13 -6l5 1-5 2z', R)}${c(10, -7, 1, K)}${p('M6 -10 q2 -8 6 -6', 'none', `stroke="${R}" stroke-width="1.5"`)}</g>`,
-    '11pp': () => [[16,24],[44,20]].map(([x,y]) => e(x, y, 9, 6, Y, 20, `stroke="${K}" stroke-width=".8"`)).join(''),
-    '12g': () => `<g transform="translate(26 50)">${p('M-14 -12 Q0 -26 14 -12z', Y, `stroke="${K}" stroke-width="1"`)}${ln('M0 -16v26', K, 1.4)}${e(0, 4, 6, 10, R, 0, `stroke="${K}" stroke-width=".8"`)}${c(0, -9, 4, '#f3d1b5')}${p('M-4 -12h8l-4 -4z', K)}${ln('M-3 14l-3 10M3 14l3 10', K, 1.6)}</g>${e(48, 82, 6, 4, G2)}${c(46, 79, 1.4, K)}${c(50, 79, 1.4, K)}`,
-    '12y': () => `<g transform="translate(32 34)">${e(0, 0, 9, 4, K, -15)}${c(8, -4, 3.4, K)}${c(8, -3, 1.6, R)}${p('M-8 1l-10 6 4-8z M-8 -1l-10 -2 6 -3z', K)}${e(-2, -4, 7, 2.6, '#333', -40)}</g>`,
-    '12pp': () => `<g transform="translate(30 40)">${c(0, 0, 13, R, `stroke="${K}" stroke-width="1.2"`)}${c(0, 0, 8, Y)}${p('M-2 -14l6 8h-4l5 9-9-10h4z', '#ffe066', `stroke="${K}" stroke-width=".6"`)}</g>`,
+    '1g': () => `<rect x="2.6" y="2.6" width="54.8" height="84.8" rx="4" fill="#1d4d7c"/>` + c(18, 30, 12, R) + plant[1]() + `<g transform="translate(36 66)">${e(0, 0, 11, 7, W, -5, OL)}${e(-4, -1, 7, 4, K, -10)}${ln('M3 -5 Q6 -20 0 -27', K, 2.6)}${ln('M3 -5 Q6 -20 0 -27', W, 1.4)}${c(0, -28, 3.6, W, OL)}${c(0, -31, 1.7, R)}${p('M-3 -28l-7 1 7 1.5z', Y, OL)}${ln('M-2 7v13M4 7v13', K, 1.2)}</g>`,
+    '2y': () => bird(34, 30, '#8fbf3a', 1.15, '#4f7a1e', '#e8f2b8'),
+    '3g': () => plant[3]() + `<path d="M2.6 46 H57.4 V87.4 H2.6z" fill="#fff6e0"/>` + [0,1,2,3,4,5,6].map(k => `<path d="M${2.6 + k * 7.83} 50 h7.83 v32 q-3.9 5 -7.83 0z" fill="${k % 2 ? '#fff6e0' : R}" stroke="${R2}" stroke-width=".5"/>`).join('') + p('M2.6 44 H57.4 V50 Q50 58 43.4 50 Q36.8 58 30 50 Q23.2 58 16.6 50 Q10 58 2.6 50z', R2, OL) + [16.6,30,43.4].map(x => ln(`M${x} 52v8`, Y, 1.4) + c(x, 61, 2, Y, OL)).join('') + ln('M2.6 44H57.4', Y, 1.6),
+    '4y': () => p('M46 12 a10 10 0 1 0 8 16 a8 8 0 1 1 -8 -16z', Y, OL) + bird(30, 44, '#5a4a7a', 1.15, '#2b2240', '#d7c8f0'),
+    '5y': () => `<g transform="rotate(-8 30 70)">${p('M4 70 Q30 58 56 70 v6 Q30 64 4 76z', BR, OL)}${[10,18,26,34,42,50].map(x => ln(`M${x} ${68 - (x > 30 ? 60 - x : x - 4) * .2}v9`, BR2, 1.2)).join('')}</g>`,
+    '6y': () => [[40,16,Y],[50,30,'#4aa3df']].map(([x,y,col]) => `<g transform="translate(${x} ${y}) rotate(-15)">${e(-4.5, -3, 5.4, 4.2, col, -30, OL)}${e(4.5, -3, 5.4, 4.2, col, 30, OL)}${e(-3, 3.5, 3.4, 2.6, col, 20, OL)}${e(3, 3.5, 3.4, 2.6, col, -20, OL)}${ln('M0 -6v11', K, 1.3)}${ln('M0 -6l-2 -4M0 -6l2 -4', K, .6)}</g>`).join(''),
+    '7y': () => `<g transform="translate(30 68)">${e(0, 0, 19, 10.5, '#6b4a2e', 0, OL)}${p('M-14 -6 q14 -10 28 0', '#4a3220')}${c(16, -2, 7.5, '#6b4a2e', OL)}${p('M21 -1l6 2-6 2z', W, OL)}${c(17, -5, 1.3, K)}${ln('M-10 9v8M-3 10v7M6 10v7M12 9v8', K, 2.2)}</g>`,
+    '8g': () => `<rect x="2.6" y="2.6" width="54.8" height="60" rx="4" fill="#14204f"/>` + c(30, 28, 16, '#fff3c4', `stroke="${Y}" stroke-width="2"`) + c(24, 22, 3, '#f3e2a0') + c(36, 32, 2, '#f3e2a0') + plant[8](true),
+    '8y': () => [[18,14],[32,22],[46,12]].map(([x,y]) => `<g transform="translate(${x} ${y})">${p('M-8 0q4 -6 8 0q4 -6 8 0l-8 3z', K, `stroke="${K}" stroke-width=".4"`)}${c(1, -1, 1.2, W)}</g>`).join(''),
+    '9y': () => `<g transform="translate(34 40)">${p('M-14 -9h28l-5 16h-18z', R, OL)}${e(0, -9, 14, 3.4, '#f07a85', 0, OL)}${T(0, 3, 10, Y, '壽', `font-family="serif"`)}${p('M-5 7h10v5h-10z', R, OL)}${e(0, 13, 9, 2.2, R2, 0, OL)}</g>`,
+    '10y': () => `<g transform="translate(28 58)">${e(0, 0, 15, 8.5, '#c98a4b', 0, OL)}${[[-7,-2],[0,2],[7,-1],[-3,4]].map(([x,y]) => c(x, y, 1.3, W)).join('')}${p('M10 -4 l5 -12 4 1.5 -4 13z', '#c98a4b', OL)}${e(18, -17, 5, 3.4, '#c98a4b', -20, OL)}${c(19, -18, 1, K)}${ln('M16 -21 l-4 -7 M16 -24 l-5 0 M20 -21 l2 -8 M21 -25 l4 -1', BR2, 1.3)}${ln('M-10 7v14M-4 8v13M6 8v13M11 7v14', '#8a5a2b', 1.8)}</g>`,
+    '11g': () => `<rect x="2.6" y="2.6" width="54.8" height="84.8" rx="4" fill="#3d1f5c"/>` + plant[11](true) + `<g transform="translate(30 34)">${[R, Y, G3, B, OR].map((col, k) => e(-10 + k * 4, 16 + k * 3, 3.2, 15, col, -35 + k * 15, OL)).join('')}${e(0, 0, 11, 7.5, R, -10, OL)}${e(-2, -2, 7, 3, Y, -30)}${c(10, -7, 5.4, Y, OL)}${p('M14.5 -7l6 1.4-6 1.6z', OR, OL)}${c(11, -8, 1.1, K)}${ln('M8 -12 q2 -8 8 -6', R, 1.6)}</g>`,
+    '11pp': () => [[16,30],[44,26]].map(([x,y]) => e(x, y, 9, 6, Y, 20, OL) + e(x - 2, y - 1, 4, 2, '#fff2b0', 20)).join(''),
+    '12g': () => `<rect x="2.6" y="2.6" width="54.8" height="84.8" rx="4" fill="#2c3e66"/>` + plant[12](true) + `<g transform="translate(24 50)">${p('M-15 -12 Q0 -28 15 -12z', R, OL)}${ln('M0 -17v28', K, 1.4)}${e(0, 4, 7, 11, '#ece3c9', 0, OL)}${c(0, -9, 4, '#f3d1b5', OL)}${p('M-4.5 -12h9l-4.5 -4z', K)}${ln('M-3 14l-3 10M3 14l3 10', K, 1.6)}</g>${e(48, 80, 6, 4, G3, 0, OL)}${c(46, 77, 1.4, K)}${c(50, 77, 1.4, K)}`,
+    '12y': () => `<g transform="translate(32 34) rotate(-12)">${p('M-8 1l-14 7 6-9z M-8 -1l-14 -3 7-4z', '#1c2b55', OL)}${e(0, 0, 10, 4.6, '#1c2b55', 0, OL)}${e(1, 2, 6, 2, W)}${c(9, -3, 3.8, '#1c2b55', OL)}${c(9.5, -2, 1.8, R)}${c(10, -4, .9, W)}${e(-2, -5, 8, 2.8, '#2f4680', -35, OL)}</g>`,
+    '12pp': () => `<g transform="translate(30 40)">${c(0, 0, 14, R, OL)}${c(0, 0, 9, Y, OL)}${p('M-2 -15l7 9h-4.5l5 10-10-11h4.5z', '#fff3a0', OL)}</g>`,
   };
-  const out = {};
+  const DARK = { '1g':1, '8g':1, '11g':1, '12g':1 };
+  const RIB = { hong:[R, '홍단'], chung:[B, '청단'], cho:[R, '초단'], bi:[R, ''] };
+  const out = {}, piSeen = {};
   HT.forEach((h, id) => {
-    const key = h.m + h.t, gw = h.t === 'g';
-    let svg = `<rect width="60" height="90" rx="6" fill="#fbf7ee"/>` + plant[h.m](gw);
-    if (special[key]) svg += special[key]();
-    if (h.t === 'd') svg += ribbon(h.d === 'chung' ? '#2f63c2' : '#d61f3a', h.d === 'hong' ? '홍단' : h.d === 'chung' ? '청단' : '', 30, 36, -10);
-    if (gw) svg += gwang();
+    const key = h.m + h.t;
+    let svg = frame(h.m);
+    if (special[key] && (h.t === 'g')) svg += special[key]();
+    else {
+      let bg = plant[h.m](false);
+      if (h.t === 'p') { piSeen[h.m] = (piSeen[h.m] || 0) + 1; if (piSeen[h.m] === 2) bg = `<g transform="translate(60 0) scale(-1 1)">${bg}</g>`; }
+      svg += bg;
+      if (special[key]) svg += special[key]();
+    }
+    if (h.t === 'd') { const [col, txt] = RIB[h.d]; svg += ribbon(col, txt); }
+    svg += month(h.m, DARK[key]);
+    if (h.t === 'g') svg += gwang();
     if (h.t === 'pp') svg += ssang();
-    if (h.kj) svg += '';
     out[id] = svg;
   });
   return out;
@@ -5715,7 +5734,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261020i';
+const BUILD = 'b20261021a';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
