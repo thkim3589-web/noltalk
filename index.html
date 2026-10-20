@@ -514,6 +514,12 @@ input{font:inherit}
 .hw-res .hw-bd span{background:#fff;border-radius:8px;padding:3px 8px;font-size:13px}
 .hw-sold{display:flex;justify-content:center;margin-top:4px;padding-right:8px}
 .hw-sit{background:#fff4d6;color:#8a6100;border-radius:10px;padding:6px 10px;font-size:13px;font-weight:800;text-align:center;margin-bottom:6px}
+.hw{border:0;background:none;box-shadow:none;padding:0;overflow:visible}
+.hw svg{width:100%;height:100%;display:block;border-radius:5px;box-shadow:0 0 0 1.5px #b3261e,0 2px 3px rgba(0,0,0,.35)}
+.hw.mini svg{border-radius:3px;box-shadow:0 0 0 1px #b3261e}
+.hw.match svg{box-shadow:0 0 0 2.5px #ffd23f,0 0 12px #ffd23f}
+.hw.sel svg{box-shadow:0 0 0 3px #4ecb71}
+.hw-fg.tg .hw svg{box-shadow:0 0 0 2.5px #ffd23f}
 .hw-pay{margin-top:6px;font-size:14px}.hw-won{color:#c0123c;font-weight:800}.hw-win{color:#1d7a46;font-weight:800;margin-bottom:2px}.hw-money{font-weight:800;color:#b8860b}.hw-pay em{font-style:normal;background:#ffe3e6;color:#c0123c;border-radius:6px;padding:1px 6px;font-size:11px;margin-left:4px}
 </style>
 </head>
@@ -4785,6 +4791,72 @@ function gsAiGo(S, pi){
   const sc = gsScore(S.caps[pi]).total, opp = Math.max(...S.caps.map((c, j) => j === pi ? 0 : gsScore(c).total));
   return S.deck.length >= 8 && opp < (S.n === 2 ? 4 : 2) && S.go[pi] < 2 && sc < 12;
 }
+/* ================= 🎴 화투 그림 (전통 구도를 직접 그린 SVG) ================= */
+const HW_ART = (() => {
+  const R = '#c8102e', K = '#1b1b1b', G = '#2f6b35', G2 = '#4f9a3c', Y = '#f2b705', PU = '#5d3d91', B = '#1f4fa3', PK = '#ef8fae', W = '#fff', BR = '#7a4a22', SKY = '#d8312f';
+  const c = (x, y, r, f, s = '') => `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" ${s}/>`;
+  const e = (x, y, rx, ry, f, rot = 0, s = '') => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${f}" transform="rotate(${rot} ${x} ${y})" ${s}/>`;
+  const p = (d, f, s = '') => `<path d="${d}" fill="${f}" ${s}/>`;
+  const ln = (d, col, w) => `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`;
+  const flower = (x, y, r, col, mid = Y) => [0,1,2,3,4].map(k => { const a = k * 72 * Math.PI / 180; return c(x + Math.cos(a) * r * .55, y + Math.sin(a) * r * .55, r * .5, col); }).join('') + c(x, y, r * .28, mid);
+  const ribbon = (col, txt, x = 30, y = 30, rot = -8) => `<g transform="rotate(${rot} ${x} ${y})"><rect x="${x - 7}" y="${y - 22}" width="14" height="44" rx="2" fill="${col}" stroke="${K}" stroke-width="1"/>${txt ? [...txt].map((ch, i) => `<text x="${x}" y="${y - 10 + i * 12}" font-size="9" font-weight="900" fill="${K}" text-anchor="middle" font-family="sans-serif">${ch}</text>`).join('') : ''}<path d="M${x - 7} ${y + 22}l3 6 4-6 4 6 3-6" fill="${col}" stroke="${K}" stroke-width="1"/></g>`;
+  const gwang = () => `<circle cx="51" cy="9" r="7" fill="${W}" stroke="${R}" stroke-width="1.5"/><text x="51" y="12.5" font-size="10" font-weight="900" fill="${R}" text-anchor="middle" font-family="serif">光</text>`;
+  const ssang = () => `<rect x="2" y="78" width="16" height="10" rx="2" fill="${K}"/><text x="10" y="86" font-size="8" font-weight="900" fill="${Y}" text-anchor="middle" font-family="sans-serif">쌍</text>`;
+  const bird = (x, y, col, s = 1, wing = K) => `<g transform="translate(${x} ${y}) scale(${s})">${e(0, 0, 9, 5, col, -10)}${c(8, -4, 4, col)}${p('M11 -4l5 1-5 2z', Y)}${c(9, -5, 1, K)}${e(-2, -3, 6, 3, wing, -25)}${p('M-8 1l-8 -3 2 6z', wing)}</g>`;
+  // 월별 바탕 식물
+  const plant = {
+    1: () => ln('M14 90 Q18 60 30 50', BR, 4) + [[20,62,13],[38,52,12],[26,40,10],[44,70,11]].map(([x,y,r]) => e(x, y, r, r * .55, G, 0, `stroke="${K}" stroke-width="1.2"`) + ln(`M${x - r * .7} ${y}h${r * 1.4}`, K, .8)).join(''),
+    2: () => ln('M6 88 Q20 60 34 46 T54 18', K, 3) + [[16,70],[28,54],[40,40],[50,24],[22,40],[44,60]].map(([x,y]) => flower(x, y, 6, R)).join(''),
+    3: () => [[14,30],[30,22],[46,32],[20,48],[38,46],[52,52],[10,62],[28,64],[46,68]].map(([x,y]) => flower(x, y, 7, PK, R)).join('') + ln('M4 40 Q30 34 58 44', K, 1.5),
+    4: () => [10,24,38,50].map((x, i) => ln(`M${x} 0 Q${x + 4} ${30 + i * 4} ${x - 2} ${60 + i * 6}`, K, 1.6) + [0,1,2,3,4].map(k => e(x + 2 + (k % 2 ? 3 : -3), 10 + k * 12 + i * 2, 3.2, 1.6, K, k % 2 ? 30 : -30) + c(x + (k % 2 ? -3 : 3), 14 + k * 12, 1.4, R)).join('')).join(''),
+    5: () => [12,26,40,52].map((x, i) => ln(`M${x} 90 Q${x - 6} 60 ${x + 4} ${30 + i * 5}`, G, 2.2)).join('') + [[18,36],[42,30]].map(([x,y]) => e(x - 4, y, 4, 8, PU, -25) + e(x + 4, y, 4, 8, PU, 25) + e(x, y + 6, 4, 6, B)).join(''),
+    6: () => [[20,46,12],[42,34,10]].map(([x,y,r]) => c(x, y, r, R, `stroke="#8e0b1f" stroke-width="1"`) + c(x - r * .3, y - r * .2, r * .55, '#e2384f') + c(x + r * .2, y + r * .15, r * .3, '#f5a1ad')).join('') + [[12,66],[30,68],[48,58],[54,44]].map(([x,y]) => e(x, y, 7, 3.5, G, -20, `stroke="${K}" stroke-width=".8"`)).join(''),
+    7: () => [8,22,36,50].map((x, i) => ln(`M${x} 90 Q${x + 10} 60 ${x + 2} ${26 + i * 6}`, BR, 1.4) + [0,1,2,3,4,5].map(k => e(x + 5 + (k % 2 ? 4 : -3), 34 + k * 9, 3, 1.6, R, k % 2 ? 35 : -35)).join('')).join(''),
+    8: (gw) => (gw ? `<rect width="60" height="62" fill="${SKY}"/>` : `<rect width="60" height="40" fill="${SKY}" opacity=".85"/>`) + p('M0 90 V52 Q16 40 30 52 T60 46 V90z', K) + [8,18,28,38,48].map(x => ln(`M${x} 90 Q${x + 2} 70 ${x + 6} 58`, '#555', 1)).join(''),
+    9: () => [[16,58],[34,44],[48,62],[24,30]].map(([x,y]) => [...Array(10)].map((_, k) => { const a = k * 36; return e(x + Math.cos(a * Math.PI / 180) * 5, y + Math.sin(a * Math.PI / 180) * 5, 4, 1.8, Y, a, `stroke="#b37a00" stroke-width=".5"`); }).join('') + c(x, y, 3, R)).join('') + [[10,76],[30,78],[50,80]].map(([x,y]) => e(x, y, 6, 3, G, 15)).join(''),
+    10: () => [[16,24],[38,18],[50,40],[26,46],[12,66],[40,64]].map(([x,y]) => `<g transform="translate(${x} ${y})">${[0,1,2,3,4].map(k => e(0, -4, 2.6, 6, R, k * 72 - 144)).join('')}</g>`).join('') + ln('M4 10 Q30 40 56 84', BR, 1.6),
+    11: (gw) => [[16,56],[42,60],[30,74]].map(([x,y]) => e(x, y, 13, 9, gw ? '#2a2a2a' : K, 0) + ln(`M${x - 10} ${y}h20`, '#666', .8)).join('') + [[20,22],[40,18]].map(([x,y]) => [0,1,2,3].map(k => c(x + k * 2 - 3, y + k * 4, 2.6, PU)).join('')).join(''),
+    12: () => [8,20,34,48].map(x => ln(`M${x} 0 Q${x + 8} 40 ${x - 2} 90`, K, 1.4) + [0,1,2,3,4,5].map(k => e(x + 4, 10 + k * 13, 1.6, 4, G2, 20)).join('')).join(''),
+  };
+  const special = {
+    '1g': () => c(18, 22, 13, R) + `<g transform="translate(34 58)">${e(0, 0, 11, 7, W, 0, `stroke="${K}" stroke-width="1"`)}${ln('M2 -5 Q4 -20 -2 -26', K, 2.4)}${c(-2, -27, 3.4, W, `stroke="${K}" stroke-width=".8"`)}${c(-2, -30, 1.6, R)}${p('M-5 -26l-6 1 6 1z', K)}${e(-6, -1, 7, 4, K, -10)}${ln('M-2 7v14M4 7v14', K, 1.2)}</g>`,
+    '2y': () => bird(36, 30, '#7ea83a', 1.1, '#4b6b1e'),
+    '3g': () => `<g>${[0,1,2,3,4,5,6].map(k => `<rect x="${2 + k * 8}" y="58" width="8" height="30" fill="${k % 2 ? W : R}"/>`).join('')}<path d="M0 58 Q15 50 30 58 T60 58 V62H0z" fill="${R}"/></g>`,
+    '4y': () => p('M44 10 a10 10 0 1 0 8 16 a8 8 0 1 1 -8 -16z', Y) + bird(30, 40, K, 1.1, '#333'),
+    '5y': () => [[8,64],[22,72],[36,64],[50,72]].map(([x,y], i) => `<rect x="${x - 2}" y="${y - 4}" width="16" height="8" fill="${BR}" stroke="${K}" stroke-width=".8" transform="rotate(${i % 2 ? -18 : 18} ${x + 6} ${y})"/>`).join(''),
+    '6y': () => [[38,14,Y],[50,26,B]].map(([x,y,col]) => `<g transform="translate(${x} ${y})">${e(-4, -3, 5, 4, col, -30, `stroke="${K}" stroke-width=".6"`)}${e(4, -3, 5, 4, col, 30, `stroke="${K}" stroke-width=".6"`)}${e(-3, 3, 3, 2.4, col, 20)}${e(3, 3, 3, 2.4, col, -20)}${ln('M0 -5v9', K, 1)}</g>`).join(''),
+    '7y': () => `<g transform="translate(30 66)">${e(0, 0, 18, 10, BR, 0, `stroke="${K}" stroke-width="1"`)}${c(15, -3, 7, BR)}${p('M20 -2l6 2-6 2z', W)}${c(16, -5, 1.2, K)}${ln('M-10 8v8M-2 9v7M6 9v7M12 8v8', K, 2)}</g>`,
+    '8g': () => c(30, 26, 14, W, `stroke="#f2d7a0" stroke-width="2"`),
+    '8y': () => [[20,14],[34,22],[48,12]].map(([x,y]) => p(`M${x - 7} ${y}q4 -5 7 0q3 -5 7 0l-7 3z`, K)).join(''),
+    '9y': () => `<g transform="translate(36 38)">${p('M-12 -8h24l-4 14h-16z', R, `stroke="${K}" stroke-width="1"`)}${e(0, -8, 12, 3, '#e8545e')}<text x="0" y="3" font-size="9" fill="${Y}" text-anchor="middle" font-family="serif" font-weight="900">壽</text>${p('M-4 6h8v6h-8z', R)}</g>`,
+    '10y': () => `<g transform="translate(30 54)">${e(0, 0, 14, 8, BR, 0, `stroke="${K}" stroke-width="1"`)}${c(-4, -2, 1.4, W)}${c(4, 2, 1.4, W)}${p('M10 -4 l6 -12 4 2 -6 12z', BR)}${c(17, -16, 4, BR)}${ln('M16 -20 l-3 -6 M19 -20 l3 -6', BR, 1.4)}${ln('M-9 7v12M-3 8v11M5 8v11M10 7v12', K, 1.6)}</g>`,
+    '11g': () => `<g transform="translate(30 30)">${[R, Y, G2, B, R].map((col, k) => e(-6 + k * 4, 12 + k * 2, 3, 13, col, -30 + k * 15)).join('')}${e(0, 0, 10, 7, R, 0, `stroke="${K}" stroke-width="1"`)}${c(9, -6, 5, Y)}${p('M13 -6l5 1-5 2z', R)}${c(10, -7, 1, K)}${p('M6 -10 q2 -8 6 -6', 'none', `stroke="${R}" stroke-width="1.5"`)}</g>`,
+    '11pp': () => [[16,24],[44,20]].map(([x,y]) => e(x, y, 9, 6, Y, 20, `stroke="${K}" stroke-width=".8"`)).join(''),
+    '12g': () => `<g transform="translate(26 50)">${p('M-14 -12 Q0 -26 14 -12z', Y, `stroke="${K}" stroke-width="1"`)}${ln('M0 -16v26', K, 1.4)}${e(0, 4, 6, 10, R, 0, `stroke="${K}" stroke-width=".8"`)}${c(0, -9, 4, '#f3d1b5')}${p('M-4 -12h8l-4 -4z', K)}${ln('M-3 14l-3 10M3 14l3 10', K, 1.6)}</g>${e(48, 82, 6, 4, G2)}${c(46, 79, 1.4, K)}${c(50, 79, 1.4, K)}`,
+    '12y': () => `<g transform="translate(32 34)">${e(0, 0, 9, 4, K, -15)}${c(8, -4, 3.4, K)}${c(8, -3, 1.6, R)}${p('M-8 1l-10 6 4-8z M-8 -1l-10 -2 6 -3z', K)}${e(-2, -4, 7, 2.6, '#333', -40)}</g>`,
+    '12pp': () => `<g transform="translate(30 40)">${c(0, 0, 13, R, `stroke="${K}" stroke-width="1.2"`)}${c(0, 0, 8, Y)}${p('M-2 -14l6 8h-4l5 9-9-10h4z', '#ffe066', `stroke="${K}" stroke-width=".6"`)}</g>`,
+  };
+  const out = {};
+  HT.forEach((h, id) => {
+    const key = h.m + h.t, gw = h.t === 'g';
+    let svg = `<rect width="60" height="90" rx="6" fill="#fbf7ee"/>` + plant[h.m](gw);
+    if (special[key]) svg += special[key]();
+    if (h.t === 'd') svg += ribbon(h.d === 'chung' ? '#2f63c2' : '#d61f3a', h.d === 'hong' ? '홍단' : h.d === 'chung' ? '청단' : '', 30, 36, -10);
+    if (gw) svg += gwang();
+    if (h.t === 'pp') svg += ssang();
+    if (h.kj) svg += '';
+    out[id] = svg;
+  });
+  return out;
+})();
+let hwSprite = false;
+function hwEnsureSprite(){
+  if (hwSprite) return; hwSprite = true;
+  const d = document.createElement('div'); d.style.display = 'none';
+  d.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg">${Object.entries(HW_ART).map(([id, s]) => `<symbol id="hwc${id}" viewBox="0 0 60 90">${s}</symbol>`).join('')}</svg>`;
+  document.body.appendChild(d);
+}
+
 /* ================= 🌸 고스톱 화면 · 연결 ================= */
 // 가상 머니: 점당 10원, 처음 1만원 (현금 아님 · 충전/환전 없음)
 const GS_WON = 10, GS_START = 10000;
@@ -4814,10 +4886,8 @@ const gsState = g => { try { return JSON.parse(g.st); } catch { return null; } }
 const gsP = g => g.act ? g.act.map(u => g.players.find(p => p.uid === u)).filter(Boolean) : g.players;
 const gsIdx = (g, uid) => gsP(g).findIndex(p => p.uid === uid);
 function hw(c, attrs = '', cls = ''){
-  const h = HT[c], sym = h.t === 'g' || h.t === 'y' ? h.e : GS_FLOWER[h.m];
-  const tag = h.t === 'g' ? '<b class="hw-g">光</b>' : h.t === 'pp' ? '<b class="hw-pp">쌍</b>' : '';
-  const rib = h.t === 'd' ? `<i class="hw-rib ${h.d}">${{ hong:'홍단', chung:'청단', cho:'초단', bi:'' }[h.d]}</i>` : '';
-  return `<button class="hw m${h.m} ${h.t} ${cls}" ${attrs}><span class="hw-m">${h.m}</span><span class="hw-e">${sym}</span>${tag}${rib}</button>`;
+  hwEnsureSprite();
+  return `<button class="hw ${cls}" ${attrs} aria-label="${GS_MNAME[gsM(c)]}"><svg viewBox="0 0 60 90"><use href="#hwc${c}"/></svg></button>`;
 }
 function gsCapsHTML(caps, small){
   const grp = { g:[], y:[], d:[], p:[] };
@@ -5412,7 +5482,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261020g';
+const BUILD = 'b20261020h';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
