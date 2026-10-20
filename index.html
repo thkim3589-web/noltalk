@@ -2711,6 +2711,21 @@ const PIXEL_IMG = [
   { name:'생일 케이크', pal:["#eae7e0", "#9f5024", "#5f2a19", "#bbafa7", "#b26331", "#d88b4b", "#906551", "#783f2b", "#efe9b4", "#cb6bc6", "#a58d7e", "#eaa864", "#c7763b", "#d1c8c2"], px:'.................................................................................................................................................................................................................................b.................................................b................................................bb................................................88.................................................d.................................................d................................................d9................................................90................................................d9................................................90................................................39.........................................2222a..63222..6222...........................2270.6222767692226a62222.a2....................2.62227722777766d2627222226.0727.................2a..722226c767226977666672227727226..............22766227276722222792222276622226d222..............2222227d226a2222227222227a36722d06227.............22222230a2273a6a627666a33d727773d3227.............22222a0007222778d6636776d067777772222.............722227aa622222300677777a0006772277227.............17222222222227080d777777aaa7777722214.............111122222222777777777776666772227144c.............51111117777222227777777722222744cc4c5.............c54111111111417777711174114ccccccc554.............11c5c11111111444444444ccccccccc55bc4c............b4114c5cc4114144444444cccccc5bbb5cc4450.........d3ab1111114c5555555555555bbbbbb55cccc45500.......0d3a4bc1111111444cccccc555c4ccccccccc5bcc000.....0003a11cb5c111111444444444ccccccccc5bb54450008...0800aa511114c55c444144444444c4c5bbbbb5cc4cb0000...0800a6c54111114ccc5bbbbbbbbbbbbb5ccccccc55a0d008..08003611c5c41111111444444cc4ccccccccc5bb54a00008..d880da6111455cc4111444444444cccc55bbb5cc44a00080..d3800da711114cc5bb55555555bbbbbbbb5ccccc47300080...33800d36711111114cbbb555555cccccccccc4163000800...d3a8800d3a671111144444444444cccccc446ad00088dd.....33ad8800ddd3aa66111444444444466aa3dd000888d30......33aad888000ddddd3333aaa3333ddd000008888d3d0.........33aa3d8880000000000000000000088888dd33d.............33aaaa3d888800000000000000000dd33ddd.................3333aaa3333dddddddddd33333dddd........................333333333333333ddddddd.....................................................................................................................................................................................................................' },
 ];
 const PX_MODES = { empty:'배경 없음', solid:'꽉 찬 배경', stripe:'줄무늬', checker:'체크무늬', frame:'테두리 성벽' };
+// 눈으로 구분하기 힘든 비슷한 색은 하나로 합쳐요 (밝기·색 차이 기준)
+function pxSeparate(grid, minD = 72){
+  const cnt = {}; grid.forEach(r => r.forEach(c => { if (c) cnt[c] = (cnt[c] || 0) + 1; }));
+  const map = {}; let cols = Object.keys(cnt);
+  const d = (a, b) => { const x = hex2rgb(a), y = hex2rgb(b); return Math.hypot((x[0] - y[0]) * .9, (x[1] - y[1]) * 1.2, (x[2] - y[2]) * .8) + Math.abs(lum(a) - lum(b)) * .5; };
+  for (;;) {
+    let best = null;
+    for (let i = 0; i < cols.length; i++) for (let j = i + 1; j < cols.length; j++) { const v = d(cols[i], cols[j]); if (v < minD && (!best || v < best[2])) best = [cols[i], cols[j], v]; }
+    if (!best) break;
+    const [a, b] = best, keep = cnt[a] >= cnt[b] ? a : b, drop = keep === a ? b : a;
+    cnt[keep] += cnt[drop]; delete cnt[drop]; map[drop] = keep; Object.keys(map).forEach(k => { if (map[k] === drop) map[k] = keep; });
+    cols = Object.keys(cnt);
+  }
+  return grid.map(r => r.map(c => c ? (map[c] || c) : c));
+}
 const PX_KINDS = ['손그림','몬스터','풍경','만다라','꽃','행성','그림'];
 const PX_CH = '0123456789abcdefghijklmnopqrstuvwxyz';
 function pxDecode(img, S){ return Array.from({ length:S }, (_, y) => Array.from({ length:S }, (_, x) => { const c = img.px[y * S + x]; return c === '.' || c === undefined ? null : img.pal[PX_CH.indexOf(c)]; })); }
@@ -2766,7 +2781,7 @@ function pixelBoard(level){
   if (level && typeof level === 'object') {   // 사진으로 만든 판
     const key = level.custom.px.slice(0, 60) + level.custom.pal.join('');
     if (pxCache.has(key)) return pxCache.get(key);
-    const out = { S: PX_S, grid: pxDecode(level.custom, PX_S), name:'📷 사진 퍼즐', mode:'empty', kind:'사진' };
+    const out = { S: PX_S, grid: pxSeparate(pxDecode(level.custom, PX_S)), name:'📷 사진 퍼즐', mode:'empty', kind:'사진' };
     pxCache.set(key, out); return out;
   }
   level = Math.abs(level | 0);
@@ -2774,7 +2789,7 @@ function pixelBoard(level){
   const S = PX_S, kind = level % 7, n = Math.floor(level / 7), rng = mulberry32(level * 131 + 7);
   if (kind === 6) {   // 실제 그림을 픽셀로 바꾼 판
     const im = PIXEL_IMG[n % PIXEL_IMG.length];
-    let g = pxDecode(im, S); if (rng() < .5) g = g.map(r => [...r].reverse());
+    let g = pxSeparate(pxDecode(im, S)); if (rng() < .5) g = g.map(r => [...r].reverse());
     const out = { S, grid: g, name: im.name, mode:'empty', kind:'그림' };
     pxCache.set(level, out); return out;
   }
@@ -2805,9 +2820,9 @@ function pixelBoard(level){
   const NS = 7, nw = Math.ceil(S / NS) + 2, nv = Array.from({ length: nw * nw }, () => rng());
   const noise = (x, y) => { const gx = x / NS, gy = y / NS, x0 = Math.floor(gx), y0 = Math.floor(gy), fx = gx - x0, fy = gy - y0, at = (a, b) => nv[b * nw + a];
     return at(x0, y0) * (1 - fx) * (1 - fy) + at(x0 + 1, y0) * fx * (1 - fy) + at(x0, y0 + 1) * (1 - fx) * fy + at(x0 + 1, y0 + 1) * fx * fy; };
-  g = g.map((r,y) => r.map((c,x) => { if (!c) return c; const v = noise(x, y); return v < .3 ? shade(c, -.16) : v < .45 ? shade(c, -.07) : v > .72 ? shade(c, .14) : c; }));
+  g = g.map((r,y) => r.map((c,x) => { if (!c) return c; const v = noise(x, y); return v < .32 ? shade(c, -.3) : v > .7 ? shade(c, .28) : c; }));
   const qz = pxQuantize(g.map(r => r.map(c => c || '#000001')), bg, 16).map(r => r.map(c => c === '#000001' ? null : c));
-  const out = { S, grid: qz, name: res.name, mode, kind: PX_KINDS[kind] };
+  const out = { S, grid: pxSeparate(qz), name: res.name, mode, kind: PX_KINDS[kind] };
   pxCache.set(level, out);
   return out;
 }
@@ -3164,7 +3179,7 @@ function PixelGame(stage, ctrl, seed, level, onEnd, setInfo){
     return false;
   };
   function sizePic(){
-    cell = Math.max(8, Math.floor(Math.min(stage.clientWidth - 24, stage.clientHeight * .46) / (S + 2)));
+    cell = Math.max(4, Math.floor(Math.min(stage.clientWidth - 20, stage.clientHeight * .44) / (S + 2)));
     const dpr = window.devicePixelRatio || 1, W = (S + 2) * cell;
     cv.width = W * dpr; cv.height = W * dpr; cv.style.width = W + 'px'; cv.style.height = W + 'px';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -3692,7 +3707,7 @@ function MinesGame(stage, ctrl, seed, _lv, onEnd, setInfo){
   const opened = () => st.filter(v => v === 1).length;
   const NC = ['','#3d7bff','#2e9e4f','#e5484d','#6c3fc4','#b8572a','#1aa3a3','#333','#888'];
   function render(){
-    const size = Math.max(28, Math.floor(Math.min((stage.clientWidth - 20) / W, (stage.clientHeight - 30) / H)));
+    const size = Math.max(22, Math.floor(Math.min((stage.clientWidth - 20 - 2 * (W - 1)) / W, (stage.clientHeight - 30 - 2 * (H - 1)) / H)));
     gEl.style.gridTemplateColumns = `repeat(${W}, ${size}px)`;
     gEl.innerHTML = st.map((v,i) => {
       const show = v === 1 || (!alive && mine[i]);
@@ -4955,7 +4970,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261019f';
+const BUILD = 'b20261020a';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
