@@ -3546,9 +3546,11 @@ function BlockPuzzleGame(stage, ctrl, seed, _lv, onEnd, setInfo){
   function target(){
     if (!drag) return null;
     const p = tray[drag.i], { w, h } = pieceSize(p.m);
-    const px = drag.x - w * cell / 2, py = drag.y - h * cell - cell * 1.2; // 손가락 위로 띄움
-    const c = Math.round(px / cell), r = Math.round(py / cell);
-    return { r, c, px, py, ok: fits(p.m, r, c) };
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    // 손가락 위로 띄우되, 블록이 화면(판) 밖으로 나가지 않게 가둬요
+    const px = clamp(drag.x - w * cell / 2, 0, W - w * cell), py = clamp(drag.y - h * cell - cell * 1.2, 0, Hh - h * cell);
+    const c = clamp(Math.round(px / cell), 0, N - w), r = Math.max(0, Math.round(py / cell));
+    return { r, c, px, py, ok: r <= N - h && fits(p.m, r, c) };
   }
   function draw(){
     ctx.clearRect(0, 0, W, Hh);
@@ -4970,7 +4972,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261020a';
+const BUILD = 'b20261020b';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
