@@ -4711,9 +4711,9 @@ function gsPlay(S0, pi, opt){
   } else {
     const c = opt.card; if (!S.hands[pi].includes(c)) return null;
     if (gsJk(c)) {   // 🃏 조커: 바로 먹고 더미에서 한 장 가져와 한 번 더
-      S.hands[pi] = S.hands[pi].filter(x => x !== c); S.caps[pi].push(c); S.caps[pi].sort((a, b) => a - b);
+      S.hands[pi] = S.hands[pi].filter(x => x !== c); S.caps[pi].push(c); gsStealPi(S, pi); S.caps[pi].sort((a, b) => a - b);
       if (S.deck.length) { S.hands[pi].push(S.deck.pop()); S.hands[pi].sort((a, b) => a - b); }
-      S.ev = [`🃏 조커! ${HT[c].jk}피 먹고 한 장 더`]; S.last = [c];
+      S.ev = [`🃏 조커! ${HT[c].jk}피 + 피 1장씩 뺏고 한 장 더`]; S.last = [c];
       const sc = gsScore(S.caps[pi]).total, more = S.hands[pi].length || S.dummy[pi];
       if (sc >= S.th && sc > S.goScore[pi]) { if (!more && !S.deck.length) { gsFinish(S, pi, '스톱'); return S; } S.phase = 'gostop'; S.jkMore = !!more; return S; }
       return more ? S : gsNext(S);
@@ -4733,7 +4733,7 @@ function gsPlay(S0, pi, opt){
   }
   // 뒤집기
   let f = S.deck.length ? S.deck.pop() : undefined;
-  while (f !== undefined && gsJk(f)) { S.caps[pi].push(f); taken.push(f); ev.push(`🃏 조커! ${HT[f].jk}피`); f = S.deck.length ? S.deck.pop() : undefined; }
+  while (f !== undefined && gsJk(f)) { S.caps[pi].push(f); taken.push(f); steal++; ev.push(`🃏 조커! ${HT[f].jk}피 + 피 1장씩`); f = S.deck.length ? S.deck.pop() : undefined; }
   if (f !== undefined) {
     const fmn = gsM(f);
     if (played && played.type === 'none' && fmn === played.m) { take([played.c, f]); steal++; ev.push('💋 쪽!'); }
@@ -4960,7 +4960,7 @@ function gsCapsHTML(caps, small){
   return `<div class="hw-caps ${small ? 'sm' : ''}">${[['g','광'],['y','열끗'],['d','띠'],['p','피']].map(([k, n]) => grp[k].length ? `<div class="hw-cg"><small>${n} ${k === 'p' ? caps.reduce((a, c) => a + gsPiVal(c, gsScore(caps).kjPi), 0) : grp[k].length}</small><div>${grp[k].map(c => hw(c, 'disabled', 'mini')).join('')}</div></div>` : '').join('')}</div>`;
 }
 R.gostop = (g, meIn) => {
-  if (g.status === 'waiting') return waitingHTML(g, meIn) + (meIn ? `<p class="empty" style="padding:4px">2명이면 맞고(7점), 3명이면 고스톱(3점), 4명이면 한 명씩 돌아가며 광 팔기(쉬기)<br>🃏 조커 3장: 쌍피 2장 · 쓰리피 1장 — 내면 바로 먹고 한 장 더<br>💰 1점에 10원 · 처음에 1만원 지급 (내 지갑 ${won(gsMoney())})<br><small>가상 머니예요 · 실제 돈이 아니고 충전·환전되지 않아요</small></p>` : '');
+  if (g.status === 'waiting') return waitingHTML(g, meIn) + (meIn ? `<p class="empty" style="padding:4px">2명이면 맞고(7점), 3명이면 고스톱(3점), 4명이면 한 명씩 돌아가며 광 팔기(쉬기)<br>🃏 조커 3장: 쌍피 2장 · 쓰리피 1장 — 먹으면 상대 피 1장씩 뺏고, 내면 한 장 더<br>💰 1점에 10원 · 처음에 1만원 지급 (내 지갑 ${won(gsMoney())})<br><small>가상 머니예요 · 실제 돈이 아니고 충전·환전되지 않아요</small></p>` : '');
   const S = gsState(g); if (!S) return '<p class="empty">판을 불러오는 중…</p>';
   const my = gsIdx(g, me.uid), myTurn = g.status === 'playing' && S.turn === my && !gsThinking;
   const sc = i => gsScore(S.caps[i]).total;
@@ -5766,7 +5766,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261021d';
+const BUILD = 'b20261021e';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
