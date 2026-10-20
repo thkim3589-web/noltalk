@@ -1600,7 +1600,7 @@ function renderGameTab(){
   const party = Object.keys(GAMES).filter(t => GAME_META[t]?.cat !== 'arcade');
   $('#gameTabBody').innerHTML = `
     <div class="sec-title">🕹️ 혼자 연습하기</div><div class="sec-sub">바로 시작해요 · 기록은 내 최고 기록에만 남아요</div>
-    <div class="ggrid">${arcade.map(tile).join('')}<button class="gtile" data-aichess="1"><span class="gi">♟️</span><b>체스</b><small>🤖 AI 대결</small></button><button class="gtile" data-photopx="1"><span class="gi">📷</span><b>사진 퍼즐</b><small>내 사진을 픽셀로</small></button><button class="gtile" data-soloyacht="1"><span class="gi">🎲</span><b>요트 다이스</b><small>혼자 점수 도전</small></button><button class="gtile" data-soloboard="janggi"><span class="gi">🀄</span><b>장기</b><small>🤖 AI 대결</small></button><button class="gtile" data-soloboard="go"><span class="gi">⚪</span><b>바둑 9×9</b><small>🤖 AI 대결</small></button><button class="gtile" data-soloboard="omok"><span class="gi">⚫</span><b>오목</b><small>🤖 AI 대결</small></button></div>
+    <div class="ggrid">${arcade.map(tile).join('')}<button class="gtile" data-aichess="1"><span class="gi">♟️</span><b>체스</b><small>🤖 AI 대결</small></button><button class="gtile" data-photopx="1"><span class="gi">📷</span><b>사진 퍼즐</b><small>내 사진을 픽셀로</small></button><button class="gtile" data-soloyacht="1"><span class="gi">🎲</span><b>요트 다이스</b><small>혼자 점수 도전</small></button><button class="gtile" data-soloboard="janggi"><span class="gi">🀄</span><b>장기</b><small>🤖 AI 대결</small></button><button class="gtile" data-soloboard="go"><span class="gi">⚪</span><b>바둑 9×9</b><small>🤖 AI 대결</small></button><button class="gtile" data-soloboard="omok"><span class="gi">⚫</span><b>오목</b><small>🤖 AI 대결</small></button><button class="gtile" data-soloboard="wordchain"><span class="gi">🔤</span><b>끝말잇기</b><small>🤖 AI 대결</small></button></div>
     <div class="sec-title" style="margin-top:18px">👥 친구랑 대결하기</div><div class="sec-sub">채팅방에서 ${ic('game', 16)} 버튼을 눌러 시작해요</div>
     <div class="ggrid">${party.map(t => { const g = GAMES[t], m = GAME_META[t] || {}; return `<button class="gtile" data-party="${t}"><span class="gi">${g.icon}</span><b>${g.name}</b><small>${m.ppl || ''}</small></button>`; }).join('')}</div>
     <div class="howto"><b>방에서 대결하는 법</b><br>채팅방 입력창 왼쪽 게임 버튼 → 게임 고르기 → 채팅에 뜬 카드의 <b>참가</b>를 누르면 친구도 함께해요. 아케이드 게임은 방에서 열면 모두 같은 판으로 순위를 겨뤄요.</div>`;
@@ -1674,7 +1674,7 @@ $('#rankTabBody').addEventListener('click', e => { const b = e.target.closest('[
 const GAME_CATS = [['all','전체'], ['duel','⚔️ 1:1 대결'], ['group','👥 여럿이'], ['mind','🕵️ 심리전'], ['quiz','🧠 퀴즈'], ['arcade','🕹️ 아케이드']];
 const GAME_META = {
   rps:{ cat:'duel', min:2, ppl:'2명' }, omok:{ cat:'duel', min:2, ppl:'2명' }, baseball:{ cat:'duel', min:2, ppl:'2명' },
-  wordchain:{ cat:'group', min:2, ppl:'2~6명' }, bingo:{ cat:'group', min:2, ppl:'2~4명' }, ladder:{ cat:'group', min:2, ppl:'2~8명' },
+  wordchain:{ cat:'group', min:2, ppl:'2~6명 · 🤖AI' }, bingo:{ cat:'group', min:2, ppl:'2~4명' }, ladder:{ cat:'group', min:2, ppl:'2~8명' },
   liar:{ cat:'mind', min:3, ppl:'3~8명' }, mafia:{ cat:'mind', min:4, ppl:'4~10명' },
   chosung:{ cat:'quiz', min:2, ppl:'2~8명' },
   blocks:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, jewel:{ cat:'arcade', min:1, ppl:'혼자도 OK' }, pixel:{ cat:'arcade', min:1, ppl:'혼자도 OK' },
@@ -1773,9 +1773,9 @@ function openGame(id){
     if (!cg.pr && !cg.prDone && PRACTICE.includes(d.type) && d.status === 'waiting' && d.players.length === 1 && d.players[0].uid === me.uid) {
       cg.pr = practiceData(d.type); chSel = null; chPromo = null; chHist = []; chThinking = false;
     }
-    if (cg.pr && d.status !== 'waiting' && !cg.prDone) {
-      cg.prDone = true; chSel = null; chPromo = null; chHist = []; chThinking = false;
-      toast('🎉 상대가 참가했어요! 진짜 게임 시작!'); try { navigator.vibrate?.([30,40,30]); } catch {}
+    if (cg.pr && !cg.prDone && (d.status !== 'waiting' || (HOST_START[d.type] && d.players.length > 1))) {
+      cg.prDone = true; cg.pr = null; chSel = null; chPromo = null; chHist = []; chThinking = false;
+      toast(d.status === 'waiting' ? '🎉 친구가 들어왔어요! 시작을 눌러 진짜 게임을 해요' : '🎉 상대가 참가했어요! 진짜 게임 시작!'); try { navigator.vibrate?.([30,40,30]); } catch {}
     }
     renderGame();
     if (isLocal()) aiMaybe();
@@ -1787,16 +1787,17 @@ $('#gvClose').onclick = closeGame;
 // 지금 화면에 보이는 게임 데이터: 방 게임이 '모집 중'이고 연습판이 있으면 연습판
 const gd = () => curGame ? (curGame.pr && curGame.data?.status === 'waiting' ? curGame.pr : curGame.data) : null;
 const isLocal = () => !!curGame && (!!curGame.local || (!!curGame.pr && curGame.data?.status === 'waiting'));
-const PRACTICE = ['chess','omok','janggi','go'];
+const PRACTICE = ['chess','omok','janggi','go','wordchain'];
 function practiceData(type){
   const mine = { uid: me.uid, name: me.name };
   if (type === 'chess') return { type:'chess', status:'playing', local:true, lv: aiPick.lv, players:[mine, { uid:'ai', name:`🤖 AI (${AI_LV[aiPick.lv].name})` }],
     board: CH_START, turn:'w', castle:'KQkq', ep:-1, half:0, moves:[], last:null, winner:null, reason:null, drawOffer:null };
+  if (type === 'wordchain') { wcLoad(); return { type:'wordchain', status:'playing', local:true, players:[mine, { uid:'ai', name:'🤖 AI' }], words:[], turn:0, turnStartedAt: Date.now(), loser:null, reason:null }; }
   if (type === 'janggi') return { type:'janggi', status:'playing', local:true, players:[mine, { uid:'ai', name:'🤖 AI' }], board: JG_START, turn:'c', last:null, moves:0, winner:null, hist:[] };
   if (type === 'go') return { type:'go', status:'playing', local:true, players:[mine, { uid:'ai', name:'🤖 AI' }], board:'.'.repeat(81), prev:null, turn:'b', last:-1, passes:0, caps:{ b:0, w:0 }, winner:null, hist:[] };
   return { type:'omok', status:'playing', local:true, players:[mine, { uid:'ai', name:'🤖 AI' }], board:'.'.repeat(225), turn:0, last:-1, winner:null };
 }
-function aiMaybe(){ const g = gd(); if (!g) return; if (g.type === 'chess') chAiMaybe(); if (g.type === 'omok') omAiMaybe(); if (g.type === 'janggi') jgAiMaybe(); if (g.type === 'go') goAiMaybe(); }
+function aiMaybe(){ const g = gd(); if (!g) return; if (g.type === 'chess') chAiMaybe(); if (g.type === 'omok') omAiMaybe(); if (g.type === 'janggi') jgAiMaybe(); if (g.type === 'go') goAiMaybe(); if (g.type === 'wordchain') wcAiMaybe(); }
 async function tx(fn, after){
   if (isLocal()) {   // 혼자 하는 AI 대결: 서버 없이 바로 적용
     const d = gd(), r = fn(JSON.parse(JSON.stringify(d)));
@@ -2061,7 +2062,8 @@ const R = {
       let next = `<div class="next">첫 단어는 아무거나! 🎲</div>`;
       if (last) { const lc = last.word.at(-1), d = dueum(lc); next = `<div class="next">다음 글자 <b>${lc}</b>${d ? ` 또는 <b>${d}</b>` : ''}</div>`; }
       let h = playersHTML(g, g.turn) + chain + next + `<div class="timer"><i id="wcTimer"></i></div>
-        <div class="status">${myTurn ? '🔥 내 차례!' : `${esc(cur.name)}님 차례`}</div>`;
+        <div class="status">${myTurn ? '🔥 내 차례!' : cur.uid === 'ai' ? '🤖 AI가 단어를 찾는 중...' : `${esc(cur.name)}님 차례`}</div>`;
+      if (g.local) h += `<p class="hint" style="text-align:center">📖 사전에 있는 명사만 · 두음법칙 OK · AI가 못 이으면 승리!</p>`;
       if (myTurn) h += `<div class="row"><input id="wcInput" class="field" maxlength="10" placeholder="단어 입력" autocomplete="off" enterkeyhint="done">
         <button class="btn" style="width:auto;padding:0 18px" data-act="submit">제출</button></div>
         <button class="btn ghost" style="margin-top:8px" data-act="giveup">포기</button>`;
@@ -2382,6 +2384,7 @@ const ACT = {
     const inp = document.getElementById('wcInput'); if (!inp) return;
     const w = inp.value.trim();
     if (!/^[가-힣]{2,10}$/.test(w)) return toast('한글 2~10자 단어를 입력하세요');
+    if (gd()?.local && WC && !WC.all.has(w)) return toast('사전에 없는 단어예요 (명사만 돼요) 📖');
     tx(g => {
       if (g.status !== 'playing') return '게임이 끝났어요';
       if (g.players[g.turn].uid !== me.uid) return '내 차례가 아니에요';
@@ -2497,9 +2500,9 @@ function endWordchain(reason, isTimeout){
     if (isTimeout && Date.now() - g.turnStartedAt < TURN_MS) return null;
     if (!isTimeout && g.players[g.turn].uid !== me.uid) return '내 차례에만 포기할 수 있어요';
     const loser = g.players[g.turn].name;
-    msg = `🔤 끝말잇기: ${loser}님 탈락! (${reason}, ${(g.words||[]).length}개 이어감)`;
+    msg = g.local ? (loser === '🤖 AI' ? '🎉 AI를 이겼어요!' : `😵 졌어요 (${reason}) · ${(g.words||[]).length}개 이어감`) : `🔤 끝말잇기: ${loser}님 탈락! (${reason}, ${(g.words||[]).length}개 이어감)`;
     return { status:'done', loser, reason };
-  }, () => msg && sys(msg));
+  }, () => msg && chSay(msg));
 }
 function bingoCall(num, isTimeout){
   let msg = null;
@@ -2532,7 +2535,7 @@ $('#gvBody').addEventListener('keydown', e => {
 });
 // 턴 타이머 (끝말잇기·빙고)
 setInterval(() => {
-  const g = curGame?.data, bar = document.getElementById('wcTimer');
+  const g = gd(), bar = document.getElementById('wcTimer');
   if (!g || !TURN_GAMES.includes(g.type) || g.status !== 'playing' || !bar) return;
   const left = TURN_MS - (Date.now() - g.turnStartedAt);
   bar.style.width = Math.max(0, left / TURN_MS * 100) + '%';
@@ -4509,6 +4512,38 @@ function openSoloBoard(type){
   openDlg('gameView'); renderGame(); aiMaybe();
 }
 
+/* ================= 🔤 끝말잇기 AI ================= */
+let WC = null, wcLoading = null, wcThinking = false;
+function wcLoad(){
+  if (WC) return Promise.resolve(WC);
+  return wcLoading = wcLoading || fetch('words.txt').then(r => r.text()).then(t => {
+    const common = [], rest = []; let part = common;
+    t.split('\n').slice(1).forEach(l => { l = l.trim(); if (!l) return; if (l === '#') { part = rest; return; } part.push(l); });
+    const all = new Set([...common, ...rest]), rank = new Map(common.map((w,i) => [w, i])), by = {};
+    for (const w of all) (by[w[0]] = by[w[0]] || []).push(w);
+    return WC = { all, rank, by, common };
+  }).catch(() => { wcLoading = null; return null; });
+}
+function wcAiMaybe(){
+  const g = gd(); if (!isLocal() || !g || g.type !== 'wordchain' || g.status !== 'playing' || wcThinking) return;
+  if (g.players[g.turn]?.uid !== 'ai') return;
+  wcThinking = true; renderGame(); const cg = curGame;
+  setTimeout(async () => {
+    const D = await wcLoad(); wcThinking = false;
+    if (!D || curGame !== cg || !isLocal() || gd() !== g || g.players[g.turn]?.uid !== 'ai' || g.status !== 'playing') return renderGame();
+    const used = new Set((g.words || []).map(x => x.word)), last = (g.words || []).at(-1)?.word;
+    const starts = last ? [last.at(-1), dueum(last.at(-1))].filter(Boolean) : null;
+    const cand = (starts ? starts.flatMap(s => D.by[s] || []) : D.common.slice(0, 300)).filter(w => !used.has(w));
+    if (!cand.length) { tx(x => x.status === 'playing' ? { status:'done', loser:'🤖 AI', reason:'AI가 이을 단어를 못 찾았어요' } : null, () => chSay('🎉 AI가 이을 단어를 못 찾았어요! 승리!')); return; }
+    const follow = w => { const e = w.at(-1); return [e, dueum(e)].filter(Boolean).reduce((a, s) => a + (D.by[s] || []).filter(x => !used.has(x)).length, 0); };
+    const n = (g.words || []).length, trap = cand.filter(w => D.rank.has(w) && follow(w) <= 2);
+    let pick;
+    if (trap.length && Math.random() < Math.min(.55, .1 + n * .03)) pick = trap[Math.floor(Math.random() * trap.length)];   // 갈수록 한방단어로 압박
+    else { const com = cand.filter(w => D.rank.has(w)).sort((a,b) => D.rank.get(a) - D.rank.get(b)), pool = com.length ? com.slice(0, 25) : cand; pick = pool[Math.floor(Math.random() * pool.length)]; }
+    tx(x => x.status === 'playing' && x.players[x.turn]?.uid === 'ai' ? { words:[...(x.words || []), { word: pick, uid:'ai' }], turn:(x.turn + 1) % x.players.length, turnStartedAt: Date.now() } : null);
+  }, 700 + Math.random() * 900);
+}
+
 /* ================= ⚫ 오목 AI ================= */
 let omThinking = false;
 function omScore(b, i, s){   // i에 s를 놓았을 때 4방향 모양 점수
@@ -4972,7 +5007,7 @@ window.noltalkBack = () => {
 };
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('NoltalkApp')) navigator.serviceWorker.register('sw.js').catch(() => {});
 // 새 버전 자동 적용: 서버의 BUILD 값이 다르면 캐시를 우회해서 다시 불러와요
-const BUILD = 'b20261020b';
+const BUILD = 'b20261020d';
 async function checkWebUpdate(){
   try {
     const t = await (await fetch(`./index.html?_=${Date.now()}`, { cache:'no-store' })).text();
